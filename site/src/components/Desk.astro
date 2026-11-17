@@ -1,0 +1,126 @@
+---
+// "Put it anywhere": a halftone picture of a desk with a laptop on it. The
+// laptop's screen plays a short, silent screen recording of the widget being
+// moved around a desktop.
+//
+// The laptop is a picture with an opaque screen; the recording is laid over
+// that screen. The screen's place is given as fractions of the laptop
+// picture (904 × 570), so the two stay aligned at any width.
+//
+// The recording does not start by itself: src/scripts/motion.ts plays it
+// while the picture is on screen and pauses it otherwise. Without the script,
+// or with prefers-reduced-motion, the first frame stays as a still.
+import { Picture, getImage } from 'astro:assets';
+import Marker from './Marker.astro';
+import desk from '../assets/pictures/desk.png';
+import macbook from '../assets/pictures/macbook.png';
+import posterSrc from '../assets/video/desk-demo-poster.png';
+import video from '../assets/video/desk-demo.mp4?url';
+
+const poster = await getImage({ src: posterSrc, format: 'webp', width: 1244 });
+---
+
+<section class="section container">
+  <Marker shape="circle" />
+  <h2 class="h indent">put it anywhere</h2>
+  <p class="lede indent section__lede">
+    drag it to any edge of the screen, or leave it floating. it stays where you left it.
+  </p>
+
+  <div class="indent">
+    <div class="desk">
+      <Picture
+        src={desk}
+        formats={['avif', 'webp']}
+        fallbackFormat="jpg"
+        widths={[640, 832, 1024, 1536, 2048]}
+        sizes="(max-width: 1151px) calc(100vw - 64px), 1024px"
+        alt="A halftone print of a wooden desk by a window, with a plant and a mug at one side."
+        loading="lazy"
+        class="desk__bg"
+      />
+      <div class="desk__mac">
+        <Picture
+          src={macbook}
+          formats={['avif', 'webp']}
+          fallbackFormat="png"
+          widths={[452, 904]}
+          sizes="(max-width: 699px) 92vw, (max-width: 1151px) 70vw, 760px"
+          alt=""
+          loading="lazy"
+        />
+        <video
+          class="desk__video"
+          id="desk-video"
+          src={video}
+          poster={poster.src}
+          width="1244"
+          height="808"
+          muted
+          loop
+          playsinline
+          preload="none"
+          aria-label="A screen recording of a Mac desktop: the Pocket widget is dragged from one edge of the screen to another and opens wherever it is left."
+        ></video>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .desk {
+    position: relative;
+    aspect-ratio: 1024 / 640;
+    background: var(--paper);
+    overflow: hidden;
+    overflow: clip;
+  }
+
+  .desk :global(.desk__bg) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* The laptop's place, as fractions of the 1024 × 640 picture. */
+  .desk__mac {
+    position: absolute;
+    left: 12.891%;
+    top: 15%;
+    width: 74.219%;
+    aspect-ratio: 904 / 570;
+  }
+
+  .desk__mac :global(img) {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* The screen's place, as fractions of the 904 × 570 laptop picture. */
+  .desk__video {
+    position: absolute;
+    left: 8.96%;
+    top: 3.86%;
+    width: 81.86%;
+    height: 83.86%;
+    object-fit: cover;
+    border-radius: 1.1% 1.1% 0 0 / 1.7% 1.7% 0 0;
+    background: #000;
+  }
+
+  /* Phone: a taller picture, so the laptop can take almost its full width. */
+  @media (max-width: 699px) {
+    .desk {
+      aspect-ratio: 4 / 3;
+    }
+
+    .desk__mac {
+      left: 4%;
+      top: 13%;
+      width: 92%;
+    }
+  }
+</style>

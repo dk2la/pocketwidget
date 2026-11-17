@@ -2,7 +2,8 @@
 // it is first seen:
 //
 // - section markers: the corner dots, then the shape (.marker in global.css);
-// - the three figures: one small move each, replayed on hover (Figures.astro);
+// - the desk picture: the screen recording plays while it is on screen
+//   (Desk.astro);
 // - the sky picture: the widgets rise in, then drift while the page scrolls
 //   (Sky.astro);
 // - the price: the days switch on, then the price is struck (Price.astro).
@@ -13,7 +14,6 @@
 // fade or nothing at all, and the price and the drift are skipped here.
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-const canHover = window.matchMedia('(hover: hover) and (pointer: fine)');
 
 /** Still below the first screen? */
 function below(el: Element): boolean {
@@ -44,19 +44,30 @@ function initMarkers(): void {
   });
 }
 
-function initFigures(): void {
-  const play = (fig: HTMLElement) => {
-    // Restart the CSS animations: drop the class, flush styles, add it back.
-    fig.classList.remove('play');
-    void fig.offsetWidth;
-    fig.classList.add('play');
+function initDesk(): void {
+  const video = document.querySelector<HTMLVideoElement>('#desk-video');
+  if (!video) return;
+
+  // Plays only while at least a third of it is on screen, the tab is visible
+  // and the visitor has not asked for less motion.
+  let onscreen = false;
+  const sync = () => {
+    if (onscreen && !document.hidden && !reducedMotion.matches) {
+      // Autoplay can be refused (e.g. Low Power Mode); the still stays then.
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
   };
-  document.querySelectorAll<HTMLElement>('[data-fig]').forEach((fig) => {
-    if (below(fig)) whenSeen(fig, 0.6, () => play(fig));
-    fig.addEventListener('mouseenter', () => {
-      if (canHover.matches) play(fig);
-    });
-  });
+  new IntersectionObserver(
+    (entries) => {
+      onscreen = entries[entries.length - 1].isIntersecting;
+      sync();
+    },
+    { threshold: 0.35 },
+  ).observe(video);
+  document.addEventListener('visibilitychange', sync);
+  reducedMotion.addEventListener('change', sync);
 }
 
 function initSky(): void {
@@ -120,7 +131,7 @@ function initPrice(): void {
 export function initMotion(): void {
   if (!('IntersectionObserver' in window)) return;
   initMarkers();
-  initFigures();
+  initDesk();
   initSky();
   initPrice();
 }
