@@ -1,5 +1,6 @@
 ---
-// First screen: the copy on the left, and on the right a halftone picture
+// First screen: the copy on the left (no buttons here: Buy and Download are
+// in the header and in the price section), and on the right a halftone picture
 // with the widget "selected" on it (blue outline, four handles, size label).
 //
 // The widget is a real screenshot laid over the picture as its own image.
@@ -24,7 +25,6 @@ import clipboard from '../assets/screens/clipboard.png';
 import notes from '../assets/screens/notes.png';
 import assistant from '../assets/screens/assistant.png';
 import playbooks from '../assets/screens/playbooks.png';
-import { checkoutURL, downloadURL, price } from '../config';
 
 const widths = [326, 565];
 const sizes = '(max-width: 699px) 67vw, 326px';
@@ -59,18 +59,6 @@ const shots = await Promise.all(
     <p class="lede indent hero__lede">
       it sits at the edge of your screen and opens right where you work. move it, size it, put
       it anywhere.
-    </p>
-    <div class="indent hero__cta">
-      <a class="btn btn--buy" href={checkoutURL}>
-        buy pocket
-        <span class="btn__price">{price.launch} <s>{price.regular}</s></span>
-      </a>
-      <a class="btn btn--quiet" href={downloadURL} download>download</a>
-    </div>
-    <p class="label muted indent hero__note">
-      3-day Trial, every feature.<br />
-      then one payment: {price.launch} at launch, {price.regular} later.<br />
-      macOS 14 or later.
     </p>
   </div>
 
@@ -150,16 +138,6 @@ const shots = await Promise.all(
 
   .hero__lede {
     padding-top: var(--s-8);
-  }
-
-  .hero__cta {
-    display: flex;
-    gap: var(--s-1);
-    padding-top: var(--s-7);
-  }
-
-  .hero__note {
-    padding-top: var(--s-5);
   }
 
   /* ---------- the picture ---------- */
@@ -515,18 +493,6 @@ const shots = await Promise.all(
       padding-top: var(--s-5);
     }
 
-    .hero__cta {
-      flex-direction: column;
-      padding-top: var(--s-5);
-    }
-
-    .hero__cta .btn--buy {
-      justify-content: space-between;
-    }
-
-    .hero__note {
-      padding-top: var(--s-4);
-    }
 
     /* The widget takes more of the smaller picture. */
     .stage {
