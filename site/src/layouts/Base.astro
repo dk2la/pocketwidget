@@ -15,7 +15,7 @@ import '../styles/global.css';
 // reflow. Self-hosted: the site makes no request to another origin.
 import geistLatin from '@fontsource-variable/geist/files/geist-latin-wght-normal.woff2?url';
 import geistMonoLatin from '@fontsource-variable/geist-mono/files/geist-mono-latin-wght-normal.woff2?url';
-import { checkoutURL, downloadURL, price } from '../config';
+import { checkoutURL, downloadURL } from '../config';
 
 interface Props {
   /** Page name. Rendered as "<title> — Pocket"; omit on the home page. */
@@ -76,7 +76,7 @@ const ogImageAlt = `${tagline}. The Pocket widget on a halftone picture of a roo
       <a class="brand" href="/" aria-label="Pocket, home">pocket</a>
       <nav class="top__nav" aria-label="Main">
         <a class="top__link label" href={downloadURL} download>download</a>
-        <a class="btn btn--light btn--sm" href={checkoutURL}>buy · {price.launch}</a>
+        <a class="btn btn--light btn--sm" href={checkoutURL}>buy</a>
       </nav>
     </header>
 
