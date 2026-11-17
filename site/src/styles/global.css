@@ -30,7 +30,7 @@
   --dot: #3a3a36; /* marker corner dots */
   --tone-2: #a8a292; /* day 2 */
   --tone-3: #6b665b; /* day 3, dashed ghosts */
-  --accent: #3fff00; /* Buy and the price band only */
+  --accent: #3fff00; /* the price band, and Buy on hover */
   --on-accent: #0b0b0a;
   --select: #3685f9; /* selection outline, focus ring, text selection */
   --paper: #fbfaf5; /* behind the halftone pictures while they load */
@@ -321,7 +321,7 @@ svg {
 /* ---------- buttons ---------- */
 
 /* Square, 64px tall. The fill swaps on hover with no transition; a press
-   scales to 0.97. Variants: --buy (accent), --light (beige), --quiet (card). */
+   scales to 0.97. Variants: --light (beige, turns accent on hover), --quiet (card). */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -341,11 +341,6 @@ svg {
 
 .btn:active {
   transform: scale(0.97);
-}
-
-.btn--buy {
-  background: var(--accent);
-  color: var(--on-accent);
 }
 
 .btn--light {
@@ -383,19 +378,7 @@ svg {
   font-weight: 400;
 }
 
-.btn__price s {
-  text-decoration-thickness: 1px;
-}
-
-.btn--buy:focus-visible {
-  outline-color: var(--text);
-}
-
 @media (hover: hover) and (pointer: fine) {
-  .btn--buy:hover {
-    background: var(--text);
-  }
-
   .btn--light:hover {
     background: var(--accent);
     color: var(--on-accent);
