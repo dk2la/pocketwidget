@@ -42,7 +42,10 @@ npm run preview  # serves the built dist/ as-is, http://localhost:4321
     (17 units) and text starts one unit (`--indent`) right of the section
     marker.
   - Square corners everywhere except the widget screenshots.
-  - The accent green is only for Buy buttons and the price band.
+  - The accent green is only for the price band and for Buy buttons on
+    hover.
+  - Buy and Download appear twice: in the header and in the price section.
+    The first screen has no buttons.
   - Copy is typed in lowercase in the markup, never with `text-transform`, so
     the glossary terms Trial, License and License key keep their capitals.
   - Breakpoints: below 1152px the column is fluid, below 900px the first
