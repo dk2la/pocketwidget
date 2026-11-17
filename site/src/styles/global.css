@@ -7,7 +7,7 @@
  * - Everything sits on a 64px grid (--u). The ground carries the grid as a
  *   tiled image whose vertical lines meet the content column's left edge.
  * - Corners are square. The only rounded things are the widget screenshots
- *   and the small widget drawings in the figures.
+ *   and the laptop's screen.
  * - Copy is written in lowercase in the markup (never text-transform), so the
  *   glossary terms Trial, License and License key keep their capitals.
  * - Breakpoints: below 1152px the column becomes fluid, below 900px the hero
