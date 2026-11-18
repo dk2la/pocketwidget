@@ -1,10 +1,11 @@
 import Foundation
 
 /// Where licensing talks to, and whether it is enforced. None of these are
-/// secrets. The three values are placeholders until the owner deploys the
-/// Trial server (`worker/README.md`) and sets up the store.
+/// secrets. `productID` and `checkoutURL` are placeholders until the owner
+/// sets up the store.
 enum LicensingConfig {
     /// Base URL of the Trial server (the Cloudflare Worker in `worker/`).
+    /// Released versions keep calling this address, so it must never change.
     static var trialServerURL: URL? {
         #if DEBUG
         // `--trial-server <url>`: point a debug build at a local Worker.
@@ -13,7 +14,7 @@ enum LicensingConfig {
             return URL(string: args[index + 1])
         }
         #endif
-        return URL(string: "https://pocket-trial.example.workers.dev")
+        return URL(string: "https://trial.pocketwidget.tech")
     }
 
     /// The store's product ID for Pocket; keys sold for anything else are
