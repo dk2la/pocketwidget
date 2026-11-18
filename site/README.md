@@ -82,19 +82,19 @@ npm run preview  # serves the built dist/ as-is, http://localhost:4321
 
 ## Site URL
 
-The site has no final domain yet. Set the `SITE_URL` environment variable at
-build time to the public origin, without a trailing path:
+The site lives at `https://pocketwidget.tech`. Set the `SITE_URL` environment
+variable at build time to that origin, without a trailing path:
 
 ```sh
-SITE_URL=https://example.com npm run build
+SITE_URL=https://pocketwidget.tech npm run build
 ```
 
-It is only used to make the link preview image URL (`og:image`,
-`twitter:image`) absolute, which link previews require. Without it the build
-still works and those tags point to `/og.png`, which most services will not
-load. In CI the build step in `.github/workflows/site.yml` reads it from the
-`SITE_URL` repository variable; set that variable once the address is known. There is no canonical link and no `og:url` yet; add
-them together with the domain.
+It makes the link preview image URL (`og:image`, `twitter:image`) absolute,
+which link previews require, and adds the canonical link and `og:url` to every
+page. Without it the build still works: the image tags point to `/og.png`,
+which most services will not load, and the canonical link and `og:url` are
+left out. In CI the build step in `.github/workflows/site.yml` reads it from
+the `SITE_URL` repository variable.
 
 ## Deploy
 
@@ -103,14 +103,26 @@ Deploys run from GitHub Actions, never from a local machine. The workflow
 `site/**` (or the workflow itself), and can be started by hand from the Actions
 tab. It runs on a GitHub-hosted runner, builds the site and runs
 `wrangler deploy`, which uploads `dist/` to the Worker named `pocket-site`
-(see `wrangler.toml`). The site is then available at
-`https://pocket-site.<account-subdomain>.workers.dev`.
+(see `wrangler.toml`). The same workflow then deploys the Worker in
+`www-redirect/`.
+
+### Domain
+
+The domain `pocketwidget.tech` is registered at Cloudflare, in the same
+account as the Workers. `wrangler.toml` attaches it to the site as a custom
+domain; Cloudflare creates the DNS record and the certificate on deploy.
+`www.pocketwidget.tech` is attached to a second, tiny Worker,
+`www-redirect/`, that answers every request with a 301 to the same path on
+`pocketwidget.tech`. It is separate because the site Worker has no script and
+cannot tell hosts apart. The site also stays reachable at
+`https://pocket-site.<account-subdomain>.workers.dev`; the canonical link on
+every page points to the domain.
 
 ### Required repository secrets
 
 | Secret | Value |
 | --- | --- |
-| `CLOUDFLARE_API_TOKEN` | A Cloudflare API token created from the "Edit Cloudflare Workers" template |
+| `CLOUDFLARE_API_TOKEN` | A Cloudflare API token created from the "Edit Cloudflare Workers" template. Its zone resources must include `pocketwidget.tech`, or attaching the domain fails |
 | `CLOUDFLARE_ACCOUNT_ID` | The ID of the Cloudflare account that owns the Worker |
 
 Set them under Settings → Secrets and variables → Actions.

@@ -71,8 +71,8 @@ Subscription feature) are defined in [GLOSSARY.md](../GLOSSARY.md).
 
 ## Website
 
-- Hosted on Cloudflare Workers (static assets), on its own domain (not chosen
-  yet).
+- Hosted on Cloudflare Workers (static assets) at `https://pocketwidget.tech`.
+  The domain is registered at Cloudflare; `www` redirects to it.
 - Pages: landing with Buy and Download, Terms, Privacy, Refund Policy.
 - Design: custom, with animations, in the style of the current widget. The
   design isn't discussed yet; a mockup comes later.
@@ -86,5 +86,4 @@ Subscription feature) are defined in [GLOSSARY.md](../GLOSSARY.md).
 
 - Where the Sparkle feed is hosted. It must stay reachable after the main
   repository goes private. (DMGs are settled, see Downloads.)
-- Website domain.
 - Website design (mockup first).
