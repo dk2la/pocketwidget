@@ -12,7 +12,7 @@ routes = [{ pattern = "trial.pocketwidget.tech", custom_domain = true }]
 # then replace the placeholder below with the "id" that command prints.
 [[kv_namespaces]]
 binding = "TRIALS"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "9a306a606d5f428391d1d784109b572c"
 
 # Privacy: keep no request logs.
 [observability]
