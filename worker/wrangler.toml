@@ -1,7 +1,10 @@
 name = "pocket-trial"
 main = "src/index.js"
 compatibility_date = "2026-10-01"
-workers_dev = true
+# Served only at its own address. The app has this address built in, so it
+# must never change: old versions would stop starting the Trial.
+workers_dev = false
+routes = [{ pattern = "trial.pocketwidget.tech", custom_domain = true }]
 
 # KV namespace that maps a hashed Mac ID to its Trial start date.
 # Create it once with:

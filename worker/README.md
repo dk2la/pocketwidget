@@ -62,13 +62,15 @@ Paste the printed `id` into `wrangler.toml` in place of
 npx wrangler deploy
 ```
 
-Wrangler prints the Worker URL, e.g.
-`https://pocket-trial.<your-subdomain>.workers.dev`.
+The Worker is served at `https://trial.pocketwidget.tech` (the custom domain
+in `wrangler.toml`; Cloudflare creates the DNS record and the certificate on
+deploy). The domain is registered in the same Cloudflare account. There is no
+`workers.dev` address.
 
 ## Verify
 
 ```sh
-curl -sS -X POST https://pocket-trial.<your-subdomain>.workers.dev/trial \
+curl -sS -X POST https://trial.pocketwidget.tech/trial \
   -H 'Content-Type: application/json' \
   -d '{"macId":"0000000000000000000000000000000000000000000000000000000000000000"}'
 ```
@@ -81,10 +83,11 @@ npx wrangler kv key delete --binding TRIALS --remote \
   0000000000000000000000000000000000000000000000000000000000000000
 ```
 
-## After deploy
+## Address in the app
 
-Put the Worker URL (including the `/trial` path if the config expects the full
-endpoint) into `Sources/Licensing/LicensingConfig.swift` as `trialServerURL`.
+`trialServerURL` in `Sources/Licensing/LicensingConfig.swift` is
+`https://trial.pocketwidget.tech`, without the `/trial` path. Every released
+version has it built in, so the address must never change.
 
 ## Notes
 
