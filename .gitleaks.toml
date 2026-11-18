@@ -7,8 +7,9 @@ description = "Keychain service identifiers"
 regexTarget = "line"
 regexes = ['''keychainService\s*=\s*"com\.dk2la\.[a-z.]+"''']
 
-# The sample License key from the Lemon Squeezy API documentation, used in
-# test fixtures. It is public and unlocks nothing.
+# The sample License key from the Lemon Squeezy API documentation. Test
+# fixtures used it before the store moved to Polar; it is still in the git
+# history, which the scan covers. It is public and unlocks nothing.
 [[allowlists]]
 description = "Lemon Squeezy documentation sample License key"
 regexes = ['''38b1460a-5104-4067-a91d-77b872934d51''']

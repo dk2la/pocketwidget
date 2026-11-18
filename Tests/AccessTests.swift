@@ -4,7 +4,7 @@ import XCTest
 /// local store, the Trial server and the license API.
 @MainActor
 final class AccessTests: XCTestCase {
-    private static let pocketProduct = 1001
+    private static let pocketProduct = "benefit-pocket"
     private static let macID = "mac-a"
 
     /// One Mac and the world around it. `launch()` is an app start: a new
@@ -47,7 +47,7 @@ final class AccessTests: XCTestCase {
             trialServer.serverDate = clock.now
         }
 
-        func sellKey(activationID: String = "inst-1", productID: Int = AccessTests.pocketProduct) {
+        func sellKey(activationID: String = "inst-1", productID: String = AccessTests.pocketProduct) {
             api.activateResult = .success(LicenseActivation(activationID: activationID, productID: productID))
         }
 
@@ -210,7 +210,7 @@ final class AccessTests: XCTestCase {
     func testKeyForAnotherProductIsRejectedAndItsActivationFreed() async {
         let world = World()
         let access = await world.launch()
-        world.sellKey(activationID: "foreign", productID: 2002)
+        world.sellKey(activationID: "foreign", productID: "benefit-other")
         await assertThrows(.wrongProduct) { try await access.activate(licenseKey: "OTHER-APP") }
         XCTAssertEqual(access.state, .trial(daysLeft: 3))
         XCTAssertEqual(world.api.freedActivations, ["foreign"])

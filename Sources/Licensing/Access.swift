@@ -28,7 +28,7 @@ final class Access {
     @ObservationIgnored private let trialServer: any TrialServer
     @ObservationIgnored private let licenseAPI: any LicenseAPI
     @ObservationIgnored private let macID: String
-    @ObservationIgnored private let productID: Int
+    @ObservationIgnored private let productID: String
     @ObservationIgnored private let clock: @MainActor () -> Date
     /// The server confirmed the Trial start during this launch; no need to
     /// ask again.
@@ -44,7 +44,7 @@ final class Access {
         trialServer: any TrialServer,
         licenseAPI: any LicenseAPI,
         macID: String,
-        productID: Int,
+        productID: String,
         now: @escaping @MainActor () -> Date = { Date() }
     ) {
         self.store = store
