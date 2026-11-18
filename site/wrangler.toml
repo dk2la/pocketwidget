@@ -2,6 +2,10 @@ name = "pocket-site"
 compatibility_date = "2026-10-01"
 workers_dev = true
 
+# The public address. Cloudflare creates the DNS record and the certificate.
+# www.pocketwidget.tech redirects here from the Worker in www-redirect/.
+routes = [{ pattern = "pocketwidget.tech", custom_domain = true }]
+
 # Static assets only: there is no Worker script. Cloudflare serves the Astro
 # build output directly.
 [assets]

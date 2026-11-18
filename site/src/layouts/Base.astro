@@ -35,10 +35,14 @@ const year = new Date().getFullYear();
 
 // Link preview image (public/og.png, 1200×630). Link previews need an
 // absolute URL: it becomes one when SITE_URL is set at build time (see
-// astro.config.mjs). There is deliberately no canonical link and no og:url
-// until the site has its final domain.
+// astro.config.mjs). The canonical link and og:url are only written when it
+// is set, so a build without it never points at a wrong address.
 const ogImagePath = '/og.png';
 const ogImage = Astro.site ? new URL(ogImagePath, Astro.site).href : ogImagePath;
+// The 404 page answers for every unknown path, so it has no address of its own.
+const isNotFound = Astro.url.pathname.startsWith('/404');
+const canonical =
+  Astro.site && !isNotFound ? new URL(Astro.url.pathname, Astro.site).href : undefined;
 const ogImageAlt = `${tagline}. The Pocket widget on a halftone picture of a room.`;
 ---
 
@@ -51,12 +55,14 @@ const ogImageAlt = `${tagline}. The Pocket widget on a halftone picture of a roo
     <meta name="description" content={description} />
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#0e0e0d" />
+    {canonical && <link rel="canonical" href={canonical} />}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preload" as="font" type="font/woff2" href={geistLatin} crossorigin />
     <link rel="preload" as="font" type="font/woff2" href={geistMonoLatin} crossorigin />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={siteName} />
+    {canonical && <meta property="og:url" content={canonical} />}
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImage} />
