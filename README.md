@@ -75,12 +75,15 @@ gitignored `Support/Signing.local.xcconfig` with a stable identity — see
 All checks run on GitHub-hosted runners (`.github/workflows`):
 
 - **CI** — on pull requests to `develop`/`master` and pushes to `develop`:
-  SwiftLint, actionlint, gitleaks (secrets), semgrep (security), clean build
-  and unit tests.
+  SwiftLint, actionlint, gitleaks (secrets) and semgrep (security). The clean
+  build and unit tests need a macOS runner, so they run only for a release:
+  when the target is `master` and `v<MARKETING_VERSION>` is not tagged yet,
+  or when the workflow is started by hand. Run `./run.sh --test --no-run`
+  locally for everything else.
 - **Release** — on every push to `master`: reruns CI, builds Release and
   publishes `v<MARKETING_VERSION>` with a DMG, ZIP and SHA-256 checksums.
-  If the tag already exists the release is skipped — bump
-  `MARKETING_VERSION` in `project.yml` to ship a new version.
+  If the tag already exists nothing is built — bump `MARKETING_VERSION` in
+  `project.yml` to ship a new version.
 
 Branches: `feat/<name>` / `debug/<name>` → `develop` → `master`.
 

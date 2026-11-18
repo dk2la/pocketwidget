@@ -7,6 +7,14 @@ workers_dev = false
 # ../wrangler.toml.
 routes = [{ pattern = "www.pocketwidget.tech", custom_domain = true }]
 
-# Privacy: keep no request logs.
-[observability]
+# Request logs, kept in Cloudflare (Workers Logs). Traces stay off.
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+invocation_logs = true
+persist = true
+
+[observability.traces]
 enabled = false
+head_sampling_rate = 1
+persist = true
