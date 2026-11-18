@@ -79,8 +79,9 @@ enum LicenseAPIError: Error, Equatable, Sendable {
 struct LicenseActivation: Equatable, Sendable {
     /// Identifies this Mac's Activation in later validate/deactivate calls.
     let activationID: String
-    /// Product the key was sold for; the caller rejects foreign products.
-    let productID: Int
+    /// What the key was sold for, as the store identifies it (the Polar
+    /// benefit that granted the key); the caller rejects foreign products.
+    let productID: String
 }
 
 enum LicenseValidity: Equatable, Sendable {

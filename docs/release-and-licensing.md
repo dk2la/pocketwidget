@@ -32,11 +32,16 @@ Subscription feature) are defined in [GLOSSARY.md](../GLOSSARY.md).
 
 ## Sales
 
-- Store: **Lemon Squeezy** as merchant of record. It handles VAT, chargebacks
-  and refunds and issues License keys with an Activation limit. The seller is
-  an individual (French tax resident). Confirm eligibility and payouts when
-  signing up.
-- Price: **$24** one-time, **$19** launch price.
+- Store: **Polar** (polar.sh) as merchant of record, organization
+  `pocketwidget`. It handles VAT, chargebacks and refunds and issues License
+  keys with an Activation limit. Lemon Squeezy was the first choice, but it
+  closed new sign-ups in November 2026. The seller is an individual (French
+  tax resident).
+- Price: **$24** one-time, **$19** launch price. The launch price is a $5
+  discount attached to the checkout link. Tax is added on top of the price.
+- Polar's sandbox holds a copy of the product for testing with test cards.
+  Debug builds talk to the sandbox, release builds to the real store; the IDs
+  are in `Sources/Licensing/LicensingConfig.swift`.
 - Refunds: within 14 days of purchase, only if the License key was never
   activated. After activation the sale is final. A Refund Policy page is linked
   from the site footer, and the same rule is set in the store settings.
@@ -60,7 +65,8 @@ Subscription feature) are defined in [GLOSSARY.md](../GLOSSARY.md).
 
 ## License checks
 
-- Activation is online, through the Lemon Squeezy license API.
+- Activation is online, through Polar's customer-portal license key API.
+  It needs no API key; the endpoints are rate-limited per client.
 - Pocket re-validates the key **once a day**.
 - Without a network, Pocket keeps working for up to **7 days** after the last
   successful check, then asks to reconnect.
@@ -77,7 +83,7 @@ Subscription feature) are defined in [GLOSSARY.md](../GLOSSARY.md).
 - Design: custom, with animations, in the style of the current widget. The
   design isn't discussed yet; a mockup comes later.
 - Privacy policy: states what the network audit (issue #58) found. Our server
-  stores only a hashed Mac ID and the trial start date; Lemon Squeezy gets the
+  stores only a hashed Mac ID and the trial start date; Polar gets the
   License key and the hashed Mac ID. Mail and the Assistant talk to the user's
   own providers, and Gravatar, Spotify and Apple dictation are disclosed.
   Re-run the audit whenever a feature adds a network request (e.g. Sparkle).
