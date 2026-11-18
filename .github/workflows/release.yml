@@ -21,6 +21,8 @@ jobs:
 
   release:
     needs: ci
+    # Nothing to publish: do not take a macOS runner at all.
+    if: needs.ci.outputs.released == 'false'
     runs-on: macos-latest
     timeout-minutes: 30
     permissions:

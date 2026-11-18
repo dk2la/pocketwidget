@@ -11,3 +11,15 @@ routes = [{ pattern = "pocketwidget.tech", custom_domain = true }]
 [assets]
 directory = "./dist"
 not_found_handling = "404-page"
+
+# Request logs, kept in Cloudflare (Workers Logs). Traces stay off.
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+invocation_logs = true
+persist = true
+
+[observability.traces]
+enabled = false
+head_sampling_rate = 1
+persist = true
