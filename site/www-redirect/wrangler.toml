@@ -1,0 +1,12 @@
+name = "pocket-site-www"
+main = "index.js"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+# Only the www name is attached here; the site itself is the Worker in
+# ../wrangler.toml.
+routes = [{ pattern = "www.pocketwidget.tech", custom_domain = true }]
+
+# Privacy: keep no request logs.
+[observability]
+enabled = false
