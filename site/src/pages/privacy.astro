@@ -29,7 +29,7 @@ import Marker from '../components/Marker.astro';
         date your Trial started.
       </li>
       <li>
-        Lemon Squeezy, which sells Pocket for us, receives your License key and the same hashed
+        Polar, which sells Pocket for us, receives your License key and the same hashed
         Mac ID when you activate a License.
       </li>
       <li>
@@ -99,37 +99,37 @@ import Marker from '../components/Marker.astro';
       request and keeps its own aggregate metrics.
     </p>
 
-    <h2 id="lemon-squeezy">Lemon Squeezy: purchase and License</h2>
+    <h2 id="polar">Polar: purchase and License</h2>
     <p>
-      Lemon Squeezy is our payment provider and merchant of record.
+      Polar is our payment provider and merchant of record.
     </p>
     <ul>
       <li>
-        <strong>Purchase.</strong> The Buy button opens Lemon Squeezy's checkout page in your
-        browser. Lemon Squeezy collects your email address, name, payment and billing details
+        <strong>Purchase.</strong> The Buy button opens Polar's checkout page in your
+        browser. Polar collects your email address, name, payment and billing details
         there, under its own privacy policy. None of that passes through Pocket, and we never
-        see your card details. As the seller, we can see your order in our Lemon Squeezy
+        see your card details. As the seller, we can see your order in our Polar
         account, including your name and email address.
       </li>
       <li>
         <strong>Activation.</strong> When you enter a License key and activate it, Pocket sends
-        Lemon Squeezy the License key and your hashed Mac ID, which is used as the name of the
-        Activation. This links the hashed Mac ID to your License in Lemon Squeezy's records.
+        Polar the License key and your hashed Mac ID, which is used as the name of the
+        Activation. This links the hashed Mac ID to your License in Polar's records.
       </li>
       <li>
         <strong>Daily check.</strong> While Pocket is licensed, it sends the License key and the
-        Activation ID to Lemon Squeezy to check that the key is still valid. In normal use this
+        Activation ID to Polar to check that the key is still valid. In normal use this
         happens at most once a day.
       </li>
       <li>
         <strong>Removing an Activation.</strong> When an Activation is removed, by you,
         because you replaced the License key with another one, or because the key turned out
         to belong to a different product, Pocket sends the License key and
-        the Activation ID to Lemon Squeezy.
+        the Activation ID to Polar.
       </li>
     </ul>
     <p>
-      Lemon Squeezy's replies include the buyer's name and email address. Pocket does not read
+      Polar's replies include the buyer's name and email address. Pocket does not read
       or store them. It keeps the License key, the Activation ID and the time of the last check
       in the macOS Keychain.
     </p>
@@ -208,8 +208,8 @@ import Marker from '../components/Marker.astro';
 
     <h2>What every connection reveals</h2>
     <p>
-      Any server Pocket connects to sees your IP address. Requests to the Trial server, Lemon
-      Squeezy, Gravatar, Spotify's image servers and an AI provider you connect with an API key
+      Any server Pocket connects to sees your IP address. Requests to the Trial server, Polar,
+      Gravatar, Spotify's image servers and an AI provider you connect with an API key
       also carry standard technical headers: the app name and build number, the versions of the
       macOS networking software and system kernel, and your system languages. If Gravatar, Spotify's image
       servers or your AI provider set a cookie, macOS keeps it and sends it back to that same
@@ -257,9 +257,9 @@ import Marker from '../components/Marker.astro';
     </p>
     <p>
       The Download button fetches the Pocket installer from Cloudflare R2, Cloudflare's file
-      storage. The Buy button opens Lemon Squeezy's checkout page; what Lemon Squeezy collects
+      storage. The Buy button opens Polar's checkout page; what Polar collects
       there is described under
-      <a href="#lemon-squeezy">Lemon Squeezy: purchase and License</a>.
+      <a href="#polar">Polar: purchase and License</a>.
     </p>
 
     <h2>How long data is kept</h2>
@@ -269,7 +269,7 @@ import Marker from '../components/Marker.astro';
       by writing to <a href="mailto:support@pocketwidget.tech">support@pocketwidget.tech</a>.
     </p>
     <p>
-      Order and License records are kept by Lemon Squeezy under its own privacy policy.
+      Order and License records are kept by Polar under its own privacy policy.
       Everything listed under "What Pocket stores on your Mac" stays there until you delete it.
     </p>
 

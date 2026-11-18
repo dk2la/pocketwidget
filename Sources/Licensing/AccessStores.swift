@@ -48,7 +48,10 @@ extension Access {
         Access(
             store: enforced ? KeychainAccessStore() : MemoryAccessStore(),
             trialServer: TrialServerClient(baseURL: LicensingConfig.trialServerURL),
-            licenseAPI: LemonSqueezyLicenseAPI(),
+            licenseAPI: PolarLicenseAPI(
+                baseURL: LicensingConfig.storeAPIURL,
+                organizationID: LicensingConfig.organizationID
+            ),
             macID: MacID.current,
             productID: LicensingConfig.productID
         )
