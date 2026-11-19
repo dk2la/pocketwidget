@@ -15,7 +15,14 @@ import '../styles/global.css';
 // reflow. Self-hosted: the site makes no request to another origin.
 import geistLatin from '@fontsource-variable/geist/files/geist-latin-wght-normal.woff2?url';
 import geistMonoLatin from '@fontsource-variable/geist-mono/files/geist-mono-latin-wght-normal.woff2?url';
-import { checkoutURL, downloadURL } from '../config';
+import {
+  checkoutURL,
+  downloadURL,
+  licensePortalURL,
+  salesOpen,
+  salesOpenOn,
+  supportEmail,
+} from '../config';
 
 interface Props {
   /** Page name. Rendered as "<title> — Pocket"; omit on the home page. */
@@ -82,7 +89,11 @@ const ogImageAlt = `${tagline}. The Pocket widget on a halftone picture of a roo
       <a class="brand" href="/" aria-label="Pocket, home">pocket</a>
       <nav class="top__nav" aria-label="Main">
         <a class="top__link label" href={downloadURL} download>download</a>
-        <a class="btn btn--light btn--sm" href={checkoutURL}>buy</a>
+        <a
+          class="btn btn--light btn--sm"
+          href={salesOpen ? checkoutURL : '#presale'}
+          data-presale={salesOpen ? undefined : ''}>buy</a
+        >
       </nav>
     </header>
 
@@ -97,9 +108,49 @@ const ogImageAlt = `${tagline}. The Pocket widget on a halftone picture of a roo
           <a href="/terms">terms</a>
           <a href="/privacy">privacy</a>
           <a href="/refund">refund policy</a>
+          <a href={licensePortalURL}>manage license</a>
+          <a href={`mailto:${supportEmail}`}>support</a>
         </nav>
       </div>
     </footer>
+
+    {
+      !salesOpen && (
+        <dialog class="presale" id="presale" aria-labelledby="presale-title">
+          <h2 class="presale__title" id="presale-title">
+            sales open on {salesOpenOn}
+          </h2>
+          <p class="body presale__text">
+            until then, download pocket and use the 3-day Trial with everything switched on.
+          </p>
+          <div class="presale__cta">
+            <a class="btn btn--light btn--wide" href={downloadURL} download>
+              download pocket
+            </a>
+            <form method="dialog">
+              <button class="btn btn--quiet btn--wide presale__close">close</button>
+            </form>
+          </div>
+        </dialog>
+      )
+    }
+
+    <script>
+      // Before launch day the Buy buttons open the note instead of checkout.
+      const note = document.querySelector<HTMLDialogElement>('#presale');
+      if (note) {
+        document.addEventListener('click', (event) => {
+          const target = event.target as Element | null;
+          if (target?.closest('[data-presale]')) {
+            event.preventDefault();
+            note.showModal();
+          } else if (target === note) {
+            // A click on the backdrop lands on the dialog itself.
+            note.close();
+          }
+        });
+      }
+    </script>
   </body>
 </html>
 
@@ -157,6 +208,51 @@ const ogImageAlt = `${tagline}. The Pocket widget on a halftone picture of a roo
 
   .foot a {
     text-decoration: none;
+  }
+
+  /* The note behind the Buy buttons before launch day. The padding is on
+     the inner elements' wrapper, so a click on the dialog box itself can only
+     be the backdrop. */
+  .presale {
+    width: min(440px, calc(100vw - 2 * var(--s-3)));
+    padding: 0;
+    border: 1px solid var(--line-strong);
+    background: var(--card);
+    color: var(--text);
+  }
+
+  .presale[open] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-3);
+    padding: var(--s-5);
+  }
+
+  .presale::backdrop {
+    background: rgb(0 0 0 / 0.6);
+  }
+
+  .presale__title {
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 32px;
+    letter-spacing: -0.02em;
+  }
+
+  .presale__text {
+    color: var(--muted);
+  }
+
+  .presale__cta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+    margin-top: var(--s-3);
+  }
+
+  .presale__close {
+    width: 100%;
+    cursor: pointer;
   }
 
   @media (hover: hover) and (pointer: fine) {

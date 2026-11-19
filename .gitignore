@@ -24,3 +24,6 @@ PLAN.md
 # Claude Code worktrees
 .claude/worktrees/
 dist/
+
+# Wrangler local state
+.wrangler/

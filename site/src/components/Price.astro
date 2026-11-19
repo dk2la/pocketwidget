@@ -7,7 +7,7 @@
 // fold and removes it when it is seen: the days switch on one by one, then
 // the regular price is struck and the launch price takes its place.
 import Marker from './Marker.astro';
-import { checkoutURL, downloadURL, price } from '../config';
+import { checkoutURL, downloadURL, launchPriceEnds, price, salesOpen } from '../config';
 ---
 
 <section class="section container">
@@ -40,7 +40,7 @@ import { checkoutURL, downloadURL, price } from '../config';
           <span class="band__now">{price.launch}</span>
           <s class="band__was">{price.regular}</s>
         </p>
-        <span class="label band__label">launch price</span>
+        <span class="label band__label">launch price until {launchPriceEnds}</span>
       </div>
     </div>
 
@@ -53,7 +53,11 @@ import { checkoutURL, downloadURL, price } from '../config';
         </p>
       </div>
       <div class="side__cta">
-        <a class="btn btn--light btn--wide" href={checkoutURL}>
+        <a
+          class="btn btn--light btn--wide"
+          href={salesOpen ? checkoutURL : '#presale'}
+          data-presale={salesOpen ? undefined : ''}
+        >
           buy pocket <span class="btn__price">{price.launch}</span>
         </a>
         <a class="btn btn--quiet btn--wide" href={downloadURL} download>

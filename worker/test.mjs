@@ -178,3 +178,38 @@ test("corrupt stored value is replaced by a fresh date", async (t) => {
   assert.equal(payload.trialStartedAt, 1_800_000_000);
   assert.equal(env.store.get(MAC_A), "1800000000");
 });
+
+// Stand-in for a Workers rate limiter that allows `allowed` calls per key.
+function makeLimiter(allowed) {
+  const counts = new Map();
+  return {
+    counts,
+    async limit({ key }) {
+      const used = (counts.get(key) ?? 0) + 1;
+      counts.set(key, used);
+      return { success: used <= allowed };
+    },
+  };
+}
+
+test("new Trials from one address are limited, known Macs are not", async () => {
+  const env = { ...makeEnv(), NEW_TRIALS: makeLimiter(1) };
+  const from = (ip) => ({ headers: { "cf-connecting-ip": ip } });
+
+  const first = await worker.fetch(post({ macId: MAC_A }, from("203.0.113.7")), env);
+  assert.equal(first.status, 200);
+
+  const second = await worker.fetch(post({ macId: MAC_B }, from("203.0.113.7")), env);
+  await expectError(second, 429);
+  assert.equal(second.headers.get("retry-after"), "60");
+  assert.equal(env.store.has(MAC_B), false);
+
+  // The Mac that already has a Trial still gets its date.
+  const again = await worker.fetch(post({ macId: MAC_A }, from("203.0.113.7")), env);
+  assert.equal(again.status, 200);
+  assert.equal(env.NEW_TRIALS.counts.get("203.0.113.7"), 2);
+
+  // Another address is counted on its own.
+  const other = await worker.fetch(post({ macId: MAC_B }, from("198.51.100.4")), env);
+  assert.equal(other.status, 200);
+});
