@@ -13,3 +13,9 @@ regexes = ['''keychainService\s*=\s*"com\.dk2la\.[a-z.]+"''']
 [[allowlists]]
 description = "Lemon Squeezy documentation sample License key"
 regexes = ['''38b1460a-5104-4067-a91d-77b872934d51''']
+
+# The public half of the key that signs Sparkle updates (`SUPublicEDKey`). It
+# ships inside every copy of the app; only the private half is a secret.
+[[allowlists]]
+description = "Sparkle public update key"
+regexes = ['''UGjt//S00q5DK/MpoFjPEGxmvvIHk/KvveXXAm7Lxjo=''']
