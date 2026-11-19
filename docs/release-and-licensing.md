@@ -76,7 +76,19 @@ Subscription feature) are defined in [GLOSSARY.md](../GLOSSARY.md).
 
 ## Updates
 
-- Auto-updates via Sparkle.
+- Sparkle 2. Pocket checks the feed once a day and asks before installing;
+  the status-bar menu has "Check for Updates…". Debug builds have no updater.
+- The feed address built into the app is `https://pocketwidget.tech/appcast.xml`
+  and must never change. The site redirects it (`site/public/_redirects`) to
+  `appcast.xml` in the R2 bucket, which the release workflow rewrites on every
+  release. If downloads move, change the redirect, not the app.
+- Updates are signed with an EdDSA key. The public half is `SUPublicEDKey` in
+  `project.yml`. The private half is in the owner's login keychain ("Private
+  key for signing Sparkle updates") and in the `SPARKLE_PRIVATE_KEY` repository
+  secret. If it is lost, installed copies can no longer be updated: keep a
+  backup (`generate_keys -x <file>` exports it).
+- `Support/sign-release.sh` signs Sparkle's helper programs with the Developer
+  ID; without it notarization fails.
 
 ## Website
 
@@ -93,6 +105,4 @@ Subscription feature) are defined in [GLOSSARY.md](../GLOSSARY.md).
 
 ## Open questions
 
-- Where the Sparkle feed is hosted. It must stay reachable after the main
-  repository goes private. (DMGs are settled, see Downloads.)
 - Website design (mockup first).

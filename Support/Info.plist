@@ -34,5 +34,13 @@
 	<string>Pocket records audio only while you dictate a note.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Pocket transcribes your dictation into note text.</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://pocketwidget.tech/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>UGjt//S00q5DK/MpoFjPEGxmvvIHk/KvveXXAm7Lxjo=</string>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
 </dict>
 </plist>
