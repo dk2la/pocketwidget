@@ -36,11 +36,12 @@ Tick an item when it is done and merged.
 
 ## Before Apple signing
 
-- [ ] Gravatar switch, off by default
-- [ ] Site: "Sales open on November 25" on Buy
-- [ ] Site: `/thanks` page, and Polar's success URL pointing to it
-- [ ] Site: Support and "Manage license" links in the footer
-- [ ] App: "Manage license" link in the license screen
+- [x] Gravatar switch, off by default
+- [x] Site: "Sales open on November 25" on Buy
+- [x] Site: `/thanks` page
+- [ ] Polar's success URL pointing to `/thanks` (after the page is live)
+- [x] Site: Support and "Manage license" links in the footer
+- [x] App: "Manage license" link in the license screen
 - [ ] Downloads served from `downloads.pocketwidget.tech`
 - [ ] Trial server: protection against junk requests
 - [ ] Mail DNS: remove Cloudflare from SPF, add DMARC

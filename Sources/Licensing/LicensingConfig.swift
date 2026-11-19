@@ -42,6 +42,15 @@ enum LicensingConfig {
     static let checkoutURL = URL(string: "https://buy.polar.sh/polar_cl_XRl0NamNTAEMF94jkKTJ4GOc2HNh4grHHmgVw19tmhM")
     #endif
 
+    /// The store's customer portal: a buyer signs in with the email they
+    /// paid with and sees their License key and Activations. KEEP IN SYNC
+    /// with `licensePortalURL` in `site/src/config.ts`.
+    #if DEBUG
+    static let portalURL = URL(string: "https://sandbox.polar.sh/pocketwidget/portal")
+    #else
+    static let portalURL = URL(string: "https://polar.sh/pocketwidget/portal")
+    #endif
+
     /// Release builds always enforce licensing. Debug builds skip it, so
     /// daily work and demo recordings are not blocked; `--licensing` turns
     /// it on for testing the real flow.
