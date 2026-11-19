@@ -5,12 +5,20 @@ options:
     macOS: "14.0"
   createIntermediateGroups: true
 
+packages:
+  # Updates. See "Updates" in docs/release-and-licensing.md.
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.10.1
+
 targets:
   Pocket:
     type: application
     platform: macOS
     sources:
       - Sources
+    dependencies:
+      - package: Sparkle
     info:
       path: Support/Info.plist
       properties:
@@ -18,6 +26,15 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSUIElement: true
+        # Sparkle. The feed address is built into every released version, so
+        # it must never change. Pocket checks once a day and asks before
+        # installing.
+        SUFeedURL: https://pocketwidget.tech/appcast.xml
+        # Public half of the key that signs updates. The private half is in the
+        # owner's keychain and in the SPARKLE_PRIVATE_KEY repository secret.
+        SUPublicEDKey: UGjt//S00q5DK/MpoFjPEGxmvvIHk/KvveXXAm7Lxjo=
+        SUEnableAutomaticChecks: true
+        SUScheduledCheckInterval: 86400
         NSHumanReadableCopyright: "© 2026 Danila Kozlov"
         NSAppleEventsUsageDescription: "Pocket controls your music players (Spotify, Apple Music) to show and manage playback from the widget."
         NSCalendarsUsageDescription: "Pocket shows your upcoming events in the widget."
@@ -32,10 +49,13 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dk2la.pocket
-        MARKETING_VERSION: 0.1.3
+        MARKETING_VERSION: 0.2.0
         CURRENT_PROJECT_VERSION: 1
         SWIFT_VERSION: "6.0"
-        ENABLE_HARDENED_RUNTIME: NO
+        # Required for notarization. What it must allow is listed in the
+        # entitlements file.
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_ENTITLEMENTS: Support/Pocket.entitlements
     scheme:
       testTargets:
         - PocketTests

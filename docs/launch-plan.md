@@ -39,7 +39,7 @@ Tick an item when it is done and merged.
 - [x] Gravatar switch, off by default
 - [x] Site: "Sales open on November 25" on Buy
 - [x] Site: `/thanks` page
-- [ ] Polar's success URL pointing to `/thanks` (after the page is live)
+- [x] Polar's success URL pointing to `/thanks`
 - [x] Site: Support and "Manage license" links in the footer
 - [x] App: "Manage license" link in the license screen
 - [ ] Downloads served from `downloads.pocketwidget.tech`
@@ -54,15 +54,17 @@ Tick an item when it is done and merged.
 
 ## Owner's steps
 
-- [ ] Enrol in the Apple Developer Program as an individual
+- [x] Enrol in the Apple Developer Program as an individual
 - [ ] Send the policy examples
 - [ ] Make the repository private and remove the MIT license
 
 ## After the Apple Developer account
 
-- [ ] Hardened runtime, Developer ID signing, notarization in the release
-      workflow
-- [ ] Sparkle with its signing key and the feed
+- [x] Hardened runtime, Developer ID signing, notarization in the release
+      workflow. Apple accepted a locally built and signed app on 2026-11-19;
+      the workflow itself first runs with 1.0.0
+- [x] Sparkle with its signing key and the feed. Not yet seen working end to
+      end: that needs two published versions
 - [ ] Rewritten Terms, Privacy and Refund pages
 - [ ] Version 1.0.0
 - [ ] Production purchase test on the signed build

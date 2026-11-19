@@ -11,9 +11,12 @@ Subscription feature) are defined in [GLOSSARY.md](../GLOSSARY.md).
   doesn't allow.
 - Source code becomes proprietary and the repository private. The owner does
   this, including replacing the MIT `LICENSE`.
-- Signing and notarization need an Apple Developer account, which doesn't exist
-  yet. Until then, do the work that doesn't need one (hardened runtime,
-  licensing, site).
+- Releases are signed with a Developer ID certificate (team `LZFYXRC8DH`) and
+  notarized by Apple, in `.github/workflows/release.yml`. The hardened runtime
+  is on; what it allows is listed in `Support/Pocket.entitlements`. The
+  workflow needs these repository secrets: `DEVELOPER_ID_P12_BASE64`,
+  `DEVELOPER_ID_P12_PASSWORD`, `NOTARY_KEY_P8`, `NOTARY_KEY_ID`,
+  `NOTARY_ISSUER_ID`.
 
 ## Downloads
 
@@ -73,7 +76,19 @@ Subscription feature) are defined in [GLOSSARY.md](../GLOSSARY.md).
 
 ## Updates
 
-- Auto-updates via Sparkle.
+- Sparkle 2. Pocket checks the feed once a day and asks before installing;
+  the status-bar menu has "Check for Updates…". Debug builds have no updater.
+- The feed address built into the app is `https://pocketwidget.tech/appcast.xml`
+  and must never change. The site redirects it (`site/public/_redirects`) to
+  `appcast.xml` in the R2 bucket, which the release workflow rewrites on every
+  release. If downloads move, change the redirect, not the app.
+- Updates are signed with an EdDSA key. The public half is `SUPublicEDKey` in
+  `project.yml`. The private half is in the owner's login keychain ("Private
+  key for signing Sparkle updates") and in the `SPARKLE_PRIVATE_KEY` repository
+  secret. If it is lost, installed copies can no longer be updated: keep a
+  backup (`generate_keys -x <file>` exports it).
+- `Support/sign-release.sh` signs Sparkle's helper programs with the Developer
+  ID; without it notarization fails.
 
 ## Website
 
@@ -90,6 +105,4 @@ Subscription feature) are defined in [GLOSSARY.md](../GLOSSARY.md).
 
 ## Open questions
 
-- Where the Sparkle feed is hosted. It must stay reachable after the main
-  repository goes private. (DMGs are settled, see Downloads.)
 - Website design (mockup first).

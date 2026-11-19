@@ -4,6 +4,7 @@ import AppKit
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let settings = AppSettings()
     private let services = ModuleServices()
+    private let updater = AppUpdater()
     private var statusItem: NSStatusItem?
     private var capsuleController: CapsuleWindowController?
     private var widgetController: WidgetWindowController?
@@ -168,6 +169,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         tourItem.target = self
         menu.addItem(tourItem)
+        if updater.isAvailable {
+            let updatesItem = NSMenuItem(
+                title: "Check for Updates…",
+                action: #selector(checkForUpdates),
+                keyEquivalent: ""
+            )
+            updatesItem.target = self
+            menu.addItem(updatesItem)
+        }
         menu.addItem(.separator())
         menu.addItem(
             NSMenuItem(
@@ -183,6 +193,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openSettings() {
         showSettings(page: nil)
+    }
+
+    @objc private func checkForUpdates() {
+        updater.checkForUpdates()
     }
 
     @objc private func openOnboarding() {
