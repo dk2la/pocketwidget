@@ -14,6 +14,15 @@ routes = [{ pattern = "trial.pocketwidget.tech", custom_domain = true }]
 binding = "TRIALS"
 id = "9a306a606d5f428391d1d784109b572c"
 
+# At most 5 new Trials a minute from one address (see src/index.js).
+[[ratelimits]]
+name = "NEW_TRIALS"
+namespace_id = "1001"
+
+  [ratelimits.simple]
+  limit = 5
+  period = 60
+
 # Privacy: keep no request logs.
 [observability]
 enabled = false

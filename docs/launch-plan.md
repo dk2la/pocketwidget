@@ -43,11 +43,14 @@ Tick an item when it is done and merged.
 - [x] Site: Support and "Manage license" links in the footer
 - [x] App: "Manage license" link in the license screen
 - [ ] Downloads served from `downloads.pocketwidget.tech`
-- [ ] Trial server: protection against junk requests
+- [x] Trial server: at most 5 new Trials a minute from one address. Measured
+      live on 2026-11-19, the limiter is loose (it turned away 3 of 30
+      requests sent at once), so it slows a flood rather than stopping it. A
+      Cloudflare rate limiting rule on the zone would be the strict version.
 - [ ] Mail DNS: remove Cloudflare from SPF, add DMARC
 - [ ] Polar: product icon and the text of the License key email
-- [ ] Close issues #54 and #58
-- [ ] Merge PR #85 (owner)
+- [x] Close issues #54 and #58
+- [x] Merge PR #85 (owner)
 
 ## Owner's steps
 
