@@ -6,6 +6,8 @@ import OSLog
 
 /// Sender pictures for the inbox, Gmail-style: a Gravatar for the address
 /// when one exists, otherwise the caller falls back to coloured initials.
+/// Off until the user turns it on: a lookup tells Gravatar the MD5 of a
+/// sender's address, so nothing is sent without a choice.
 /// Results (including "none") are cached in memory and on disk, so each
 /// address is looked up once per install rather than once per row render.
 @MainActor
@@ -14,6 +16,19 @@ final class SenderAvatarStore {
     /// Loaded pictures by lowercased address. Views read this; a missing
     /// key means "not looked up yet", `nil` means "looked up, none".
     private(set) var images: [String: NSImage?] = [:]
+
+    /// The user's choice (Settings → Accounts). While off, no address is
+    /// looked up and rows show initials, even for pictures already cached.
+    var isEnabled: Bool {
+        didSet { UserDefaults.standard.set(isEnabled, forKey: Self.enabledKey) }
+    }
+
+    @ObservationIgnored private static let enabledKey = "settings.senderPictures"
+
+    init() {
+        // Absent key = off.
+        isEnabled = UserDefaults.standard.bool(forKey: Self.enabledKey)
+    }
 
     @ObservationIgnored private var inFlight: Set<String> = []
     @ObservationIgnored private let log = Logger(subsystem: "com.dk2la.pocket", category: "avatars")
@@ -31,7 +46,7 @@ final class SenderAvatarStore {
     /// address is seen. Returns nil until it lands (or when there is none).
     func image(for address: String) -> NSImage? {
         let key = Self.normalized(address)
-        guard !key.isEmpty else { return nil }
+        guard isEnabled, !key.isEmpty else { return nil }
         if let cached = images[key] {
             return cached
         }
