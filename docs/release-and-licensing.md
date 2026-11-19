@@ -11,9 +11,12 @@ Subscription feature) are defined in [GLOSSARY.md](../GLOSSARY.md).
   doesn't allow.
 - Source code becomes proprietary and the repository private. The owner does
   this, including replacing the MIT `LICENSE`.
-- Signing and notarization need an Apple Developer account, which doesn't exist
-  yet. Until then, do the work that doesn't need one (hardened runtime,
-  licensing, site).
+- Releases are signed with a Developer ID certificate (team `LZFYXRC8DH`) and
+  notarized by Apple, in `.github/workflows/release.yml`. The hardened runtime
+  is on; what it allows is listed in `Support/Pocket.entitlements`. The
+  workflow needs these repository secrets: `DEVELOPER_ID_P12_BASE64`,
+  `DEVELOPER_ID_P12_PASSWORD`, `NOTARY_KEY_P8`, `NOTARY_KEY_ID`,
+  `NOTARY_ISSUER_ID`.
 
 ## Downloads
 
