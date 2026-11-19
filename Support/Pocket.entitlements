@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- What the hardened runtime must let Pocket do. Each key matches a usage
+     description in project.yml; macOS still asks the user for each one. -->
+<plist version="1.0">
+<dict>
+	<!-- Controlling Spotify and Apple Music. -->
+	<key>com.apple.security.automation.apple-events</key>
+	<true/>
+	<!-- Dictating a note. -->
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
+	<!-- Showing upcoming events. -->
+	<key>com.apple.security.personal-information.calendars</key>
+	<true/>
+</dict>
+</plist>

@@ -54,14 +54,16 @@ Tick an item when it is done and merged.
 
 ## Owner's steps
 
-- [ ] Enrol in the Apple Developer Program as an individual
+- [x] Enrol in the Apple Developer Program as an individual
 - [ ] Send the policy examples
 - [ ] Make the repository private and remove the MIT license
 
 ## After the Apple Developer account
 
 - [ ] Hardened runtime, Developer ID signing, notarization in the release
-      workflow
+      workflow: written, and signing is checked locally. Notarization has not
+      run yet: it needs the `DEVELOPER_ID_P12_PASSWORD` and `NOTARY_ISSUER_ID`
+      secrets
 - [ ] Sparkle with its signing key and the feed
 - [ ] Rewritten Terms, Privacy and Refund pages
 - [ ] Version 1.0.0
