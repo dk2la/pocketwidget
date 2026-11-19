@@ -60,11 +60,11 @@ Tick an item when it is done and merged.
 
 ## After the Apple Developer account
 
-- [ ] Hardened runtime, Developer ID signing, notarization in the release
-      workflow: written, and signing is checked locally. Notarization has not
-      run yet: it needs the `DEVELOPER_ID_P12_PASSWORD` and `NOTARY_ISSUER_ID`
-      secrets
-- [ ] Sparkle with its signing key and the feed
+- [x] Hardened runtime, Developer ID signing, notarization in the release
+      workflow. Apple accepted a locally built and signed app on 2026-11-19;
+      the workflow itself first runs with 1.0.0
+- [x] Sparkle with its signing key and the feed. Not yet seen working end to
+      end: that needs two published versions
 - [ ] Rewritten Terms, Privacy and Refund pages
 - [ ] Version 1.0.0
 - [ ] Production purchase test on the signed build

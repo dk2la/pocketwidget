@@ -99,7 +99,9 @@ jobs:
             CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO build \
             | grep -E "error:|warning: [^M]|\*\* " || true
           test "${PIPESTATUS[0]}" -eq 0
-          codesign --verify --deep --strict build/Build/Products/Release/Pocket.app
+          # Sparkle's helper programs come signed ad-hoc; sign everything
+          # again with the Developer ID, inside out.
+          Support/sign-release.sh build/Build/Products/Release/Pocket.app
 
       # Apple checks the app, then the DMG that carries it. Each gets its
       # ticket stapled, so both open on a Mac that is offline. The published
@@ -155,6 +157,29 @@ jobs:
           spctl --assess --type open --context context:primary-signature --verbose=2 "dist/$name.dmg"
           (cd dist && shasum -a 256 ./*.zip ./*.dmg > SHA256SUMS.txt)
 
+      # The Sparkle feed: one item, this version, signed with the update key.
+      # Installed copies of Pocket read it through
+      # https://pocketwidget.tech/appcast.xml (see site/public/_redirects).
+      - name: Write the update feed
+        if: steps.version.outputs.exists == 'false'
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          R2_PUBLIC_URL: ${{ vars.CLOUDFLARE_R2_PUBLIC_URL }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          for var in SPARKLE_PRIVATE_KEY R2_PUBLIC_URL; do
+            [[ -n "${!var}" ]] || { echo "::error::$var is empty — check the repository secrets and variables"; exit 1; }
+          done
+          archives=$(mktemp -d)
+          cp "dist/Pocket-$VERSION.dmg" "$archives/"
+          echo "$SPARKLE_PRIVATE_KEY" | build/SourcePackages/artifacts/sparkle/Sparkle/bin/generate_appcast \
+            --ed-key-file - --download-url-prefix "${R2_PUBLIC_URL%/}/v$VERSION/" \
+            --link https://pocketwidget.tech --maximum-deltas 0 -o dist/appcast.xml "$archives"
+          grep -q 'sparkle:edSignature=' dist/appcast.xml \
+            || { echo "::error::the update feed has no signature"; exit 1; }
+          cat dist/appcast.xml
+
       # Order matters. The whole job is skipped once the tag exists, and the tag
       # is created by `gh release create` below. So R2 goes first: if an upload
       # fails, the run fails with no tag, and a re-run rebuilds and uploads
@@ -202,6 +227,10 @@ jobs:
           # last, so it only moves once the versioned files are in place, and
           # always revalidated, so it never serves a stale version.
           upload "dist/$name.dmg" Pocket.dmg application/x-apple-diskimage no-cache
+
+          # The update feed moves last of all: installed copies of Pocket
+          # start offering this version once it is in place.
+          upload dist/appcast.xml appcast.xml "application/xml; charset=utf-8" no-cache
 
           # The stable URL must serve this exact DMG without any login.
           expected=$(shasum -a 256 "dist/$name.dmg" | cut -d' ' -f1)
