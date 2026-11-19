@@ -177,6 +177,7 @@ enum L10nKey {
     case keysImport, keysUseBuiltIn, keysImportFailed, keysFromFile, keysBuiltInSet
 
     // Welcome tour
+    case setSenderPictures, setSenderPicturesSub
     case obTour, obTourSub, obShow, obShowAtLaunch, obShowAtLaunchSub
     case obNext, obBack, obStart, obConnect
     case obAllowAccess, obAccessGranted, obOpenPrivacy, obSaved
@@ -485,6 +486,8 @@ enum L10nKey {
         case .setAccountsSub: return ["Mail and the assistant's provider.", "Почта и провайдер ассистента.", "Le courrier et le fournisseur de l'assistant.", "El correo y el proveedor del asistente.", "邮件与助手的服务商。", "O e-mail e o fornecedor do assistente.", "Mail und der Anbieter des Assistenten.", "La posta e il provider dell'assistente.", "メールとアシスタントのプロバイダ。", "메일과 어시스턴트 제공자."]
         case .setPlaybooksSub: return ["One-button routines for the start of work.", "Сценарии в одну кнопку для начала работы.", "Des routines en un bouton pour se mettre au travail.", "Rutinas de un botón para empezar a trabajar.", "一键开始工作的流程。", "Rotinas de um botão para começar a trabalhar.", "Abläufe auf Knopfdruck für den Arbeitsbeginn.", "Routine a un pulsante per iniziare a lavorare.", "ボタンひとつで仕事を始めるルーティン。", "버튼 하나로 일을 시작하는 루틴."]
         case .setHotkeysSub: return ["Shortcuts that work from any app.", "Сочетания, которые работают из любого приложения.", "Des raccourcis qui marchent depuis n'importe quelle app.", "Atajos que funcionan desde cualquier app.", "在任何应用中都能用的快捷键。", "Atalhos que funcionam a partir de qualquer app.", "Kurzbefehle, die in jeder App funktionieren.", "Scorciatoie che funzionano da qualsiasi app.", "どのAppからでも使えるショートカット。", "어떤 앱에서든 작동하는 단축키."]
+        case .setSenderPictures: return ["Sender pictures", "Фото отправителей", "Photos des expéditeurs", "Fotos de remitentes", "发件人头像", "Fotos dos remetentes", "Absenderbilder", "Foto dei mittenti", "差出人の写真", "보낸 사람 사진"]
+        case .setSenderPicturesSub: return ["Loaded from Gravatar, which receives a hash of each sender's address", "Загружаются из Gravatar: он получает хеш адреса каждого отправителя", "Chargées depuis Gravatar, qui reçoit un hachage de l'adresse de chaque expéditeur", "Se cargan desde Gravatar, que recibe un hash de la dirección de cada remitente", "从 Gravatar 加载，它会收到每个发件人地址的哈希值", "Carregadas do Gravatar, que recebe um hash do endereço de cada remetente", "Von Gravatar geladen, das einen Hash jeder Absenderadresse erhält", "Caricate da Gravatar, che riceve un hash dell'indirizzo di ogni mittente", "Gravatarから読み込みます。差出人アドレスのハッシュが送信されます", "Gravatar에서 불러오며, 보낸 사람 주소의 해시가 전송됩니다"]
         case .obTour: return ["Welcome tour", "Знакомство", "Visite guidée", "Recorrido", "新手导览", "Tour guiado", "Willkommenstour", "Tour guidato", "ようこそツアー", "둘러보기"]
         case .obTourSub: return ["A one-minute look at the main modules", "Минутный обзор главных модулей", "Un aperçu d'une minute des modules principaux", "Un minuto por los módulos principales", "一分钟了解主要模块", "Um minuto pelos módulos principais", "Die wichtigsten Module in einer Minute", "Un minuto tra i moduli principali", "主なモジュールを1分で紹介", "주요 모듈을 1분 만에 살펴보기"]
         case .obShow: return ["Show", "Показать", "Afficher", "Mostrar", "显示", "Mostrar", "Zeigen", "Mostra", "表示", "보기"]

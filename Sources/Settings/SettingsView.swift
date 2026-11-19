@@ -341,6 +341,15 @@ struct SettingsView: View {
             section(L10n.t(.modEmail)) {
                 EmailSetupView(service: services.emailService)
                     .padding(.bottom, 12)
+                Hairline(color: Palette.hairline)
+                SettingRow(title: L10n.t(.setSenderPictures), subtitle: L10n.t(.setSenderPicturesSub)) {
+                    InstrumentToggle(
+                        isOn: Binding(
+                            get: { services.senderAvatars.isEnabled },
+                            set: { services.senderAvatars.isEnabled = $0 }
+                        )
+                    )
+                }
             }
             section(L10n.t(.modAssistant)) {
                 AssistantSetupView(assistant: services.assistantService)
