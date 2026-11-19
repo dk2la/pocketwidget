@@ -1,0 +1,159 @@
+---
+// Where Polar sends a buyer after payment (the checkout link's success URL):
+// a thank-you over the home page's picture and widget, then the three steps
+// from the email to an activated Pocket. Not linked from the site and kept
+// out of search results.
+import { Picture } from 'astro:assets';
+import Base from '../layouts/Base.astro';
+import room from '../assets/pictures/room.png';
+import calendar from '../assets/screens/calendar.png';
+import { downloadURL, licensePortalURL, supportEmail } from '../config';
+
+const steps = [
+  {
+    title: 'open the email',
+    text: 'Polar sent your License key to the address you paid with. it can take a minute.',
+  },
+  {
+    title: 'copy the key',
+    text: 'it starts with POCKET. one key works on up to 3 of your Macs.',
+  },
+  {
+    title: 'paste it in pocket',
+    text: 'open pocket’s settings, choose Enter License key, paste and press Activate.',
+  },
+];
+---
+
+<Base title="Thanks" description="Thanks for buying Pocket. Here is how to enter your License key.">
+  <meta slot="head" name="robots" content="noindex" />
+
+  <section class="section container thanks">
+    <div class="thanks__stage">
+      <Picture
+        src={room}
+        formats={['avif', 'webp']}
+        fallbackFormat="jpg"
+        widths={[640, 832, 1024]}
+        sizes="(max-width: 699px) calc(100vw - 40px), 640px"
+        alt="A halftone print of a room: a chair, a table and a plant by a sunlit wall."
+        loading="eager"
+        fetchpriority="high"
+        class="thanks__bg"
+      />
+      <Picture
+        src={calendar}
+        formats={['avif', 'webp']}
+        widths={[326, 565]}
+        sizes="(max-width: 699px) 40vw, 240px"
+        alt="The Pocket widget, open."
+        loading="eager"
+        class="thanks__widget"
+      />
+    </div>
+
+    <h1 class="h thanks__title">thanks for<br />buying pocket</h1>
+    <p class="lede thanks__lede">your License key is on its way to your inbox.</p>
+
+    <ol class="steps">
+      {
+        steps.map((step, i) => (
+          <li class="step">
+            <span class="label muted">step {i + 1}</span>
+            <h2 class="strong">{step.title}</h2>
+            <p class="body step__text">{step.text}</p>
+          </li>
+        ))
+      }
+    </ol>
+
+    <div class="thanks__cta">
+      <a class="btn btn--light" href={downloadURL} download>download pocket</a>
+      <a class="btn btn--quiet" href={licensePortalURL}>manage license</a>
+    </div>
+    <p class="label muted thanks__help">
+      no email after a few minutes? check spam, or write to
+      <a href={`mailto:${supportEmail}`}>{supportEmail}</a>.
+    </p>
+  </section>
+</Base>
+
+<style>
+  .thanks {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  /* The home page's picture with the widget standing in the middle of it. */
+  .thanks__stage {
+    position: relative;
+    width: min(640px, 100%);
+    background: var(--paper);
+  }
+
+  .thanks__stage :global(.thanks__bg) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .thanks__stage :global(.thanks__widget) {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 37.5%;
+    height: auto;
+    transform: translate(-50%, -50%);
+  }
+
+  .thanks__title {
+    margin-top: var(--s-7);
+  }
+
+  .thanks__lede {
+    margin-top: var(--s-4);
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--s-3);
+    width: 100%;
+    margin: var(--s-7) 0 0;
+    padding: 0;
+    list-style: none;
+    text-align: left;
+  }
+
+  .step {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-1);
+    padding: var(--s-5);
+    background: var(--card);
+  }
+
+  .step__text {
+    color: var(--muted);
+  }
+
+  .thanks__cta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--s-3);
+    margin-top: var(--s-6);
+  }
+
+  .thanks__help {
+    margin-top: var(--s-4);
+  }
+
+  @media (max-width: 899px) {
+    .steps {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

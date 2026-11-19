@@ -48,6 +48,11 @@ enum LicenseText {
         guard let url = LicensingConfig.checkoutURL else { return }
         NSWorkspace.shared.open(url)
     }
+
+    static func openPortal() {
+        guard let url = LicensingConfig.portalURL else { return }
+        NSWorkspace.shared.open(url)
+    }
 }
 
 /// License key field with its Activate button and, below, the error of the
@@ -214,6 +219,10 @@ struct LicenseSettingsView: View {
                 LicenseKeyEntry(access: access)
             }
             .padding(.vertical, 12)
+        }
+        Hairline(color: Palette.hairline)
+        SettingRow(title: L10n.t(.licManage), subtitle: L10n.t(.licManageSub)) {
+            PillButton(L10n.t(.licManageOpen), size: .small, action: LicenseText.openPortal)
         }
     }
 
