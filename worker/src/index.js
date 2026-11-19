@@ -7,8 +7,13 @@
 //   POST /trial   {"macId":"<64 lowercase hex chars>"}
 //   200           {"trialStartedAt": <unix seconds>, "serverTime": <unix seconds>}
 //
+//   429           {"error": "rate_limited"}: too many new Trials from one
+//                 address; the app treats it like a failed connection
+//
 // Privacy: the only thing ever stored is the hashed Mac ID (KV key) and the
 // Trial start date (KV value). Nothing is logged; no IP or headers are kept.
+// The caller's address is only handed to Cloudflare's rate limiter, which
+// counts it for a minute and keeps nothing.
 
 const MAX_BODY_BYTES = 1024;
 const MAC_ID_PATTERN = /^[0-9a-f]{64}$/;
@@ -51,6 +56,17 @@ export default {
     const stored = parseTimestamp(await env.TRIALS.get(macId));
     if (stored !== null) {
       return json({ trialStartedAt: stored, serverTime: now }, 200);
+    }
+
+    // Only starting a new Trial writes, so only that is limited: junk
+    // requests must not use up the store's daily writes. Macs that already
+    // have a Trial are never turned away.
+    if (env.NEW_TRIALS) {
+      const address = request.headers.get("cf-connecting-ip") ?? "unknown";
+      const { success } = await env.NEW_TRIALS.limit({ key: address });
+      if (!success) {
+        return json({ error: "rate_limited" }, 429, { "Retry-After": "60" });
+      }
     }
 
     await env.TRIALS.put(macId, String(now));
