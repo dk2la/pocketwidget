@@ -39,7 +39,7 @@ Tick an item when it is done and merged.
 - [x] Gravatar switch, off by default
 - [x] Site: "Sales open on November 25" on Buy
 - [x] Site: `/thanks` page
-- [ ] Polar's success URL pointing to `/thanks` (after the page is live)
+- [x] Polar's success URL pointing to `/thanks`
 - [x] Site: Support and "Manage license" links in the footer
 - [x] App: "Manage license" link in the license screen
 - [ ] Downloads served from `downloads.pocketwidget.tech`
