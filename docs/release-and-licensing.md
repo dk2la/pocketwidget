@@ -23,6 +23,11 @@ Subscription feature) are defined in [GLOSSARY.md](../GLOSSARY.md).
 - DMGs are hosted in a public Cloudflare R2 bucket, so downloads stay reachable
   after the repository goes private. The release workflow uploads to it on
   every release, before it creates the GitHub release.
+- The DMG opens as an install window: Pocket, an arrow and the Applications
+  folder on a sky background. `Support/make-dmg.sh` builds it with dmgbuild
+  from the layout in `Support/dmg/settings.py`. The background and the app
+  icon are both drawn from `Support/art/pocket-sky.png` by
+  `swift Support/make-art.swift`; the results are committed.
 - Stable URL, always the latest DMG (for the website's Download button):
   `https://pub-3c8757d8d4b64f55bbc715c162c7e969.r2.dev/Pocket.dmg`
 - Each version keeps its own files under `v<version>/`:
