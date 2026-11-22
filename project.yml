@@ -49,9 +49,11 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dk2la.pocket
-        MARKETING_VERSION: 0.2.0
+        MARKETING_VERSION: 0.2.1
         CURRENT_PROJECT_VERSION: 1
         SWIFT_VERSION: "6.0"
+        # Drawn by Support/make-art.swift.
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # Required for notarization. What it must allow is listed in the
         # entitlements file.
         ENABLE_HARDENED_RUNTIME: YES
