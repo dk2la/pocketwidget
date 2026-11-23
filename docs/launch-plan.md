@@ -28,8 +28,8 @@ Tick an item when it is done and merged.
 - **Policies:** Terms, Privacy and Refund are rewritten in full from examples
   the owner provides. This blocks the launch. The refund rule stays: 14 days,
   only if the License key was never activated.
-- **Repository:** made private and the MIT license removed before the public
-  announcement. The owner does both.
+- **Repository:** stays public under the source-available `LICENSE`, which
+  replaced MIT.
 - **Production purchase test:** done on the signed build: buy, activate,
   deactivate, refund.
 - **Postponed:** the seller's legal status in France (micro-entreprise).
@@ -56,7 +56,7 @@ Tick an item when it is done and merged.
 
 - [x] Enrol in the Apple Developer Program as an individual
 - [ ] Send the policy examples
-- [ ] Make the repository private and remove the MIT license
+- [x] Replace the MIT license with the source-available `LICENSE`
 
 ## After the Apple Developer account
 

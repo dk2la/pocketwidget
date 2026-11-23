@@ -14,16 +14,22 @@ import Marker from '../components/Marker.astro';
     <Marker shape="square" play />
     <h1 class="h indent">Privacy</h1>
     <div class="indent prose">
-    <p class="label muted">Last updated: November 13, 2026</p>
+    <p class="label muted">Last updated: November 23, 2026</p>
 
     <p>
       This page explains what Pocket, a movable, resizable widget for the Mac, does with your
-      data: what stays on your Mac, what is sent, and who receives it.
+      data: what stays on your Mac, what is sent, and who receives it. A one-page summary is on
+      the <a href="/trust">Trust</a> page.
     </p>
 
     <h2>In short</h2>
     <ul>
       <li>Pocket has no account, no analytics, no ads and no crash reporting.</li>
+      <li>
+        We never sell your data and never use it to train AI. We don't receive your mail,
+        notes, calendar, clipboard or Assistant conversations, so there is nothing of them to
+        sell or train on.
+      </li>
       <li>
         Our own server receives one thing: a hashed ID of your Mac. It stores that hash and the
         date your Trial started.
@@ -37,8 +43,13 @@ import Marker from '../components/Marker.astro';
         to the AI provider you connect. Neither passes through our servers.
       </li>
       <li>
-        A few features contact other companies: Gravatar for sender pictures, Spotify for album
-        covers, and Apple for dictation in some languages. The details are below.
+        Once a day Pocket asks our website whether a new version is out. It sends no personal
+        data with that question.
+      </li>
+      <li>
+        A few features contact other companies: Gravatar for sender pictures (only if you turn
+        them on), Spotify for album covers, and Apple for dictation in some languages. The
+        details are below.
       </li>
     </ul>
 
@@ -90,6 +101,12 @@ import Marker from '../components/Marker.astro';
       name, no email address, no IP address, and no logs.
     </p>
     <p>
+      To stop junk requests, the server limits how many new Trials can start from one IP
+      address in a minute. Your IP address is only handed to Cloudflare's rate limiter, which
+      counts it for that minute and does not store it. A Mac that already has a Trial is never
+      limited.
+    </p>
+    <p>
       Pocket contacts the Trial server only while it has no License key: when it starts, then
       about once an hour and when your Mac wakes until one attempt gets through, and right
       after you remove an Activation.
@@ -97,6 +114,20 @@ import Marker from '../components/Marker.astro';
     <p>
       The Trial server runs on Cloudflare. Cloudflare processes your IP address to deliver the
       request and keeps its own aggregate metrics.
+    </p>
+
+    <h2 id="updates">Updates</h2>
+    <p>
+      Pocket uses Sparkle, a widely used open-source updater for Mac apps. About once a day,
+      and when you choose "Check for Updates", Pocket downloads a small list of versions from
+      <code>pocketwidget.tech/appcast.xml</code>, which is served from Cloudflare R2. The request
+      carries the standard technical headers described under
+      <a href="#connections">What every connection reveals</a>, including the version of Pocket
+      you have. Pocket does not send a profile of your Mac with it.
+    </p>
+    <p>
+      If a new version is out, Pocket asks you before installing it. The update is downloaded
+      from Cloudflare R2, and Pocket checks its signature before installing it.
     </p>
 
     <h2 id="polar">Polar: purchase and License</h2>
@@ -181,10 +212,10 @@ import Marker from '../components/Marker.astro';
     <dl class="parties">
       <dt>Gravatar</dt>
       <dd>
-        To show sender pictures in Mail, Pocket asks Gravatar for a picture using an MD5 hash of
-        the email address of each person in your message lists and of the sender of a message
-        you open. This happens automatically and cannot be turned off at the moment. Each
-        address is looked up once and the result is saved on your Mac. An MD5 hash is not strong
+        Sender pictures are off by default. If you turn them on in Settings → Accounts, Pocket
+        asks Gravatar for a picture using an MD5 hash of the email address of each person in
+        your message lists and of the sender of a message you open. Each address is looked up
+        once and the result is saved on your Mac. An MD5 hash is not strong
         protection: someone who already knows or guesses an address can match it to its hash.
       </dd>
 
@@ -206,9 +237,10 @@ import Marker from '../components/Marker.astro';
       <dd>Only after you press "Show images" on a message, as described under Mail.</dd>
     </dl>
 
-    <h2>What every connection reveals</h2>
+    <h2 id="connections">What every connection reveals</h2>
     <p>
-      Any server Pocket connects to sees your IP address. Requests to the Trial server, Polar,
+      Any server Pocket connects to sees your IP address. Requests to the Trial server, the
+      update list, Polar,
       Gravatar, Spotify's image servers and an AI provider you connect with an API key
       also carry standard technical headers: the app name and build number, the versions of the
       macOS networking software and system kernel, and your system languages. If Gravatar, Spotify's image
@@ -227,6 +259,29 @@ import Marker from '../components/Marker.astro';
       software development kits. Crash reports go only to Apple, and only if you have chosen to
       share them with Apple in System Settings. Pocket writes diagnostic entries to your Mac's
       system log; nothing sends them anywhere.
+    </p>
+
+    <h2>Permissions Pocket asks for</h2>
+    <p>
+      macOS asks you before Pocket can use any of these, and you can turn each one off later in
+      System Settings → Privacy &amp; Security. Pocket asks only when you first use the feature
+      that needs it, and everything else keeps working without it.
+    </p>
+    <ul>
+      <li><strong>Calendars</strong>, to show and edit your events.</li>
+      <li>
+        <strong>Microphone</strong> and <strong>Speech Recognition</strong>, to dictate. Audio
+        is captured only while you are dictating.
+      </li>
+      <li>
+        <strong>Automation</strong> of Spotify and Music, to show and control what is playing.
+      </li>
+      <li><strong>Accessibility</strong>, to move and resize other apps' windows into layouts.</li>
+    </ul>
+    <p>
+      Pocket does not record your screen and does not read what you type in other apps. Its
+      keyboard shortcuts are registered with macOS, which tells Pocket only when one of them is
+      pressed.
     </p>
 
     <h2>What Pocket stores on your Mac</h2>
@@ -253,13 +308,33 @@ import Marker from '../components/Marker.astro';
     </p>
     <p>
       To find faults, we keep Cloudflare's request log for this website. It records the requests
-      made to the site and is deleted automatically within a week.
+      made to the site, including Pocket's daily update check, and is deleted automatically
+      within a week.
     </p>
     <p>
       The Download button fetches the Pocket installer from Cloudflare R2, Cloudflare's file
       storage. The Buy button opens Polar's checkout page; what Polar collects
       there is described under
       <a href="#polar">Polar: purchase and License</a>.
+    </p>
+
+    <h2>Where data is processed</h2>
+    <p>
+      Our Trial server, the update list and this website run on Cloudflare's network, which
+      answers each request from a data centre near you; that may be outside your country.
+      Polar processes your order and License under its own privacy policy. Your mail and AI
+      providers process what Pocket sends them wherever they operate, under their own
+      policies.
+    </p>
+
+    <h2>Security</h2>
+    <p>
+      Every connection Pocket makes to our server, Polar, your mail provider and AI providers
+      is encrypted. Passwords, API keys and your License key are kept in the macOS Keychain,
+      not in plain files. Updates are signed, and releases are signed with an Apple
+      Developer ID and notarized by Apple. We keep as little as we can, because data we don't
+      hold can't leak. No system is perfectly secure, though: if you find a security problem,
+      please write to <a href="mailto:support@pocketwidget.tech">support@pocketwidget.tech</a>.
     </p>
 
     <h2>How long data is kept</h2>
@@ -271,6 +346,32 @@ import Marker from '../components/Marker.astro';
     <p>
       Order and License records are kept by Polar under its own privacy policy.
       Everything listed under "What Pocket stores on your Mac" stays there until you delete it.
+    </p>
+
+    <h2>Deleting your data</h2>
+    <ul>
+      <li>
+        <strong>On your Mac.</strong> Quit Pocket and drag it from Applications to the Trash.
+        Your notes stay in the folder you chose, and Pocket's entries stay in the Keychain
+        until you delete them in Keychain Access.
+      </li>
+      <li>
+        <strong>On our server.</strong> Write to
+        <a href="mailto:support@pocketwidget.tech">support@pocketwidget.tech</a> and we will
+        delete your Trial entry. Tell us that you are writing about the Trial entry; we will
+        ask you to send the hashed Mac ID shown in Pocket, since it is the only thing that
+        links the entry to you.
+      </li>
+      <li>
+        <strong>At Polar.</strong> Write to us or to Polar. Some order records must be kept
+        for tax and accounting law.
+      </li>
+    </ul>
+
+    <h2>Children</h2>
+    <p>
+      Pocket is not meant for children under 15, and we don't knowingly hold data about them.
+      If you think a child's data has reached us, write to us and we will delete it.
     </p>
 
     <h2>Your rights</h2>
@@ -291,7 +392,10 @@ import Marker from '../components/Marker.astro';
     <h2>Contact</h2>
     <p><a href="mailto:support@pocketwidget.tech">support@pocketwidget.tech</a></p>
 
-    <p>See also the <a href="/terms">Terms</a> and the <a href="/refund">Refund Policy</a>.</p>
+    <p>
+      See also the <a href="/trust">Trust</a> page, the <a href="/terms">Terms</a> and the
+      <a href="/refund">Refund Policy</a>.
+    </p>
     </div>
   </section>
 </Base>
