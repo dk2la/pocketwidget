@@ -9,8 +9,8 @@ Subscription feature) are defined in [GLOSSARY.md](../GLOSSARY.md).
 - Sold directly as a DMG plus a License key. Not on the Mac App Store, because
   window resizing needs the Accessibility API, which the App Store sandbox
   doesn't allow.
-- Source code becomes proprietary and the repository private. The owner does
-  this, including replacing the MIT `LICENSE`.
+- Source code is source-available: the repository may stay public, but
+  `LICENSE` forbids using, copying, modifying and distributing it.
 - Releases are signed with a Developer ID certificate (team `LZFYXRC8DH`) and
   notarized by Apple, in `.github/workflows/release.yml`. The hardened runtime
   is on; what it allows is listed in `Support/Pocket.entitlements`. The
