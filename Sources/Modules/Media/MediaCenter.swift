@@ -37,6 +37,11 @@ final class MediaCenter {
     /// flip the capsule between closed and compact.
     @ObservationIgnored var onPlaybackChanged: (() -> Void)?
 
+    /// Songs heard on this Mac — "recently played" and "on repeat".
+    @ObservationIgnored let history = PlayHistory()
+    /// Title and artist of the song last counted as a play.
+    @ObservationIgnored private var lastCountedKey: String?
+
     @ObservationIgnored private let spotify = SpotifySource()
     @ObservationIgnored private let music = MusicSource()
     @ObservationIgnored private let system = SystemNowPlayingSource()
@@ -206,6 +211,35 @@ final class MediaCenter {
     func previous() { command { await $0.previous() } }
     func like() { command { await $0.like() } }
 
+    /// Whether a remembered song can be started again from Pocket.
+    func canReplay(_ entry: PlayHistoryEntry) -> Bool {
+        if isDemo { return true }
+        guard entry.playID != nil else { return false }
+        switch entry.source {
+        case .spotify, .appleMusic: return true
+        case .client: return false
+        }
+    }
+
+    /// Starts a remembered song in the player it was heard in.
+    func replay(_ entry: PlayHistoryEntry) {
+        if let demoSource {
+            demoSource.play(title: entry.title)
+            scheduleRefresh()
+            return
+        }
+        guard let playID = entry.playID else { return }
+        let kind = entry.source
+        Task {
+            switch kind {
+            case .spotify: await spotify.play(uri: playID)
+            case .appleMusic: await music.play(persistentID: playID)
+            case .client: return
+            }
+            select(kind)
+        }
+    }
+
     /// Scrubbing. The position is applied locally at once — the follow-up
     /// refresh would otherwise snap the knob back for a moment.
     func seek(toFraction fraction: Double) {
@@ -256,6 +290,9 @@ final class MediaCenter {
         let source = DemoMediaSource()
         source.onChange = { [weak self] in self?.scheduleRefresh() }
         demoSource = source
+        let demo = DemoMediaSource.demoHistory()
+        history.enterDemo(entries: demo.entries, covers: demo.covers)
+        lastCountedKey = nil
         pinnedSource = nil
         Task { await refresh() }
     }
@@ -265,6 +302,8 @@ final class MediaCenter {
         isDemo = false
         demoSource?.stop()
         demoSource = nil
+        history.exitDemo()
+        lastCountedKey = nil
         apply(nil)
         availableSources = []
         activeSource = nil
@@ -463,6 +502,19 @@ final class MediaCenter {
             track = newTrack
         }
 
+        if let newTrack, newTrack.isPlaying {
+            // A song counts as played once it is heard playing; pausing and
+            // resuming it does not count again.
+            let key = PlayHistoryEntry.key(title: newTrack.title, artist: newTrack.artist)
+            if key != lastCountedKey {
+                lastCountedKey = key
+                history.recordPlay(newTrack)
+                if let artwork, newTrack.artworkKey == lastArtworkKey {
+                    history.attachArtwork(artwork, to: newTrack)
+                }
+            }
+        }
+
         if let newTrack {
             if newTrack.artworkKey != lastArtworkKey {
                 lastArtworkKey = newTrack.artworkKey
@@ -474,6 +526,9 @@ final class MediaCenter {
                     if image != nil || self.artwork != nil {
                         self.artwork = image
                         self.artworkAccent = image?.averageColor
+                    }
+                    if let image {
+                        self.history.attachArtwork(image, to: newTrack)
                     }
                     // Artwork often lands a beat after the metadata (the
                     // player publishes it once loaded) — an empty result is
@@ -508,7 +563,7 @@ final class MediaCenter {
     }
 }
 
-private extension NSImage {
+extension NSImage {
     /// 1x1 CIAreaAverage reduction — cheap enough to run on artwork changes.
     var averageColor: Color? {
         guard let tiff = tiffRepresentation,

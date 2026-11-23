@@ -51,6 +51,9 @@ struct MediaTrack: Equatable {
     /// Stable key identifying the artwork (URL, identifier or title fallback) —
     /// used to avoid re-fetching art on every refresh.
     var artworkKey: String
+    /// Player-specific handle to start this item again later (Spotify URI,
+    /// Music persistent ID); `nil` when the player offers none.
+    var playID: String? = nil
 
     /// Playback position at `date`, clamped to the track — views feed it a
     /// `TimelineView` date so progress advances without model updates.
