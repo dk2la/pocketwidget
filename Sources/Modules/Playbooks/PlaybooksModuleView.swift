@@ -69,6 +69,11 @@ struct PlaybooksModuleView: View {
         VStack(spacing: 10) {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
+                    IsoLaunchpadView(
+                        count: store.playbooks.count,
+                        isRunning: runner.runningPlaybookID != nil
+                    )
+                    .moduleScene(width: 190)
                     if let featured {
                         hero(featured)
                     }
