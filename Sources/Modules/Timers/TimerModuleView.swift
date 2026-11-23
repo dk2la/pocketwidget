@@ -1,19 +1,21 @@
 import SwiftUI
 
-/// "Timer" module: the countdown as a hero card — large digits, a thin bar
-/// that drains with the time left, Start / Pause and Reset — and one row of
-/// lengths underneath.
+/// "Timer" module: the countdown as a small desk clock on top, Start /
+/// Pause and Reset under it, then two blocks — a row of lengths and an
+/// alarm that counts down to a clock time.
 struct TimerModuleView: View {
     var timer: TimerService
 
     @State private var customMinutes = ""
     @FocusState private var customFocused: Bool
+    /// The alarm block's clock time; only hour and minute are used.
+    @State private var alarmTime = Date().addingTimeInterval(30 * 60)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
-                    hero
+                    clock
                     VStack(alignment: .leading, spacing: 8) {
                         SectionHeader(
                             title: L10n.t(.timerLength),
@@ -21,43 +23,35 @@ struct TimerModuleView: View {
                         )
                         lengthPicker
                     }
+                    VStack(alignment: .leading, spacing: 8) {
+                        SectionHeader(title: L10n.t(.timerRingAt))
+                        alarmBlock
+                    }
                 }
             }
             ModuleFootnote(systemName: "bell", text: L10n.t(.timerDoneNote))
         }
     }
 
-    // MARK: - Hero
+    // MARK: - Clock
 
-    private var hero: some View {
+    private var clock: some View {
         let isPartway = timer.remaining < timer.duration
-        let state = L10n.t(timer.isRunning ? .focusRunning : .focusReady)
-        return HeroCard {
-            HStack(spacing: 7) {
-                StatusDot(color: timer.isRunning ? Theme.accent : Theme.segmentOff)
-                // Stored lower case ("focus · running"); reads as a sentence.
-                Text(state.prefix(1).uppercased() + state.dropFirst())
-                    .heroCaption()
-            }
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(TimeFormat.mmss(timer.remaining))
-                    .font(Theme.timerFont)
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.textPrimary)
-                if isPartway {
-                    Text(L10n.f(.timerLeftOf, Int(timer.duration / 60)))
-                        .font(Theme.subFont)
-                        .lineLimit(1)
-                        .foregroundStyle(Theme.textTertiary)
-                }
-            }
-            // The bar holds what is LEFT and drains — values jump per tick.
-            GlassProgressBar(
+        return VStack(spacing: 12) {
+            IsoClockView(
+                time: TimeFormat.mmss(timer.remaining),
                 fraction: timer.duration > 0 ? timer.remaining / timer.duration : 0,
-                fillColor: Theme.segmentOn
+                isRunning: timer.isRunning,
+                isAlarm: timer.isAlarm
             )
+            .frame(maxWidth: 230)
+            .animation(.snappy(duration: 0.2), value: timer.isRunning)
+            Text(statusLine)
+                .font(Theme.subFont)
+                .monospacedDigit()
+                .lineLimit(1)
+                .foregroundStyle(Theme.textTertiary)
             HStack(spacing: 8) {
-                Spacer(minLength: 0)
                 if isPartway {
                     ModuleButton(label: L10n.t(.timerReset)) {
                         timer.reset()
@@ -73,6 +67,40 @@ struct TimerModuleView: View {
                     }
                 }
             }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 6)
+    }
+
+    /// "Ends at 17:42" while running, otherwise the state.
+    private var statusLine: String {
+        if timer.isRunning {
+            let end = Date().addingTimeInterval(timer.remaining)
+            return L10n.f(.timerEndsAt, end.formatted(date: .omitted, time: .shortened))
+        }
+        let state = L10n.t(.focusReady)
+        // Stored lower case ("focus · ready"); reads as a sentence.
+        return state.prefix(1).uppercased() + state.dropFirst()
+    }
+
+    // MARK: - Alarm
+
+    /// Pick a clock time; Set starts a countdown that ends exactly then.
+    private var alarmBlock: some View {
+        GroupedCard {
+            HStack(spacing: 12) {
+                IconTile(systemName: "alarm")
+                DatePicker("", selection: $alarmTime, displayedComponents: .hourAndMinute)
+                    .labelsHidden()
+                    .datePickerStyle(.field)
+                    .fixedSize()
+                Spacer(minLength: 0)
+                ModuleButton(label: L10n.t(.timerSet), kind: .light) {
+                    let parts = Calendar.current.dateComponents([.hour, .minute], from: alarmTime)
+                    timer.ring(atHour: parts.hour ?? 0, minute: parts.minute ?? 0)
+                }
+            }
+            .groupedRow(isLast: true)
         }
     }
 

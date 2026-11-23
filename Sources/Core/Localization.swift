@@ -94,7 +94,7 @@ enum L10nKey {
 
     // Timer
     case focusReady, focusRunning, timerStart, timerPause, timerReset, timerDoneNote
-    case timerLeftOf, timerLength
+    case timerLeftOf, timerLength, timerRingAt, timerSet, timerEndsAt
 
     // Media
     case mediaIdle, mediaSilent, mediaNoSignal
@@ -106,7 +106,7 @@ enum L10nKey {
     case ageNow, ageMin, ageHour, kindLink, kindText
 
     // Shelf
-    case shelfDrop, shelfLinksNote, shelfDropSub, shelfSection
+    case shelfDrop, shelfLinksNote, shelfDropSub, shelfSection, shelfReveal
 
     // Calendar
     case calAllDay, calJoin, calNow, calNoEvents, calToday, calTomorrow
@@ -235,6 +235,9 @@ enum L10nKey {
         case .timerDoneNote: return ["Sound and a notice when it ends", "Звук и уведомление по окончании", "Son et notification à la fin", "Sonido y aviso al terminar", "结束时播放声音并提示", "Som e aviso no fim", "Ton und Hinweis am Ende", "Suono e avviso alla fine", "終了時に音と通知", "끝나면 소리와 알림"]
         case .timerLeftOf: return ["left of %d min", "осталось из %d мин", "restant sur %d min", "restan de %d min", "剩余 · 共 %d 分钟", "restam de %d min", "übrig von %d Min", "rimasti su %d min", "残り · 全 %d 分", "남음 · 총 %d분"]
         case .timerLength: return ["Length", "Длительность", "Durée", "Duración", "时长", "Duração", "Dauer", "Durata", "長さ", "길이"]
+        case .timerRingAt: return ["Ring at", "Позвонить в", "Sonner à", "Sonar a las", "响铃时间", "Tocar às", "Klingeln um", "Suona alle", "鳴らす時刻", "울릴 시각"]
+        case .timerSet: return ["Set", "Завести", "Régler", "Fijar", "设定", "Definir", "Stellen", "Imposta", "セット", "설정"]
+        case .timerEndsAt: return ["Ends at %@", "Закончится в %@", "Fin à %@", "Termina a las %@", "%@ 结束", "Termina às %@", "Endet um %@", "Finisce alle %@", "%@ に終了", "%@에 종료"]
 
         case .mediaIdle: return ["Nothing is playing", "Ничего не играет", "Rien ne joue", "Nada suena", "没有播放内容", "Nada a tocar", "Nichts spielt", "Niente in riproduzione", "再生中の曲はありません", "재생 중인 항목 없음"]
         case .mediaSilent: return ["%@ is silent", "%@ молчит", "%@ est muet", "%@ está en silencio", "%@ 无声", "%@ está em silêncio", "%@ ist stumm", "%@ è muto", "%@ は無音です", "%@ 무음"]
@@ -266,6 +269,7 @@ enum L10nKey {
         case .shelfLinksNote: return ["Links only — originals stay in place", "Только ссылки — оригиналы остаются на месте", "Liens seulement — les originaux restent en place", "Solo enlaces — los originales no se mueven", "仅链接 — 原文件保持原位", "Só ligações — os originais ficam no lugar", "Nur Links — Originale bleiben am Ort", "Solo link — gli originali restano al loro posto", "リンクのみ — 元ファイルは移動しません", "링크만 — 원본은 그대로"]
         case .shelfDropSub: return ["Drag them back out anywhere", "Потом перетащите их куда угодно", "Faites-les ensuite glisser où vous voulez", "Luego arrástralos adonde quieras", "之后可拖到任何地方", "Depois arraste-os para onde quiser", "Später überallhin herausziehen", "Poi trascinali dove vuoi", "あとでどこへでもドラッグできます", "나중에 어디로든 끌어다 놓으세요"]
         case .shelfSection: return ["On the shelf", "На полке", "Sur l'étagère", "En la estantería", "架上文件", "Na prateleira", "Im Regal", "Sullo scaffale", "シェルフ内", "선반에 있음"]
+        case .shelfReveal: return ["Show in Finder", "Показать в Finder", "Afficher dans le Finder", "Mostrar en Finder", "在访达中显示", "Mostrar no Finder", "Im Finder zeigen", "Mostra nel Finder", "Finderに表示", "Finder에서 보기"]
 
         case .calAllDay: return ["all day", "весь день", "toute la journée", "todo el día", "全天", "o dia todo", "ganztägig", "tutto il giorno", "終日", "종일"]
         case .calJoin: return ["Join", "Войти", "Rejoindre", "Unirse", "加入", "Entrar", "Beitreten", "Entra", "参加", "참여"]
