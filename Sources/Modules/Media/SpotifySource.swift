@@ -83,7 +83,8 @@ final class SpotifySource: AppleScriptPlayer {
                 rate: state.isPlaying ? 1 : 0
             ),
             isPlaying: state.isPlaying,
-            artworkKey: artworkURL ?? state.trackID
+            artworkKey: artworkURL ?? state.trackID,
+            playID: state.trackID.hasPrefix("spotify:") ? state.trackID : nil
         )
     }
 
@@ -155,6 +156,12 @@ final class SpotifySource: AppleScriptPlayer {
               let (data, _) = try? await URLSession.shared.data(from: url)
         else { return nil }
         return NSImage(data: data)
+    }
+
+    /// Starts a track by its Spotify URI.
+    func play(uri: String) async {
+        guard uri.hasPrefix("spotify:"), !uri.contains("\"") else { return }
+        await command("play track \"\(uri)\"")
     }
 
     func seek(to seconds: Double) async {

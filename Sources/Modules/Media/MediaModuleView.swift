@@ -4,8 +4,9 @@ import SwiftUI
 /// Card on 21st.dev — a tinted, glowing card with the player's badge, large
 /// artwork (hover for play and like), a small equalizer while playing, and
 /// a black control deck with the scrubber, transport and system volume.
-/// The tint follows the artwork. Running players stay listed below;
-/// clicking one makes it the one the buttons control.
+/// The tint follows the artwork. Below it: the song on repeat and the
+/// recently played shelf, then the running players — clicking one makes it
+/// the one the buttons control.
 struct MediaModuleView: View {
     var media: MediaCenter
     var audio: AudioSystemMonitor
@@ -20,6 +21,7 @@ struct MediaModuleView: View {
                         EmptyStateZone(label: L10n.t(.mediaNoSignal), sublabel: idleMessage)
                             .frame(height: 110)
                     }
+                    MediaHistorySection(media: media)
                     if media.availableSources.count > 1 {
                         players
                     }

@@ -99,6 +99,7 @@ enum L10nKey {
     // Media
     case mediaIdle, mediaSilent, mediaNoSignal
     case mediaPlay, mediaPlaying, mediaPaused, mediaPlayers, mediaControlNote
+    case mediaRecent, mediaOnRepeat, mediaPlays, mediaHistoryHint
 
     // Clipboard
     case clipCopied, clipClear, clipEmptyTitle, clipEmptySub, clipMemoryNote, clipLatest, clipCopy
@@ -243,6 +244,10 @@ enum L10nKey {
         case .mediaPaused: return ["Paused", "На паузе", "En pause", "En pausa", "已暂停", "Em pausa", "Pausiert", "In pausa", "一時停止中", "일시정지됨"]
         case .mediaPlayers: return ["Players", "Плееры", "Lecteurs", "Reproductores", "播放器", "Leitores", "Player", "Lettori", "プレーヤー", "플레이어"]
         case .mediaControlNote: return ["Buttons control the selected player", "Кнопки управляют выбранным плеером", "Les boutons pilotent le lecteur choisi", "Los botones controlan el reproductor elegido", "按钮控制所选播放器", "Os botões controlam o leitor escolhido", "Die Tasten steuern den gewählten Player", "I pulsanti controllano il lettore scelto", "ボタンは選択中のプレーヤーを操作します", "버튼은 선택한 플레이어를 제어합니다"]
+        case .mediaRecent: return ["Recently played", "Недавно играли", "Écoutés récemment", "Escuchado recientemente", "最近播放", "Ouvidas recentemente", "Zuletzt gespielt", "Ascoltati di recente", "最近再生した曲", "최근 재생"]
+        case .mediaOnRepeat: return ["On repeat", "На повторе", "En boucle", "En bucle", "单曲循环", "Em repetição", "Auf Dauerschleife", "In loop", "リピート中", "반복 재생 중"]
+        case .mediaPlays: return ["Plays: %@", "Прослушиваний: %@", "Écoutes : %@", "Reproducciones: %@", "播放次数：%@", "Reproduções: %@", "Wiedergaben: %@", "Ascolti: %@", "再生回数：%@", "재생 횟수: %@"]
+        case .mediaHistoryHint: return ["Songs you play will show up here", "Здесь появятся песни, которые ты слушаешь", "Les titres écoutés apparaîtront ici", "Aquí aparecerán las canciones que escuches", "你播放的歌曲会显示在这里", "As músicas que ouvires aparecem aqui", "Gespielte Songs erscheinen hier", "Qui compariranno i brani che ascolti", "再生した曲がここに表示されます", "재생한 곡이 여기에 표시됩니다"]
 
         case .clipCopied: return ["Copied", "Готово", "Copié", "Copiado", "已复制", "Copiado", "Kopiert", "Copiato", "コピー済み", "복사됨"]
         case .clipLatest: return ["Latest", "Последнее", "Dernier", "Lo último", "最新", "Mais recente", "Neueste", "Ultimo", "最新", "최근"]
