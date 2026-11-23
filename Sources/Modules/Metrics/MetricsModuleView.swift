@@ -1,10 +1,11 @@
+import Charts
 import SwiftUI
 
-/// "System" module: every parameter is its own little isometric meter
-/// (CPU, memory, network, battery, volume) in a two-column grid. Meters
-/// with more than one page have a DISPLAY key; the volume meter has − / +.
-/// Screen text is hardware-style English, like the labels on a real device;
-/// the captions under the meters are localized.
+/// "System" module: a row of small devices on top — one per parameter,
+/// swipe or click to bring one into focus — and below, a Grafana-style
+/// panel for the focused one: current / average / peak and a live chart
+/// of the last two minutes. Screen text on the devices is hardware-style
+/// English, like the labels on a real device; everything else is localized.
 struct MetricsModuleView: View {
     var stats: SystemStatsService
     var power: PowerSourceMonitor
@@ -14,61 +15,32 @@ struct MetricsModuleView: View {
     /// can fire appear/disappear repeatedly during transitions; the flag
     /// keeps the contribution to the service's count at exactly zero or one.
     @State private var isObservingStats = false
-    /// Recent samples for the screens' bar charts, oldest first.
-    @State private var cpuHistory: [Double] = []
-    @State private var downHistory: [Double] = []
-    @State private var upHistory: [Double] = []
+    @State private var selected: Gauge? = .cpu
+    @State private var history: [MetricSample] = []
 
-    private static let historyLength = 12
-    private static let volumeStep = 1.0 / 16
+    /// Sampling step and window of the charts.
+    static let step: Double = 2
+    static let window = 60
 
-    private let columns = [
-        GridItem(.flexible(), spacing: 12, alignment: .top),
-        GridItem(.flexible(), spacing: 12, alignment: .top),
-    ]
+    private var focus: Gauge { selected ?? .cpu }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             ScrollView(.vertical, showsIndicators: false) {
-                LazyVGrid(columns: columns, alignment: .leading, spacing: 14) {
-                    tile(title: "CPU", detail: percentText(stats.cpuUsage)) {
-                        IsoMeterView(name: "cpu load", pages: cpuPages)
-                    }
-                    tile(title: L10n.t(.sysMemory), detail: "\(gigabytes(stats.memoryUsed)) / \(gigabytes(stats.memoryTotal)) GB") {
-                        IsoMeterView(name: "memory", pages: memoryPages)
-                    }
-                    tile(title: L10n.t(.sysNetwork), detail: "↓ \(Self.rateText(stats.downloadRate))") {
-                        IsoMeterView(name: "network", pages: networkPages)
-                    }
-                    tile(title: L10n.t(.sysBattery), detail: batteryDetail) {
-                        IsoMeterView(
-                            name: "battery",
-                            pages: [MeterPage(
-                                lamp: "BAT",
-                                caption: "charge",
-                                value: "\(power.percent)",
-                                unit: "%",
-                                chart: .level(Double(power.percent) / 100)
-                            )],
-                            statusLamp: ("AC", power.isPlugged)
-                        )
-                    }
-                    tile(title: L10n.t(.sysVolume), detail: "\(volumePercent)%") {
-                        IsoMeterView(
-                            name: "output",
-                            pages: [MeterPage(
-                                lamp: "VOL",
-                                caption: audio.currentDeviceName?.lowercased() ?? "output",
-                                value: "\(volumePercent)",
-                                unit: "%",
-                                chart: .level(audio.volume)
-                            )],
-                            keys: [
-                                MeterKey(label: "−") { audio.setVolume(max(0, audio.volume - Self.volumeStep)) },
-                                MeterKey(label: "+") { audio.setVolume(min(1, audio.volume + Self.volumeStep)) },
-                            ]
-                        )
-                    }
+                VStack(alignment: .leading, spacing: 14) {
+                    carousel
+                    picker
+                    MetricPanel(
+                        gauge: focus,
+                        history: history,
+                        now: currentSample,
+                        audio: audio
+                    )
+                    // A fresh panel per gauge: the charts cross-fade instead
+                    // of morphing one series into another.
+                    .id(focus)
+                    .transition(.opacity)
+                    overview
                 }
             }
             ModuleFootnote(systemName: "eye", text: L10n.t(.sysLiveNote))
@@ -83,94 +55,247 @@ struct MetricsModuleView: View {
             isObservingStats = false
             stats.endObserving()
         }
-        .onChange(of: stats.cpuUsage) { _, value in
-            Self.push(value, into: &cpuHistory)
-        }
-        .onChange(of: stats.downloadRate) { _, value in
-            Self.push(value, into: &downHistory)
-        }
-        .onChange(of: stats.uploadRate) { _, value in
-            Self.push(value, into: &upHistory)
-        }
-    }
-
-    // MARK: - Tiles
-
-    /// A meter with its localized name and a plain readout underneath.
-    private func tile<Meter: View>(title: String, detail: String, @ViewBuilder meter: () -> Meter) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            meter()
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title)
-                    .font(Theme.subFont)
-                    .fontWeight(.medium)
-                    .foregroundStyle(Theme.textPrimary)
-                    .lineLimit(1)
-                Text(detail)
-                    .font(Theme.captionFont)
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.textTertiary)
-                    .lineLimit(1)
+        .task {
+            // One clock for every series, so the charts line up.
+            while !Task.isCancelled {
+                record()
+                try? await Task.sleep(for: .seconds(Self.step))
             }
-            .padding(.leading, 4)
         }
     }
 
-    // MARK: - Pages
+    // MARK: - Devices
 
-    private var cpuPages: [MeterPage] {
-        let peak = cpuHistory.max() ?? stats.cpuUsage
-        return [
-            MeterPage(lamp: "NOW", caption: "load now", value: percentNumber(stats.cpuUsage), unit: "%", chart: .bars(cpuHistory)),
-            MeterPage(lamp: "PEAK", caption: "peak · last \(Self.historyLength)s", value: percentNumber(peak), unit: "%", chart: .bars(cpuHistory)),
-        ]
+    private var carousel: some View {
+        GeometryReader { proxy in
+            let itemWidth = min(proxy.size.width * 0.62, 260)
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: 10) {
+                    ForEach(Gauge.allCases) { gauge in
+                        IsoMeterView(
+                            name: gauge.deviceName,
+                            page: page(for: gauge),
+                            lamps: lamps(for: gauge),
+                            isLit: gauge == focus
+                        )
+                        .frame(width: itemWidth)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation(.snappy) { selected = gauge }
+                        }
+                        .scrollTransition(.interactive) { content, phase in
+                            content
+                                .scaleEffect(phase.isIdentity ? 1 : 0.82)
+                                .opacity(phase.isIdentity ? 1 : 0.45)
+                        }
+                        .id(gauge)
+                    }
+                }
+                .scrollTargetLayout()
+            }
+            .scrollTargetBehavior(.viewAligned)
+            .scrollPosition(id: $selected, anchor: .center)
+            .safeAreaPadding(.horizontal, (proxy.size.width - itemWidth) / 2)
+            .overlay(alignment: .leading) { arrow(-1) }
+            .overlay(alignment: .trailing) { arrow(1) }
+        }
+        .frame(height: 170)
     }
 
-    private var memoryPages: [MeterPage] {
-        let total = stats.memoryTotal
-        let used = min(stats.memoryUsed, total)
-        let fraction = total > 0 ? Double(used) / Double(total) : 0
-        return [
-            MeterPage(lamp: "USED", caption: "in use", value: gigabytes(used), unit: "GB", chart: .level(fraction)),
-            MeterPage(lamp: "FREE", caption: "available", value: gigabytes(total - used), unit: "GB", chart: .level(1 - fraction)),
-        ]
+    /// Round chevron at the carousel's edge: steps to the neighbour.
+    @ViewBuilder
+    private func arrow(_ direction: Int) -> some View {
+        let all = Gauge.allCases
+        let index = all.firstIndex(of: focus) ?? 0
+        let target = index + direction
+        if all.indices.contains(target) {
+            Button {
+                withAnimation(.snappy) { selected = all[target] }
+            } label: {
+                Image(systemName: direction < 0 ? "chevron.left" : "chevron.right")
+                    .font(Theme.iconSmallFont)
+                    .foregroundStyle(Theme.textPrimary)
+                    .frame(width: 28, height: 28)
+                    .background(Circle().fill(Theme.raisedFill))
+                    .overlay(Circle().stroke(Theme.hairlineSoft, lineWidth: 1))
+                    .contentShape(Circle())
+            }
+            .buttonStyle(PressableStyle())
+        }
     }
 
-    private var networkPages: [MeterPage] {
-        let down = Self.rateParts(stats.downloadRate)
-        let up = Self.rateParts(stats.uploadRate)
-        return [
-            MeterPage(lamp: "DOWN", caption: "download", value: down.value, unit: down.unit, chart: .bars(Self.normalized(downHistory))),
-            MeterPage(lamp: "UP", caption: "upload", value: up.value, unit: up.unit, chart: .bars(Self.normalized(upHistory))),
-        ]
+    /// The same choice as plain labelled chips — the obvious way to switch.
+    private var picker: some View {
+        HStack(spacing: 6) {
+            ForEach(Gauge.allCases) { gauge in
+                let isOn = gauge == focus
+                Button {
+                    withAnimation(.snappy) { selected = gauge }
+                } label: {
+                    Text(gauge.title)
+                        .font(Theme.captionFont)
+                        .fontWeight(.semibold)
+                        .lineLimit(1)
+                        .foregroundStyle(isOn ? Theme.inkOnAccent : Theme.textSecondary)
+                        .padding(.horizontal, 9)
+                        .frame(height: 24)
+                        .background(Capsule().fill(isOn ? Theme.lightFill : Theme.cardFill))
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(PressableStyle())
+            }
+        }
+        .frame(maxWidth: .infinity)
     }
 
-    private var batteryDetail: String {
-        guard power.isPlugged else { return "\(power.percent)%" }
-        // Stored lower case ("charging"); reads as a sentence here.
-        let charging = L10n.t(.sysCharging)
-        return "\(power.percent)% · " + charging.prefix(1).uppercased() + charging.dropFirst()
+    /// Every gauge as a small stat panel with a sparkline.
+    private var overview: some View {
+        LazyVGrid(
+            columns: [GridItem(.adaptive(minimum: 120), spacing: 10)],
+            spacing: 10
+        ) {
+            ForEach(Gauge.allCases) { gauge in
+                MetricStatCard(
+                    gauge: gauge,
+                    history: history,
+                    now: currentSample,
+                    isSelected: gauge == focus
+                ) {
+                    withAnimation(.snappy) { selected = gauge }
+                }
+            }
+        }
     }
 
-    private var volumePercent: Int {
-        Int((audio.volume * 100).rounded())
+    // MARK: - Screens
+
+    private func page(for gauge: Gauge) -> MeterPage {
+        let recent = history.suffix(12)
+        switch gauge {
+        case .cpu:
+            return MeterPage(
+                caption: "load", value: Format.percentNumber(stats.cpuUsage), unit: "%",
+                chart: .bars(recent.map(\.cpu))
+            )
+        case .memory:
+            let s = currentSample
+            return MeterPage(
+                caption: "in use", value: Format.gigabytes(s.memoryUsed), unit: "GB",
+                chart: .level(s.memoryTotal > 0 ? s.memoryUsed / s.memoryTotal : 0)
+            )
+        case .network:
+            let parts = Format.rateParts(stats.downloadRate)
+            let top = recent.map(\.download).max() ?? 0
+            return MeterPage(
+                caption: "download", value: parts.value, unit: parts.unit,
+                chart: .bars(recent.map { top > 0 ? $0.download / top : 0 })
+            )
+        case .battery:
+            return MeterPage(
+                caption: "charge", value: "\(power.percent)", unit: "%",
+                chart: .level(Double(power.percent) / 100)
+            )
+        case .volume:
+            return MeterPage(
+                caption: audio.currentDeviceName?.lowercased() ?? "output",
+                value: "\(Int((audio.volume * 100).rounded()))", unit: "%",
+                chart: .level(audio.volume)
+            )
+        }
     }
 
-    // MARK: - Formatting
+    private func lamps(for gauge: Gauge) -> [(label: String, on: Bool)] {
+        switch gauge {
+        case .battery: [("LIVE", true), ("AC", power.isPlugged)]
+        case .volume: [("LIVE", true), ("MUTE", audio.volume == 0)]
+        default: [("LIVE", true)]
+        }
+    }
 
-    private func percentNumber(_ fraction: Double) -> String {
+    // MARK: - Sampling
+
+    private var currentSample: MetricSample {
+        MetricSample(
+            cpu: stats.cpuUsage,
+            memoryUsed: Double(min(stats.memoryUsed, stats.memoryTotal)) / 1_073_741_824,
+            memoryTotal: Double(stats.memoryTotal) / 1_073_741_824,
+            download: stats.downloadRate,
+            upload: stats.uploadRate,
+            battery: Double(power.percent),
+            volume: audio.volume
+        )
+    }
+
+    private func record() {
+        history.append(currentSample)
+        if history.count > Self.window {
+            history.removeFirst(history.count - Self.window)
+        }
+    }
+}
+
+// MARK: - Model
+
+/// The parameters, in carousel order.
+enum Gauge: String, CaseIterable, Identifiable {
+    case cpu, memory, network, battery, volume
+
+    var id: String { rawValue }
+
+    @MainActor var title: String {
+        switch self {
+        case .cpu: "CPU"
+        case .memory: L10n.t(.sysMemory)
+        case .network: L10n.t(.sysNetwork)
+        case .battery: L10n.t(.sysBattery)
+        case .volume: L10n.t(.sysVolume)
+        }
+    }
+
+    /// The tag printed on the device itself.
+    var deviceName: String {
+        switch self {
+        case .cpu: "cpu load"
+        case .memory: "memory"
+        case .network: "network"
+        case .battery: "battery"
+        case .volume: "output"
+        }
+    }
+
+    /// Series color, from the Grafana palette.
+    var color: Color {
+        switch self {
+        case .cpu: Theme.accent
+        case .memory: Color(red: 0.34, green: 0.58, blue: 0.95) // #5794F2
+        case .network: Theme.accent
+        case .battery: Color(red: 0.98, green: 0.87, blue: 0.16) // #FADE2A
+        case .volume: Color(red: 0.72, green: 0.47, blue: 0.85) // #B877D9
+        }
+    }
+}
+
+/// One tick of every series.
+struct MetricSample {
+    var cpu: Double
+    var memoryUsed: Double
+    var memoryTotal: Double
+    var download: Double
+    var upload: Double
+    var battery: Double
+    var volume: Double
+}
+
+enum Format {
+    static func percentNumber(_ fraction: Double) -> String {
         "\(Int((fraction * 100).rounded()))"
     }
 
-    private func percentText(_ fraction: Double) -> String {
-        percentNumber(fraction) + "%"
+    static func gigabytes(_ value: Double) -> String {
+        String(format: "%.1f", value)
     }
 
-    private func gigabytes(_ bytes: UInt64) -> String {
-        String(format: "%.1f", Double(bytes) / 1_073_741_824)
-    }
-
-    private static func rateParts(_ rate: Double) -> (value: String, unit: String) {
+    static func rateParts(_ rate: Double) -> (value: String, unit: String) {
         switch rate {
         case ..<1_000: ("0", "KB/s")
         case ..<1_000_000: (String(format: "%.0f", rate / 1_000), "KB/s")
@@ -179,21 +304,8 @@ struct MetricsModuleView: View {
         }
     }
 
-    private static func rateText(_ rate: Double) -> String {
+    static func rate(_ rate: Double) -> String {
         let parts = rateParts(rate)
         return "\(parts.value) \(parts.unit)"
-    }
-
-    private static func push(_ value: Double, into history: inout [Double]) {
-        history.append(value)
-        if history.count > historyLength {
-            history.removeFirst(history.count - historyLength)
-        }
-    }
-
-    /// Scales rates to the busiest recent sample so the bars always read.
-    private static func normalized(_ values: [Double]) -> [Double] {
-        guard let top = values.max(), top > 0 else { return values.map { _ in 0 } }
-        return values.map { $0 / top }
     }
 }
