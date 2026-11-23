@@ -457,7 +457,9 @@ private struct Equalizer: View {
     ]
 
     var body: some View {
-        TimelineView(.animation(paused: !isPlaying || Theme.reduceMotion)) { context in
+        // Two steps a second, not every frame: each step redraws the
+        // whole panel, and at display rate that costs half a core.
+        TimelineView(.animation(minimumInterval: 0.5, paused: !isPlaying || Theme.reduceMotion)) { context in
             let t = context.date.timeIntervalSinceReferenceDate
             HStack(alignment: .bottom, spacing: 4) {
                 ForEach(Self.waves.indices, id: \.self) { i in

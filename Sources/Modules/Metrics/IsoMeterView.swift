@@ -163,7 +163,6 @@ struct IsoMeterView: View {
             }
             .padding(.horizontal, 7)
             .padding(.vertical, 7)
-            .animation(.snappy(duration: 0.35), value: page.value)
         }
         .clipShape(shape)
         .overlay(shape.stroke(Color.white.opacity(0.10), lineWidth: 0.6))
