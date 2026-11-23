@@ -1,11 +1,13 @@
 ---
-// "Pay once, keep it": the Trial and the License as one stack (card, the
-// three days, card, the price band) with a tip and the buttons beside it.
-// The accent colour appears here only on the price band.
+// "Pay once, keep it": two steps side by side in one frame. Step 1 is the
+// Trial with the Download button, step 2 is the License with the price and
+// the Buy button. Each column ends with its button, so the buttons line up.
+// The accent colour appears here only as the dot before the launch-price note
+// (and on the Buy button's hover, from global.css).
 //
-// src/scripts/motion.ts sets `data-wait` on `.plan` while it is below the
-// fold and removes it when it is seen: the days switch on one by one, then
-// the regular price is struck and the launch price takes its place.
+// src/scripts/motion.ts sets `data-wait` on `.offer` while it is below the
+// fold and removes it when the price is seen: the regular price is struck and
+// the launch price takes its place.
 import Marker from './Marker.astro';
 import { checkoutURL, downloadURL, launchPriceEnds, price, salesOpen } from '../config';
 ---
@@ -18,260 +20,211 @@ import { checkoutURL, downloadURL, launchPriceEnds, price, salesOpen } from '../
     buy it once and it’s yours.
   </p>
 
-  <div class="indent price">
-    <div class="plan" id="plan">
-      <div class="plan__card">
+  <div class="indent">
+    <div class="offer" id="plan">
+      <article class="offer__col">
+        <p class="label muted offer__step">01 / try</p>
         <h3 class="strong">Trial</h3>
-        <p class="body">3 days, every feature, from the first time you open pocket</p>
-      </div>
-      <div class="days label" aria-hidden="true">
-        <span class="day" style="--i:0">day 1</span>
-        <span class="day" style="--i:1">day 2</span>
-        <span class="day" style="--i:2">day 3</span>
-      </div>
-      <div class="plan__card">
-        <h3 class="strong">License</h3>
-        <p class="body">
-          one payment, no subscription. one License key works on up to 3 of your Macs
+        <p class="offer__price">
+          <span class="offer__big">3 days</span>
+          <span class="label muted">free</span>
         </p>
-      </div>
-      <div class="band">
-        <p class="band__price">
-          <span class="band__now">{price.launch}</span>
-          <s class="band__was">{price.regular}</s>
-        </p>
-        <span class="label band__label">launch price until {launchPriceEnds}</span>
-      </div>
-    </div>
+        <p class="label muted offer__note">starts the first time you open pocket</p>
+        <ul class="offer__facts body">
+          <li>every feature switched on</li>
+          <li>starting it needs an internet connection</li>
+          <li>when it ends, pocket locks until you enter a License key. your settings stay</li>
+        </ul>
+        <a class="btn btn--quiet btn--wide offer__btn" href={downloadURL} download>
+          download and start the Trial
+        </a>
+      </article>
 
-    <div class="side">
-      <div class="tip">
-        <h3 class="tip__title">tip</h3>
-        <p class="label">
-          use the Trial to decide.<br /><br />a refund is possible within 14 days, as long as the
-          License key was never activated.
+      <article class="offer__col">
+        <p class="label muted offer__step">02 / buy</p>
+        <h3 class="strong">License</h3>
+        <p class="offer__price" id="price">
+          <span class="offer__big offer__now">{price.launch}</span>
+          <s class="offer__was">{price.regular}</s>
         </p>
-      </div>
-      <div class="side__cta">
+        <p class="label muted offer__note">
+          <span class="offer__dot" aria-hidden="true"></span>launch price until {launchPriceEnds}
+        </p>
+        <ul class="offer__facts body">
+          <li>one payment, no subscription</li>
+          <li>one License key for up to 3 of your Macs</li>
+          <li>refund within 14 days if the License key was never activated</li>
+        </ul>
         <a
-          class="btn btn--light btn--wide"
+          class="btn btn--light btn--wide offer__btn"
           href={salesOpen ? checkoutURL : '#presale'}
           data-presale={salesOpen ? undefined : ''}
         >
           buy pocket <span class="btn__price">{price.launch}</span>
         </a>
-        <a class="btn btn--quiet btn--wide" href={downloadURL} download>
-          download and start the Trial
-        </a>
-      </div>
-      <p class="label muted">sold by dk2la. payment is handled by Polar. tax is added at checkout where it applies.</p>
+      </article>
     </div>
+
+    <p class="label muted offer__fine">
+      sold by dk2la. payment is handled by Polar. tax is added at checkout where it applies.
+    </p>
   </div>
 </section>
 
 <style>
-  .price {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--s-5);
+  /* Two equal columns, split by a hairline (the frame's background shows
+     through the 1px gap). */
+  .offer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
   }
 
-  .plan {
+  .offer__col {
     display: flex;
     flex-direction: column;
-    flex: 1 1 608px;
     min-width: 0;
-  }
-
-  .plan__card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
     padding: var(--s-5);
     background: var(--card);
-    text-align: center;
   }
 
-  /* The three days of the Trial, lighter to darker. */
-  .days {
-    display: flex;
-    height: var(--s-8);
-    background: var(--card);
+  .offer__step {
+    margin-bottom: var(--s-4);
   }
 
-  .day {
-    display: flex;
-    align-items: flex-end;
-    flex: 1 1 0;
-    padding: var(--s-2) var(--s-3);
-    background: var(--text);
-    color: var(--ground);
-    /* Switched, not faded: the change lands all at once after the delay. */
-    transition: opacity 0s linear calc(var(--i) * 140ms);
-  }
-
-  .day:nth-child(2) {
-    background: var(--tone-2);
-  }
-
-  .day:nth-child(3) {
-    background: var(--tone-3);
-  }
-
-  .plan[data-wait] .day {
-    opacity: 0;
-  }
-
-  .band {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--s-3);
-    min-height: var(--s-8);
-    padding-inline: var(--s-5);
-    background: var(--accent);
-    color: var(--on-accent);
-    overflow: hidden;
-  }
-
-  .band__price {
+  .offer__price {
     display: flex;
     align-items: baseline;
-    flex: none;
     gap: var(--s-3);
+    margin-top: var(--s-3);
     white-space: nowrap;
   }
 
-  .band__now {
-    font-size: 60px;
+  .offer__big {
+    font-size: 56px;
     font-weight: 600;
     line-height: 64px;
-    letter-spacing: -0.02em;
-    transition:
-      opacity 300ms ease-out 1100ms,
-      transform 400ms var(--ease-out) 1100ms;
+    letter-spacing: -0.03em;
   }
 
-  /* The regular price. The strike is a drawn line, so it can be drawn in. */
-  .band__was {
+  .offer__note {
+    display: flex;
+    align-items: center;
+    gap: var(--s-1);
+    min-height: 22px;
+  }
+
+  .offer__dot {
+    width: 8px;
+    height: 8px;
+    flex: none;
+    background: var(--accent);
+  }
+
+  .offer__facts {
+    margin: var(--s-5) 0 var(--s-6);
+    padding: 0;
+    list-style: none;
+  }
+
+  .offer__facts li {
     position: relative;
-    font-size: 28px;
-    font-weight: 300;
-    line-height: 32px;
-    letter-spacing: 0;
-    text-decoration: none;
-    opacity: 0.55;
-    transform-origin: 0 78%;
-    transition:
-      opacity 450ms ease-out 900ms,
-      transform 450ms var(--ease-out) 900ms;
+    padding: var(--s-2) 0 var(--s-2) var(--s-4);
+    border-top: 1px solid var(--line);
   }
 
-  .band__was::after {
+  .offer__facts li:last-child {
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* A short dash instead of a bullet. */
+  .offer__facts li::before {
     content: '';
     position: absolute;
     left: 0;
-    right: 0;
-    top: 49%;
+    top: calc(var(--s-2) + 13px);
+    width: 10px;
     height: 1px;
-    background: currentColor;
-    transform-origin: 0 0;
-    transition: transform 250ms var(--ease-out) 600ms;
+    background: var(--muted);
   }
 
-  /* Before: the regular price stands, large, where the launch price will be.
-     `--shift` is set by the script (the width of the launch price + the gap). */
-  .plan[data-wait] .band__now {
-    opacity: 0;
-    transform: translate3d(0, 8px, 0);
-  }
-
-  .plan[data-wait] .band__was {
-    opacity: 1;
-    transform: translate3d(var(--shift, 0px), 0, 0) scale(2.14);
-  }
-
-  .plan[data-wait] .band__was::after {
-    transform: scaleX(0);
-  }
-
-  .band__label {
-    text-align: right;
-  }
-
-  .side {
-    display: flex;
-    flex-direction: column;
-    flex: 0 0 384px;
-    gap: var(--s-5);
-    min-width: 0;
-  }
-
-  .tip {
-    display: flex;
-    flex-direction: column;
-    gap: var(--s-4);
-    padding: var(--s-5);
-    background: var(--card);
-  }
-
-  .tip__title {
-    font-size: 20px;
-    font-weight: 600;
-    line-height: 24px;
-  }
-
-  .tip .label {
-    line-height: 24px;
-  }
-
-  .side__cta {
-    display: flex;
-    flex-direction: column;
-    gap: var(--s-1);
-  }
-
-  /* Long label: let it wrap on the narrowest phones instead of overflowing. */
-  .side__cta .btn {
+  /* Pinned to the bottom, so both buttons sit on one line. */
+  .offer__btn {
+    margin-top: auto;
     height: auto;
     min-height: var(--u);
     white-space: normal;
   }
 
-  @media (max-width: 999px) {
-    .price {
-      flex-direction: column;
-      align-items: stretch;
-    }
+  .offer__fine {
+    margin-top: var(--s-4);
+  }
 
-    .plan,
-    .side {
-      flex: none;
+  /* ---- the price: the regular one is struck, the launch one arrives ---- */
+
+  .offer__now {
+    transition:
+      opacity 300ms ease-out 700ms,
+      transform 400ms var(--ease-out) 700ms;
+  }
+
+  /* The regular price. The strike is a drawn line, so it can be drawn in. */
+  .offer__was {
+    position: relative;
+    font-size: 28px;
+    font-weight: 300;
+    line-height: 32px;
+    text-decoration: none;
+    color: var(--muted);
+    transform-origin: 0 78%;
+    transition:
+      color 450ms ease-out 500ms,
+      transform 450ms var(--ease-out) 500ms;
+  }
+
+  .offer__was::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 52%;
+    height: 1px;
+    background: currentColor;
+    transform-origin: 0 0;
+    transition: transform 250ms var(--ease-out) 200ms;
+  }
+
+  /* Before: the regular price stands, large, where the launch price will be.
+     `--shift` is set by the script (the width of the launch price + the gap). */
+  .offer[data-wait] .offer__now {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+
+  .offer[data-wait] .offer__was {
+    color: var(--text);
+    transform: translate3d(var(--shift, 0px), 0, 0) scale(2);
+  }
+
+  .offer[data-wait] .offer__was::after {
+    transform: scaleX(0);
+  }
+
+  @media (max-width: 799px) {
+    .offer {
+      grid-template-columns: 1fr;
     }
   }
 
-  /* The narrowest phones: a smaller price, so the band still fits one row. */
   @media (max-width: 379px) {
-    .band {
-      padding-inline: var(--s-3);
-    }
-
-    .band__price {
-      gap: var(--s-2);
-    }
-
-    .band__now {
-      font-size: 48px;
-    }
-
-    .band__was {
-      font-size: 22px;
-    }
-
-    .plan__card,
-    .tip {
+    .offer__col {
       padding: var(--s-4);
+    }
+
+    .offer__big {
+      font-size: 48px;
     }
   }
 </style>
