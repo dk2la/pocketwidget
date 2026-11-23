@@ -28,9 +28,7 @@
   --line: #2a2a27; /* hairlines between rows */
   --line-strong: #2e2e2b; /* outline of the quiet button */
   --dot: #3a3a36; /* marker corner dots */
-  --tone-2: #a8a292; /* day 2 */
-  --tone-3: #6b665b; /* day 3, dashed ghosts */
-  --accent: #3fff00; /* the price band, and Buy on hover */
+  --accent: #3fff00; /* the launch-price dot, and Buy on hover */
   --on-accent: #0b0b0a;
   --select: #3685f9; /* selection outline, focus ring, text selection */
   --paper: #fbfaf5; /* behind the halftone pictures while they load */

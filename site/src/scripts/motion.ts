@@ -6,7 +6,8 @@
 //   (Desk.astro);
 // - the sky picture: the widgets rise in, then drift while the page scrolls
 //   (Sky.astro);
-// - the price: the days switch on, then the price is struck (Price.astro).
+// - the price: the regular price is struck, the launch price arrives
+//   (Price.astro).
 //
 // The page is complete without this script. Only things that are below the
 // fold at load are hidden first (`data-wait`), so nothing visible ever blinks
@@ -111,7 +112,7 @@ function initSky(): void {
 
 function initPrice(): void {
   const plan = document.getElementById('plan');
-  const now = plan?.querySelector<HTMLElement>('.band__now');
+  const now = plan?.querySelector<HTMLElement>('.offer__now');
   if (!plan || !now || reducedMotion.matches || !below(plan)) return;
 
   // Where the regular price stands before it is struck: in the launch
@@ -125,7 +126,7 @@ function initPrice(): void {
   void document.fonts?.ready.then(setShift);
 
   plan.dataset.wait = '';
-  whenSeen(plan.querySelector('.band') ?? plan, 1, () => delete plan.dataset.wait);
+  whenSeen(document.getElementById('price') ?? plan, 1, () => delete plan.dataset.wait);
 }
 
 export function initMotion(): void {
