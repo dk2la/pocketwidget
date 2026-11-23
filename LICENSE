@@ -1,21 +1,74 @@
-MIT License
+Pocket Source-Available License
 
-Copyright (c) 2026 Danila Kozlov
+Copyright (c) 2026 Danila Kozlov. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This repository contains the source code, assets, documentation, website and
+other materials of Pocket (together, the "Software"). The Software is
+published for viewing only. It is not open source.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. What you may do
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+   You may view and read the Software on the website where the copyright
+   holder publishes it. Where that website's own terms (for example, the
+   GitHub Terms of Service) give its users a right to view or fork public
+   repositories on that website, that right applies only as far as those
+   terms require and gives no further rights under this license.
+
+2. What you may not do
+
+   Without prior written permission from the copyright holder, you may not:
+
+   a. use, run, install, build or compile the Software, in whole or in part;
+   b. copy, reproduce or download the Software, except as needed to view it
+      under section 1;
+   c. modify, adapt, translate or create derivative works of the Software;
+   d. distribute, publish, sell, sublicense, rent, lend, host or otherwise
+      make the Software or any part of it available to anyone;
+   e. use the Software or any part of it in another product or service,
+      whether commercial or not;
+   f. remove, bypass or disable license checks, trial limits, Activation
+      limits or any other protection in the Software;
+   g. use the Software to train, fine-tune or evaluate machine learning
+      models;
+   h. remove or change any copyright, trademark or license notice.
+
+3. The product
+
+   The compiled Pocket app is licensed separately, only through a License key
+   bought from the copyright holder and under the terms accepted at purchase.
+   This license gives no right to use the app.
+
+4. Contributions
+
+   If you send a contribution (for example, a pull request, patch or issue
+   with code), you grant the copyright holder a perpetual, worldwide,
+   irrevocable, royalty-free license to use, modify and distribute it under
+   any terms, and you confirm you have the right to grant it.
+
+5. Third-party components
+
+   Third-party components included in or used by the Software remain under
+   their own licenses. This license does not change them.
+
+6. Trademarks
+
+   This license grants no rights to the name "Pocket", its logos or any other
+   trademarks of the copyright holder.
+
+7. Termination
+
+   Any use not allowed by this license is a breach of it and an infringement
+   of copyright. Any permission given under this license ends automatically
+   on breach.
+
+8. No warranty
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+
+For permission requests, contact support@pocketwidget.tech.

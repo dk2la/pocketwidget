@@ -9,8 +9,8 @@ Subscription feature) are defined in [GLOSSARY.md](../GLOSSARY.md).
 - Sold directly as a DMG plus a License key. Not on the Mac App Store, because
   window resizing needs the Accessibility API, which the App Store sandbox
   doesn't allow.
-- Source code becomes proprietary and the repository private. The owner does
-  this, including replacing the MIT `LICENSE`.
+- Source code is source-available: the repository may stay public, but
+  `LICENSE` forbids using, copying, modifying and distributing it.
 - Releases are signed with a Developer ID certificate (team `LZFYXRC8DH`) and
   notarized by Apple, in `.github/workflows/release.yml`. The hardened runtime
   is on; what it allows is listed in `Support/Pocket.entitlements`. The
@@ -23,15 +23,20 @@ Subscription feature) are defined in [GLOSSARY.md](../GLOSSARY.md).
 - DMGs are hosted in a public Cloudflare R2 bucket, so downloads stay reachable
   after the repository goes private. The release workflow uploads to it on
   every release, before it creates the GitHub release.
+- The DMG opens as an install window: Pocket, an arrow and the Applications
+  folder on a sky background. `Support/make-dmg.sh` builds it with dmgbuild
+  from the layout in `Support/dmg/settings.py`. The background and the app
+  icon are both drawn from `Support/art/pocket-sky.png` by
+  `swift Support/make-art.swift`; the results are committed.
 - Stable URL, always the latest DMG (for the website's Download button):
-  `https://pub-3c8757d8d4b64f55bbc715c162c7e969.r2.dev/Pocket.dmg`
+  `https://downloads.pocketwidget.tech/Pocket.dmg`
 - Each version keeps its own files under `v<version>/`:
   `Pocket-<version>.dmg`, `Pocket-<version>.zip` and `SHA256SUMS.txt`, e.g.
-  `https://pub-3c8757d8d4b64f55bbc715c162c7e969.r2.dev/v0.1.2/Pocket-0.1.2.dmg`
+  `https://downloads.pocketwidget.tech/v0.1.2/Pocket-0.1.2.dmg`
 - The bucket name and public base URL live in the repository variables
-  `CLOUDFLARE_R2_BUCKET` and `CLOUDFLARE_R2_PUBLIC_URL`. The `r2.dev` address
-  is Cloudflare's development URL; move the bucket to a custom domain once the
-  website domain is chosen.
+  `CLOUDFLARE_R2_BUCKET` and `CLOUDFLARE_R2_PUBLIC_URL`. The bucket's old
+  `r2.dev` address stays switched on: the update feed of 0.2.0 points its
+  download there.
 
 ## Sales
 

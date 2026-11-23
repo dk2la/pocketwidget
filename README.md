@@ -89,4 +89,6 @@ Branches: `feat/<name>` / `debug/<name>` → `develop` → `master`.
 
 ## License
 
-Proprietary. © 2026 Danila Kozlov. All rights reserved.
+Source-available, not open source. © 2026 Danila Kozlov. All rights reserved.
+The code may be viewed but not used, copied, modified or distributed — see
+[`LICENSE`](LICENSE).

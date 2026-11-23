@@ -28,8 +28,8 @@ Tick an item when it is done and merged.
 - **Policies:** Terms, Privacy and Refund are rewritten in full from examples
   the owner provides. This blocks the launch. The refund rule stays: 14 days,
   only if the License key was never activated.
-- **Repository:** made private and the MIT license removed before the public
-  announcement. The owner does both.
+- **Repository:** stays public under the source-available `LICENSE`, which
+  replaced MIT.
 - **Production purchase test:** done on the signed build: buy, activate,
   deactivate, refund.
 - **Postponed:** the seller's legal status in France (micro-entreprise).
@@ -42,7 +42,7 @@ Tick an item when it is done and merged.
 - [x] Polar's success URL pointing to `/thanks`
 - [x] Site: Support and "Manage license" links in the footer
 - [x] App: "Manage license" link in the license screen
-- [ ] Downloads served from `downloads.pocketwidget.tech`
+- [x] Downloads served from `downloads.pocketwidget.tech`
 - [x] Trial server: at most 5 new Trials a minute from one address. Measured
       live on 2026-11-19, the limiter is loose (it turned away 3 of 30
       requests sent at once), so it slows a flood rather than stopping it. A
@@ -55,17 +55,23 @@ Tick an item when it is done and merged.
 ## Owner's steps
 
 - [x] Enrol in the Apple Developer Program as an individual
-- [ ] Send the policy examples
-- [ ] Make the repository private and remove the MIT license
+- [x] Send the policy examples
+- [x] Replace the MIT license with the source-available `LICENSE`
 
 ## After the Apple Developer account
 
 - [x] Hardened runtime, Developer ID signing, notarization in the release
-      workflow. Apple accepted a locally built and signed app on 2026-11-19;
-      the workflow itself first runs with 1.0.0
+      workflow. The workflow published 0.2.0 this way on 2026-11-19; the
+      downloaded DMG and app pass Gatekeeper as "Notarized Developer ID"
 - [x] Sparkle with its signing key and the feed. Not yet seen working end to
       end: that needs two published versions
-- [ ] Rewritten Terms, Privacy and Refund pages
+- [x] App icon and a DMG that opens as an install window (PR #88). Its first
+      release is 0.2.1
+- [ ] Rewritten Terms, Privacy and Refund pages. Terms and Privacy are
+      updated and a Trust page is added (PRs #89, #90, #91); the Refund
+      page is not touched yet
+- [ ] The signed build run by hand: players, dictation, calendar, "Check for
+      Updates", and an update from 0.2.0 to a newer version
 - [ ] Version 1.0.0
 - [ ] Production purchase test on the signed build
 - [ ] Manual Trial check on a clean install, then close issues #42 and #39

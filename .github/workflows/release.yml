@@ -142,11 +142,10 @@ jobs:
           xcrun stapler staple "$app"
           ditto -c -k --keepParent "$app" "dist/$name.zip"
 
-          staging=$(mktemp -d)
-          cp -R "$app" "$staging/"
-          ln -s /Applications "$staging/Applications"
-          hdiutil create -volname Pocket -srcfolder "$staging" -ov -format UDZO "dist/$name.dmg"
-          rm -rf "$staging"
+          # The install window: both icons on a background with an arrow.
+          python3 -m venv "$RUNNER_TEMP/dmgbuild"
+          "$RUNNER_TEMP/dmgbuild/bin/pip" install --quiet dmgbuild==2.0.0
+          DMGBUILD="$RUNNER_TEMP/dmgbuild/bin/dmgbuild" Support/make-dmg.sh "$app" "dist/$name.dmg"
           codesign --sign "Developer ID Application" --timestamp "dist/$name.dmg"
           notarize "dist/$name.dmg"
           xcrun stapler staple "dist/$name.dmg"
