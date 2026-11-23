@@ -154,6 +154,7 @@ enum L10nKey {
 
     // Metrics
     case sysMemory, sysNetwork, sysBattery, sysCharging, sysVolume, sysNow, sysLiveNote
+    case sysAverage, sysPeak, sysLowest, sysLastMinutes, sysDownload, sysUpload
 
     // Settings
     case setTitle, setGeneral, setAppearance, setModules, setHotkeys
@@ -416,6 +417,12 @@ enum L10nKey {
         case .sysVolume: return ["Volume", "Громкость", "Volume", "Volumen", "音量", "Volume", "Lautstärke", "Volume", "音量", "음량"]
         case .sysNow: return ["Now", "Сейчас", "Maintenant", "Ahora", "当前", "Agora", "Jetzt", "Ora", "現在", "지금"]
         case .sysLiveNote: return ["Measured only while this tab is open", "Замеры идут, только пока вкладка открыта", "Mesuré seulement quand cet onglet est ouvert", "Solo se mide con esta pestaña abierta", "仅在此标签页打开时测量", "Medido só com este separador aberto", "Nur gemessen, solange dieser Tab offen ist", "Misurato solo con questa scheda aperta", "このタブを開いている間だけ計測", "이 탭이 열려 있을 때만 측정"]
+        case .sysAverage: return ["Average", "Среднее", "Moyenne", "Media", "平均", "Média", "Mittel", "Media", "平均", "평균"]
+        case .sysPeak: return ["Peak", "Пик", "Pic", "Pico", "峰值", "Pico", "Spitze", "Picco", "ピーク", "최고"]
+        case .sysLowest: return ["Lowest", "Минимум", "Minimum", "Mínimo", "最低", "Mínimo", "Minimum", "Minimo", "最低", "최저"]
+        case .sysLastMinutes: return ["Last 2 min", "За 2 минуты", "2 dernières min", "Últimos 2 min", "最近 2 分钟", "Últimos 2 min", "Letzte 2 Min.", "Ultimi 2 min", "直近 2 分", "최근 2분"]
+        case .sysDownload: return ["Download", "Загрузка", "Réception", "Descarga", "下载", "Download", "Empfang", "Download", "ダウンロード", "다운로드"]
+        case .sysUpload: return ["Upload", "Отдача", "Envoi", "Subida", "上传", "Upload", "Senden", "Upload", "アップロード", "업로드"]
 
         case .setTitle: return ["Settings", "Настройки", "Réglages", "Ajustes", "设置", "Ajustes", "Einstellungen", "Impostazioni", "設定", "설정"]
         case .setGeneral: return ["General", "Общие", "Général", "General", "通用", "Geral", "Allgemein", "Generali", "一般", "일반"]

@@ -1,16 +1,20 @@
 import SwiftUI
 
-/// A tiny isometric drawing kit for the System module's devices, after the
+/// A tiny 3/4-view drawing kit for the System module's devices, after the
 /// isokit illustrations on 21st.dev. A scene is drawn in its own units: x
-/// runs right-down, y left-down, z up. Boxes are painted back to front by
-/// the caller; flat content is pinned onto a box's faces with `isoFace`.
+/// runs right, y toward the viewer, z up. The view is almost frontal — the
+/// front face (the screen) looks at the viewer, with the top and the right
+/// side showing. Boxes are painted back to front by the caller; flat
+/// content is pinned onto a box's faces with `isoFace`.
 enum Iso {
-    static let cos30: CGFloat = 0.8660254
-    static let sin30: CGFloat = 0.5
+    /// Screen direction of one unit along x: right, a slight fall.
+    static let ex = CGVector(dx: 0.96, dy: 0.10)
+    /// Screen direction of one unit along y (toward the viewer).
+    static let ey = CGVector(dx: -0.46, dy: 0.30)
 
     /// Screen point of a scene point, before the scene's own offset.
     static func project(_ x: CGFloat, _ y: CGFloat, _ z: CGFloat) -> CGPoint {
-        CGPoint(x: (x - y) * cos30, y: (x + y) * sin30 - z)
+        CGPoint(x: x * ex.dx + y * ey.dx, y: x * ex.dy + y * ey.dy - z)
     }
 }
 
@@ -58,9 +62,9 @@ struct IsoScene {
 
 /// The three visible faces of a box.
 enum IsoFace {
-    /// Faces the viewer on the left (y = max); local u runs along x.
+    /// Faces the viewer (y = max); local u runs along x.
     case front
-    /// Faces the viewer on the right (x = max); local u runs along -y.
+    /// The right side (x = max); local u runs along -y.
     case side
     /// Looks up; local u along x, v along y.
     case top
@@ -73,13 +77,13 @@ extension IsoScene {
         switch face {
         case .front:
             let o = point(b.x, b.y + b.d, b.topZ)
-            return CGAffineTransform(a: Iso.cos30, b: Iso.sin30, c: 0, d: 1, tx: o.x, ty: o.y)
+            return CGAffineTransform(a: Iso.ex.dx, b: Iso.ex.dy, c: 0, d: 1, tx: o.x, ty: o.y)
         case .side:
             let o = point(b.x + b.w, b.y + b.d, b.topZ)
-            return CGAffineTransform(a: Iso.cos30, b: -Iso.sin30, c: 0, d: 1, tx: o.x, ty: o.y)
+            return CGAffineTransform(a: -Iso.ey.dx, b: -Iso.ey.dy, c: 0, d: 1, tx: o.x, ty: o.y)
         case .top:
             let o = point(b.x, b.y, b.topZ)
-            return CGAffineTransform(a: Iso.cos30, b: Iso.sin30, c: -Iso.cos30, d: Iso.sin30, tx: o.x, ty: o.y)
+            return CGAffineTransform(a: Iso.ex.dx, b: Iso.ex.dy, c: Iso.ey.dx, d: Iso.ey.dy, tx: o.x, ty: o.y)
         }
     }
 
