@@ -95,10 +95,9 @@ enum Theme {
     static let inputHeight: CGFloat = 36
 
     // MARK: - Typography
-    // Instrument modules (metrics, media, timer): anything that changes over
-    // time is monospace. The everyday modules (calendar, mail, notes,
-    // clipboard, playbooks, assistant) stay in the system face throughout and
-    // use `.monospacedDigit()` for times instead.
+    // Module views stay in the system face throughout and use
+    // `.monospacedDigit()` for anything that ticks. Monospace is left to the
+    // capsule's live readouts and onboarding.
 
     static func mono(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
         .system(size: size, weight: weight, design: .monospaced)
@@ -107,8 +106,8 @@ enum Theme {
     /// Instrument captions (CPU · MEM · MEDIA) — use with `.kerning(1.2)`.
     static let labelFont = mono(9.5, .medium)
     static let readoutSFont = mono(10.5)
-    /// The big countdown — sized to sit inside the timer ring.
-    static let timerFont = mono(36)
+    /// The big countdown on the timer's hero card.
+    static let timerFont = Font.system(size: 44, weight: .semibold)
 
     // The text scale. Five sizes cover every module: title 15 / headline 13sb
     // / body 13 / sub 12 / caption 10.5. Weight may vary via .fontWeight, the

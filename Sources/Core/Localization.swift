@@ -94,16 +94,18 @@ enum L10nKey {
 
     // Timer
     case focusReady, focusRunning, timerStart, timerPause, timerReset, timerDoneNote
+    case timerLeftOf, timerLength
 
     // Media
     case mediaIdle, mediaSilent, mediaNoSignal
+    case mediaPlay, mediaPlaying, mediaPaused, mediaPlayers, mediaControlNote
 
     // Clipboard
     case clipCopied, clipClear, clipEmptyTitle, clipEmptySub, clipMemoryNote, clipLatest, clipCopy
     case ageNow, ageMin, ageHour, kindLink, kindText
 
     // Shelf
-    case shelfDrop, shelfLinksNote
+    case shelfDrop, shelfLinksNote, shelfDropSub, shelfSection
 
     // Calendar
     case calAllDay, calJoin, calNow, calNoEvents, calToday, calTomorrow
@@ -151,7 +153,7 @@ enum L10nKey {
     case playChooseShortcut, playShortcutName, playMinutes, playURLsHint, playLinks, playLastRun
 
     // Metrics
-    case sysMemory, sysNetwork, sysBattery, sysCharging, sysVolume
+    case sysMemory, sysNetwork, sysBattery, sysCharging, sysVolume, sysNow, sysLiveNote
 
     // Settings
     case setTitle, setGeneral, setAppearance, setModules, setHotkeys
@@ -228,11 +230,18 @@ enum L10nKey {
         case .timerStart: return ["Start", "Старт", "Démarrer", "Iniciar", "开始", "Iniciar", "Start", "Avvia", "開始", "시작"]
         case .timerPause: return ["Pause", "Пауза", "Pause", "Pausa", "暂停", "Pausa", "Pause", "Pausa", "一時停止", "일시정지"]
         case .timerReset: return ["Reset", "Сброс", "Réinitialiser", "Reiniciar", "重置", "Repor", "Zurücksetzen", "Azzera", "リセット", "재설정"]
-        case .timerDoneNote: return ["done → live event + sound", "по концу → live-событие + звук", "fin → événement live + son", "fin → evento live + sonido", "结束 → 灵动事件 + 声音", "fim → evento live + som", "Ende → Live-Event + Ton", "fine → evento live + suono", "終了 → ライブイベント + サウンド", "종료 → 라이브 이벤트 + 소리"]
+        case .timerDoneNote: return ["Sound and a notice when it ends", "Звук и уведомление по окончании", "Son et notification à la fin", "Sonido y aviso al terminar", "结束时播放声音并提示", "Som e aviso no fim", "Ton und Hinweis am Ende", "Suono e avviso alla fine", "終了時に音と通知", "끝나면 소리와 알림"]
+        case .timerLeftOf: return ["left of %d min", "осталось из %d мин", "restant sur %d min", "restan de %d min", "剩余 · 共 %d 分钟", "restam de %d min", "übrig von %d Min", "rimasti su %d min", "残り · 全 %d 分", "남음 · 총 %d분"]
+        case .timerLength: return ["Length", "Длительность", "Durée", "Duración", "时长", "Duração", "Dauer", "Durata", "長さ", "길이"]
 
         case .mediaIdle: return ["Nothing is playing", "Ничего не играет", "Rien ne joue", "Nada suena", "没有播放内容", "Nada a tocar", "Nichts spielt", "Niente in riproduzione", "再生中の曲はありません", "재생 중인 항목 없음"]
         case .mediaSilent: return ["%@ is silent", "%@ молчит", "%@ est muet", "%@ está en silencio", "%@ 无声", "%@ está em silêncio", "%@ ist stumm", "%@ è muto", "%@ は無音です", "%@ 무음"]
         case .mediaNoSignal: return ["no signal", "нет сигнала", "pas de signal", "sin señal", "无信号", "sem sinal", "kein Signal", "nessun segnale", "信号なし", "신호 없음"]
+        case .mediaPlay: return ["Play", "Играть", "Lire", "Reproducir", "播放", "Reproduzir", "Abspielen", "Riproduci", "再生", "재생"]
+        case .mediaPlaying: return ["Playing", "Играет", "Lecture", "Reproduciendo", "正在播放", "A reproduzir", "Läuft", "In riproduzione", "再生中", "재생 중"]
+        case .mediaPaused: return ["Paused", "На паузе", "En pause", "En pausa", "已暂停", "Em pausa", "Pausiert", "In pausa", "一時停止中", "일시정지됨"]
+        case .mediaPlayers: return ["Players", "Плееры", "Lecteurs", "Reproductores", "播放器", "Leitores", "Player", "Lettori", "プレーヤー", "플레이어"]
+        case .mediaControlNote: return ["Buttons control the selected player", "Кнопки управляют выбранным плеером", "Les boutons pilotent le lecteur choisi", "Los botones controlan el reproductor elegido", "按钮控制所选播放器", "Os botões controlam o leitor escolhido", "Die Tasten steuern den gewählten Player", "I pulsanti controllano il lettore scelto", "ボタンは選択中のプレーヤーを操作します", "버튼은 선택한 플레이어를 제어합니다"]
 
         case .clipCopied: return ["Copied", "Готово", "Copié", "Copiado", "已复制", "Copiado", "Kopiert", "Copiato", "コピー済み", "복사됨"]
         case .clipLatest: return ["Latest", "Последнее", "Dernier", "Lo último", "最新", "Mais recente", "Neueste", "Ultimo", "最新", "최근"]
@@ -249,6 +258,8 @@ enum L10nKey {
 
         case .shelfDrop: return ["Drop files here", "Перетащите файлы сюда", "Déposez des fichiers ici", "Suelta archivos aquí", "拖放文件到这里", "Largue ficheiros aqui", "Dateien hier ablegen", "Trascina i file qui", "ここにファイルをドロップ", "여기에 파일을 놓으세요"]
         case .shelfLinksNote: return ["Links only — originals stay in place", "Только ссылки — оригиналы остаются на месте", "Liens seulement — les originaux restent en place", "Solo enlaces — los originales no se mueven", "仅链接 — 原文件保持原位", "Só ligações — os originais ficam no lugar", "Nur Links — Originale bleiben am Ort", "Solo link — gli originali restano al loro posto", "リンクのみ — 元ファイルは移動しません", "링크만 — 원본은 그대로"]
+        case .shelfDropSub: return ["Drag them back out anywhere", "Потом перетащите их куда угодно", "Faites-les ensuite glisser où vous voulez", "Luego arrástralos adonde quieras", "之后可拖到任何地方", "Depois arraste-os para onde quiser", "Später überallhin herausziehen", "Poi trascinali dove vuoi", "あとでどこへでもドラッグできます", "나중에 어디로든 끌어다 놓으세요"]
+        case .shelfSection: return ["On the shelf", "На полке", "Sur l'étagère", "En la estantería", "架上文件", "Na prateleira", "Im Regal", "Sullo scaffale", "シェルフ内", "선반에 있음"]
 
         case .calAllDay: return ["all day", "весь день", "toute la journée", "todo el día", "全天", "o dia todo", "ganztägig", "tutto il giorno", "終日", "종일"]
         case .calJoin: return ["Join", "Войти", "Rejoindre", "Unirse", "加入", "Entrar", "Beitreten", "Entra", "参加", "참여"]
@@ -403,6 +414,8 @@ enum L10nKey {
         case .sysBattery: return ["Battery", "Батарея", "Batterie", "Batería", "电池", "Bateria", "Batterie", "Batteria", "バッテリー", "배터리"]
         case .sysCharging: return ["charging", "заряжается", "en charge", "cargando", "充电中", "a carregar", "lädt", "in carica", "充電中", "충전 중"]
         case .sysVolume: return ["Volume", "Громкость", "Volume", "Volumen", "音量", "Volume", "Lautstärke", "Volume", "音量", "음량"]
+        case .sysNow: return ["Now", "Сейчас", "Maintenant", "Ahora", "当前", "Agora", "Jetzt", "Ora", "現在", "지금"]
+        case .sysLiveNote: return ["Measured only while this tab is open", "Замеры идут, только пока вкладка открыта", "Mesuré seulement quand cet onglet est ouvert", "Solo se mide con esta pestaña abierta", "仅在此标签页打开时测量", "Medido só com este separador aberto", "Nur gemessen, solange dieser Tab offen ist", "Misurato solo con questa scheda aperta", "このタブを開いている間だけ計測", "이 탭이 열려 있을 때만 측정"]
 
         case .setTitle: return ["Settings", "Настройки", "Réglages", "Ajustes", "设置", "Ajustes", "Einstellungen", "Impostazioni", "設定", "설정"]
         case .setGeneral: return ["General", "Общие", "Général", "General", "通用", "Geral", "Allgemein", "Generali", "一般", "일반"]
