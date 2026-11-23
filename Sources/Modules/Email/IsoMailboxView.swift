@@ -15,7 +15,7 @@ struct IsoMailboxView: View {
     var body: some View {
         let scene = Self.scene
         let hasMail = unread > 0
-        IsoTicker(every: 1.1) { phase in
+        IsoTicker(every: 1.4) { phase in
             IsoStage(scene: scene) {
                 IsoBlock(scene: scene, box: Self.base, tone: .plate)
                 // Painted before the body, so the body hides what is inside.
@@ -31,7 +31,8 @@ struct IsoMailboxView: View {
                     .isoShift(z: hasMail ? 0 : -40)
             }
             .animation(.snappy(duration: 0.45), value: hasMail)
-            .animation(.easeInOut(duration: 0.9), value: phase)
+            // The letter hops, unanimated on purpose: every animated
+            // frame redraws the whole panel.
         }
     }
 

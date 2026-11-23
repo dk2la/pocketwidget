@@ -84,7 +84,6 @@ struct MetricPanel: View {
                 .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .animation(.snappy(duration: 0.3), value: value)
     }
 
     // MARK: - Chart
@@ -355,7 +354,6 @@ struct MetricStatCard: View {
             .background(Theme.cardFill, in: shape)
             .overlay(shape.stroke(isSelected ? gauge.color.opacity(0.6) : Theme.hairlineSoft, lineWidth: 1))
             .contentShape(shape)
-            .animation(.snappy(duration: 0.3), value: gauge.format(gauge.value(of: now)))
         }
         .buttonStyle(PressableStyle())
     }

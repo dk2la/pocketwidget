@@ -31,7 +31,8 @@ struct IsoNotebookView: View {
                 IsoBlock(scene: scene, box: pencil, tone: isRecording ? .lit : .pencil)
                     .isoShift(x: progress * 50)
             }
-            .animation(.linear(duration: isRecording ? 0.22 : 0.55), value: phase)
+            // The pencil hops from step to step, unanimated on purpose:
+            // every animated frame redraws the whole panel.
         }
     }
 
