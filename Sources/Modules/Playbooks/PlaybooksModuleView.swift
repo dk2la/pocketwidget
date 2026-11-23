@@ -84,6 +84,8 @@ struct PlaybooksModuleView: View {
                         select(store.playbooks[index])
                     }
                     .moduleScene()
+                    .overlay(alignment: .leading) { arrow(-1) }
+                    .overlay(alignment: .trailing) { arrow(1) }
                     if let focus {
                         picker(focus)
                         VStack(alignment: .leading, spacing: 18) {
@@ -185,46 +187,74 @@ struct PlaybooksModuleView: View {
         withAnimation(.snappy) { selectedID = playbook.id }
     }
 
-    /// Every playbook as a labelled chip — the obvious way to switch —
-    /// ending in "+".
-    private func picker(_ focus: Playbook) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                ForEach(store.playbooks) { playbook in
-                    let isOn = playbook.id == focus.id
-                    Button {
-                        select(playbook)
-                    } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: playbook.icon)
-                                .font(.system(size: 9, weight: .semibold))
-                            Text(playbook.name)
-                                .font(Theme.captionFont)
-                                .fontWeight(.semibold)
-                                .lineLimit(1)
-                        }
-                        .foregroundStyle(isOn ? Theme.inkOnAccent : Theme.textSecondary)
-                        .padding(.horizontal, 10)
-                        .frame(height: 26)
-                        .background(Capsule().fill(isOn ? Theme.lightFill : Theme.cardFill))
-                        .contentShape(Capsule())
-                    }
-                    .buttonStyle(PressableStyle())
-                }
-                Button {
-                    requestSettings(page: .playbooks)
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(Theme.textSecondary)
-                        .frame(width: 26, height: 26)
-                        .background(Circle().fill(Theme.cardFill))
-                        .contentShape(Circle())
-                }
-                .buttonStyle(PressableStyle())
-                .help(L10n.t(.playAdd))
+    /// Round chevron beside the pad: steps to the neighbouring playbook,
+    /// the same way the System module steps between its devices.
+    @ViewBuilder
+    private func arrow(_ direction: Int) -> some View {
+        let all = store.playbooks
+        let index = all.firstIndex { $0.id == focus?.id } ?? 0
+        let target = index + direction
+        if all.indices.contains(target) {
+            Button {
+                select(all[target])
+            } label: {
+                Image(systemName: direction < 0 ? "chevron.left" : "chevron.right")
+                    .font(Theme.iconSmallFont)
+                    .foregroundStyle(Theme.textPrimary)
+                    .frame(width: 28, height: 28)
+                    .background(Circle().fill(Theme.raisedFill))
+                    .overlay(Circle().stroke(Theme.hairlineSoft, lineWidth: 1))
+                    .contentShape(Circle())
             }
+            .buttonStyle(PressableStyle())
         }
+    }
+
+    /// Every playbook as a labelled chip — the obvious way to switch. The
+    /// row follows the picked playbook, so one out of view scrolls in; "+"
+    /// stays pinned at the end.
+    private func picker(_ focus: Playbook) -> some View {
+        HStack(spacing: 8) {
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(store.playbooks) { playbook in
+                            chip(playbook, isOn: playbook.id == focus.id)
+                                .id(playbook.id)
+                        }
+                    }
+                }
+                .onChange(of: focus.id) { _, id in
+                    withAnimation(.snappy) { proxy.scrollTo(id, anchor: .center) }
+                }
+                .onAppear { proxy.scrollTo(focus.id, anchor: .center) }
+            }
+            ModuleButton(systemName: "plus", height: 28) {
+                requestSettings(page: .playbooks)
+            }
+            .help(L10n.t(.playAdd))
+        }
+    }
+
+    private func chip(_ playbook: Playbook, isOn: Bool) -> some View {
+        Button {
+            select(playbook)
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: playbook.icon)
+                    .font(.system(size: 9, weight: .semibold))
+                Text(playbook.name)
+                    .font(Theme.captionFont)
+                    .fontWeight(.semibold)
+                    .lineLimit(1)
+            }
+            .foregroundStyle(isOn ? Theme.inkOnAccent : Theme.textSecondary)
+            .padding(.horizontal, 10)
+            .frame(height: 28)
+            .background(Capsule().fill(isOn ? Theme.lightFill : Theme.cardFill))
+            .contentShape(Capsule())
+        }
+        .buttonStyle(PressableStyle())
     }
 
     // MARK: - Steps
