@@ -189,6 +189,27 @@ struct ComposerBar<Content: View>: View {
     }
 }
 
+/// The quiet disclosure line at the bottom of a module: a small glyph and
+/// one sentence about how the module behaves.
+struct ModuleFootnote: View {
+    let systemName: String
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 7) {
+            Image(systemName: systemName)
+                .font(.system(size: 10, weight: .medium))
+            Text(text)
+                .font(Theme.subFont)
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
+        .foregroundStyle(Theme.textTertiary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 4)
+    }
+}
+
 /// "in 12 min" with the digits set large — works for any language's word
 /// order, since only the digit runs change size.
 struct CountdownText: View {

@@ -1,122 +1,140 @@
 import SwiftUI
 
-/// "Timer" module, V3: the countdown lives inside a draining accent ring —
-/// remaining time is the ring, preset pills and capsule actions beside it.
+/// "Timer" module: the countdown as a hero card — large digits, a thin bar
+/// that drains with the time left, Start / Pause and Reset — and one row of
+/// lengths underneath.
 struct TimerModuleView: View {
     var timer: TimerService
 
     @State private var customMinutes = ""
     @FocusState private var customFocused: Bool
 
-    private static let ringSize: CGFloat = 158
-
     var body: some View {
-        // Ring plus controls need ~420pt side by side; narrower panels stack
-        // them instead of letting the columns spill off the glass.
-        GeometryReader { proxy in
-            if proxy.size.width < 420 {
-                VStack(spacing: 16) {
-                    countdownRing
-                    controls
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                HStack(alignment: .center, spacing: 28) {
-                    countdownRing
-                    controls
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        }
-    }
-
-    /// The ring holds what is LEFT and drains clockwise from 12 o'clock —
-    /// a glance reads like a hardware egg timer.
-    private var countdownRing: some View {
-        let remaining = timer.duration > 0 ? timer.remaining / timer.duration : 0
-        return ZStack {
-            Circle()
-                .stroke(Theme.segmentOff, lineWidth: 5)
-            Circle()
-                .trim(from: 0, to: max(0, min(1, remaining)))
-                .stroke(Theme.accent, style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-                // Scoped to `duration`: picking a preset sweeps the arc, the
-                // per-second ticks (`remaining`) still jump — instrument rule.
-                .animation(.easeOut(duration: 0.2), value: timer.duration)
-            VStack(spacing: 4) {
-                InstrumentLabel(L10n.t(timer.isRunning ? .focusRunning : .focusReady))
-                Text(TimeFormat.mmss(timer.remaining))
-                    .font(Theme.timerFont)
-                    .foregroundStyle(Theme.textPrimary)
-            }
-        }
-        .frame(width: Self.ringSize, height: Self.ringSize)
-    }
-
-    private var controls: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 6) {
-                ForEach(TimerService.presets, id: \.self) { preset in
-                    KeyButton(
-                        label: String(format: "%02d", Int(preset / 60)),
-                        isActive: timer.duration == preset,
-                        enabled: !timer.isRunning
-                    ) {
-                        timer.setDuration(preset)
+        VStack(alignment: .leading, spacing: 10) {
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 18) {
+                    hero
+                    VStack(alignment: .leading, spacing: 8) {
+                        SectionHeader(
+                            title: L10n.t(.timerLength),
+                            trailing: L10n.t(.timerCustomPlaceholder)
+                        )
+                        lengthPicker
                     }
                 }
-                customKey
             }
-            HStack(spacing: 8) {
-                GlassCapsuleButton(
-                    label: L10n.t(timer.isRunning ? .timerPause : .timerStart),
-                    isPrimary: true
-                ) {
-                    timer.isRunning ? timer.pause() : timer.start()
-                }
-                GlassCapsuleButton(label: L10n.t(.timerReset)) {
-                    timer.reset()
-                }
-            }
-            .padding(.top, 14)
-            InstrumentLabel(L10n.t(.timerDoneNote), color: Theme.textFaint)
-                .padding(.top, 14)
+            ModuleFootnote(systemName: "bell", text: L10n.t(.timerDoneNote))
         }
     }
 
-    /// Fifth key in the preset row: type any minute count, Enter arms it.
-    /// Lights up like an active preset while a non-preset duration is set.
-    private var customKey: some View {
-        let isCustomActive = !TimerService.presets.contains(timer.duration)
-        return TextField(L10n.t(.timerCustomPlaceholder), text: $customMinutes)
+    // MARK: - Hero
+
+    private var hero: some View {
+        let isPartway = timer.remaining < timer.duration
+        let state = L10n.t(timer.isRunning ? .focusRunning : .focusReady)
+        return HeroCard {
+            HStack(spacing: 7) {
+                StatusDot(color: timer.isRunning ? Theme.accent : Theme.segmentOff)
+                // Stored lower case ("focus · running"); reads as a sentence.
+                Text(state.prefix(1).uppercased() + state.dropFirst())
+                    .heroCaption()
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(TimeFormat.mmss(timer.remaining))
+                    .font(Theme.timerFont)
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.textPrimary)
+                if isPartway {
+                    Text(L10n.f(.timerLeftOf, Int(timer.duration / 60)))
+                        .font(Theme.subFont)
+                        .lineLimit(1)
+                        .foregroundStyle(Theme.textTertiary)
+                }
+            }
+            // The bar holds what is LEFT and drains — values jump per tick.
+            GlassProgressBar(
+                fraction: timer.duration > 0 ? timer.remaining / timer.duration : 0,
+                fillColor: Theme.segmentOn
+            )
+            HStack(spacing: 8) {
+                Spacer(minLength: 0)
+                if isPartway {
+                    ModuleButton(label: L10n.t(.timerReset)) {
+                        timer.reset()
+                    }
+                }
+                if timer.isRunning {
+                    ModuleButton(label: L10n.t(.timerPause), systemName: "pause.fill", kind: .light) {
+                        timer.pause()
+                    }
+                } else {
+                    ModuleButton(label: L10n.t(.timerStart), systemName: "play.fill", kind: .accent) {
+                        timer.start()
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Length
+
+    /// Presets plus a free field in one segmented row. Locked while the
+    /// timer runs — the length belongs to the countdown already going.
+    private var lengthPicker: some View {
+        let shape = RoundedRectangle(cornerRadius: Theme.groupRadius, style: .continuous)
+        return HStack(spacing: 4) {
+            ForEach(TimerService.presets, id: \.self) { preset in
+                Button {
+                    timer.setDuration(preset)
+                } label: {
+                    Text("\(Int(preset / 60))")
+                        .monospacedDigit()
+                        .lengthCell(isActive: timer.duration == preset)
+                }
+                .buttonStyle(PressableStyle())
+            }
+            customCell
+        }
+        .padding(4)
+        .background(Theme.cardFill, in: shape)
+        .overlay(shape.stroke(Theme.hairlineSoft, lineWidth: 1))
+        .opacity(timer.isRunning ? 0.35 : 1)
+        .disabled(timer.isRunning)
+    }
+
+    /// Last cell of the row: type any minute count, Enter arms it. Lights
+    /// up like an active preset while a non-preset length is set.
+    private var customCell: some View {
+        TextField("…", text: $customMinutes)
             .textFieldStyle(.plain)
-            .font(Theme.subFont)
-            .fontWeight(.medium)
-            .kerning(0.3)
             .multilineTextAlignment(.center)
-            .foregroundStyle(isCustomActive ? Theme.textPrimary : Theme.textSecondary)
             .focused($customFocused)
             .onSubmit(applyCustomMinutes)
             .onChange(of: customMinutes) { _, value in
                 let digits = String(value.filter(\.isNumber).prefix(3))
                 if digits != value { customMinutes = digits }
             }
-            .frame(width: 34)
-            .padding(.vertical, 7)
-            .background(
-                isCustomActive ? Theme.raisedFill : Theme.raisedFill.opacity(0.75),
-                in: Capsule()
-            )
-            .overlay(Capsule().stroke(isCustomActive ? Theme.accentBorder : .clear, lineWidth: 1))
-            .opacity(timer.isRunning ? 0.35 : 1)
-            .disabled(timer.isRunning)
+            .lengthCell(isActive: !TimerService.presets.contains(timer.duration))
     }
 
     private func applyCustomMinutes() {
         guard let minutes = Int(customMinutes), minutes >= 1 else { return }
         timer.setDuration(TimeInterval(min(minutes, 999) * 60))
         customFocused = false
+    }
+}
+
+private extension View {
+    /// One cell of the length row.
+    func lengthCell(isActive: Bool) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+        return font(Theme.subFont)
+            .fontWeight(.medium)
+            .foregroundStyle(isActive ? Theme.textPrimary : Theme.textTertiary)
+            .frame(maxWidth: .infinity)
+            .frame(height: 32)
+            .background(shape.fill(isActive ? Theme.raisedFill : .clear))
+            .contentShape(shape)
     }
 }
 

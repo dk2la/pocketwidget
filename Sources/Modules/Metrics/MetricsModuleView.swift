@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// "System" module, V3: stat rows on raised glass — label left, value right,
-/// a thin severity bar underneath — plus a volume row. Values jump.
+/// "System" module: CPU and memory as two large readouts with severity
+/// bars on the hero card; network, battery and volume as one grouped list.
+/// Values jump.
 struct MetricsModuleView: View {
     var stats: SystemStatsService
     var power: PowerSourceMonitor
@@ -13,17 +14,26 @@ struct MetricsModuleView: View {
     @State private var isObservingStats = false
 
     var body: some View {
-        VStack(spacing: 6) {
-            statRow(label: "CPU", value: percentText(stats.cpuUsage), fraction: stats.cpuUsage)
-            statRow(
-                label: L10n.t(.sysMemory),
-                value: percentText(memoryFraction),
-                fraction: memoryFraction
-            )
-            statRow(label: L10n.t(.sysNetwork), value: netText, fraction: nil)
-            powerRow
-            volumeRow
-            Spacer(minLength: 0)
+        VStack(alignment: .leading, spacing: 10) {
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 18) {
+                    HeroCard {
+                        HStack(alignment: .top, spacing: 20) {
+                            gauge(label: "CPU", fraction: stats.cpuUsage)
+                            gauge(label: L10n.t(.sysMemory), fraction: memoryFraction)
+                        }
+                    }
+                    VStack(alignment: .leading, spacing: 8) {
+                        SectionHeader(title: L10n.t(.sysNow))
+                        GroupedCard {
+                            networkRow
+                            powerRow
+                            volumeRow
+                        }
+                    }
+                }
+            }
+            ModuleFootnote(systemName: "eye", text: L10n.t(.sysLiveNote))
         }
         .onAppear {
             guard !isObservingStats else { return }
@@ -45,68 +55,77 @@ struct MetricsModuleView: View {
         "\(Int((fraction * 100).rounded()))%"
     }
 
-    private var netText: String {
-        "↓ \(Self.rate(stats.downloadRate))  ↑ \(Self.rate(stats.uploadRate))"
+    // MARK: - Hero
+
+    /// One half of the hero: caption, large percentage, severity bar.
+    private func gauge(label: String, fraction: Double) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(label)
+                .heroCaption()
+            CountdownText(text: percentText(fraction))
+            GlassProgressBar(fraction: fraction, fillColor: Theme.severity(fraction))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Rows
 
-    private func statRow(label: String, value: String, fraction: Double?) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(label)
-                    .font(Theme.subFont)
-                    .fontWeight(.medium)
-                    .foregroundStyle(Theme.textSecondary)
-                Spacer(minLength: 8)
-                Text(value)
-                    .font(Theme.smallValueFont)
-                    .foregroundStyle(Theme.textPrimary)
-            }
-            if let fraction {
-                GlassProgressBar(fraction: fraction, fillColor: Theme.severity(fraction))
-            }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 9)
-        .background(Theme.cardFill, in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+    private var networkRow: some View {
+        statRow(
+            icon: "arrow.up.arrow.down",
+            title: L10n.t(.sysNetwork),
+            detail: "↑ \(Self.rate(stats.uploadRate))",
+            value: "↓ \(Self.rate(stats.downloadRate))",
+            isLast: false
+        )
     }
 
     private var powerRow: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(alignment: .firstTextBaseline) {
-                HStack(spacing: 6) {
-                    Text(L10n.t(.sysBattery))
-                        .font(Theme.subFont)
-                        .fontWeight(.medium)
-                        .foregroundStyle(Theme.textSecondary)
-                    if power.isPlugged {
-                        HStack(spacing: 4) {
-                            BlinkingDot(size: 5)
-                            Text(L10n.t(.sysCharging))
-                                .font(Theme.subFont)
-                                .foregroundStyle(Theme.textTertiary)
-                        }
-                    }
-                }
-                Spacer(minLength: 8)
-                Text("\(power.percent)%")
-                    .font(Theme.smallValueFont)
+        let charging = L10n.t(.sysCharging)
+        return statRow(
+            icon: power.isPlugged ? "battery.100.bolt" : "battery.75",
+            title: L10n.t(.sysBattery),
+            // Stored lower case ("charging"); reads as a sentence here.
+            detail: power.isPlugged ? charging.prefix(1).uppercased() + charging.dropFirst() : nil,
+            value: "\(power.percent)%",
+            isLast: false
+        )
+    }
+
+    private func statRow(icon: String, title: String, detail: String?, value: String, isLast: Bool) -> some View {
+        HStack(spacing: 12) {
+            IconTile(systemName: icon)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(Theme.bodyFont)
+                    .lineLimit(1)
                     .foregroundStyle(Theme.textPrimary)
+                if let detail {
+                    Text(detail)
+                        .font(Theme.subFont)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .foregroundStyle(Theme.textTertiary)
+                }
             }
-            GlassProgressBar(fraction: Double(power.percent) / 100)
+            Spacer(minLength: 8)
+            Text(value)
+                .font(Theme.bodyFont)
+                .fontWeight(.medium)
+                .monospacedDigit()
+                .lineLimit(1)
+                .foregroundStyle(Theme.textPrimary)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 9)
-        .background(Theme.cardFill, in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+        .groupedRow(isLast: isLast)
     }
 
     private var volumeRow: some View {
         HStack(spacing: 12) {
+            IconTile(systemName: "speaker.wave.2")
             Text(L10n.t(.sysVolume))
-                .font(Theme.subFont)
-                .fontWeight(.medium)
-                .foregroundStyle(Theme.textSecondary)
+                .font(Theme.bodyFont)
+                .lineLimit(1)
+                .foregroundStyle(Theme.textPrimary)
             Slider(
                 value: Binding(
                     get: { audio.volume },
@@ -115,13 +134,15 @@ struct MetricsModuleView: View {
                 in: 0...1
             )
             .controlSize(.mini)
+            .tint(Theme.segmentOn)
             Text("\(Int(audio.volume * 100))")
-                .font(Theme.readoutSFont)
+                .font(Theme.bodyFont)
+                .fontWeight(.medium)
+                .monospacedDigit()
                 .foregroundStyle(Theme.textPrimary)
-                .frame(width: 26, alignment: .trailing)
+                .frame(width: 28, alignment: .trailing)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .groupedRow(isLast: true)
     }
 
     // MARK: - Formatting
