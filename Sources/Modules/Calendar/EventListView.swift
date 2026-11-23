@@ -25,6 +25,11 @@ struct WeekView: View {
                 : nil
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 14) {
+                    IsoCalendarView(
+                        date: context.date,
+                        events: service.events(forDay: context.date).count
+                    )
+                    .moduleScene()
                     weekNav
                     HStack(spacing: 6) {
                         ForEach(days, id: \.self) { day in
@@ -213,6 +218,8 @@ struct AgendaListView: View {
                 let nextID = EventRow.next(in: today, at: context.date)?.id
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 18) {
+                        IsoCalendarView(date: context.date, events: today.count)
+                            .moduleScene()
                         if let upNext = UpNextCard.event(in: today, at: context.date) {
                             UpNextCard(event: upNext, now: context.date) {
                                 service.open(upNext)

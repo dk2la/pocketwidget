@@ -143,6 +143,12 @@ struct ModuleAccessoriesView: View {
                     services.clipboardStore.clear()
                 }
             }
+        case .shelf:
+            if !services.shelfStore.items.isEmpty {
+                HeaderIconButton("trash", help: L10n.t(.clipClear)) {
+                    services.shelfStore.clear()
+                }
+            }
         case .playbooks:
             HeaderIconButton("plus", help: L10n.t(.playAdd)) {
                 requestSettings()

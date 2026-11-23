@@ -11,7 +11,7 @@ struct ModuleContentView: View {
         case .playbooks:
             PlaybooksModuleView(store: services.playbookStore, runner: services.playbookRunner)
         case .media:
-            MediaModuleView(media: services.mediaCenter)
+            MediaModuleView(media: services.mediaCenter, audio: services.audioMonitor)
         case .calendar:
             CalendarModuleView(service: services.calendarService)
         case .metrics:

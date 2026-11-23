@@ -106,6 +106,38 @@ final class DemoMediaSource: MediaSource {
     }
 
     func next() async { step(by: 1) }
+
+    /// Jumps to a playlist item by title (replay from history).
+    func play(title: String) {
+        guard let target = Self.playlist.firstIndex(where: { $0.title == title }) else { return }
+        index = target
+        isPlaying = true
+        setPosition(0)
+    }
+
+    /// A lived-in history for demo mode: the playlist plus a few songs from
+    /// "earlier", with play counts that make one of them "on repeat".
+    static func demoHistory() -> (entries: [PlayHistoryEntry], covers: [String: NSImage]) {
+        let earlier: [Item] = [
+            Item(title: "Paper Planes", artist: "Juno Ray", duration: 199,
+                 colors: (NSColor(red: 0.20, green: 0.20, blue: 0.25, alpha: 1), NSColor(red: 0.85, green: 0.85, blue: 0.80, alpha: 1))),
+            Item(title: "Blue Static", artist: "Harbor Lights", duration: 233,
+                 colors: (NSColor(red: 0.05, green: 0.25, blue: 0.60, alpha: 1), NSColor(red: 0.30, green: 0.80, blue: 0.95, alpha: 1))),
+        ]
+        let counts = [3, 12, 5, 2, 7, 1]
+        var entries: [PlayHistoryEntry] = []
+        var covers: [String: NSImage] = [:]
+        for (k, item) in (playlist.dropFirst() + earlier).enumerated() {
+            let key = PlayHistoryEntry.key(title: item.title, artist: item.artist)
+            entries.append(PlayHistoryEntry(
+                id: key, title: item.title, artist: item.artist, sourceID: "com.spotify.client",
+                playID: "demo", playCount: counts[k % counts.count],
+                lastPlayed: Date().addingTimeInterval(-Double(k + 1) * 1_800), artworkFile: nil
+            ))
+            covers[key] = drawArtwork(item)
+        }
+        return (entries, covers)
+    }
     func previous() async {
         // Like a real player: early in the track, go back; otherwise restart.
         if position < 4 { step(by: -1) } else { setPosition(0) }

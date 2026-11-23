@@ -87,6 +87,8 @@ struct EmailModuleView: View {
 
     private var inbox: some View {
         VStack(alignment: .leading, spacing: 14) {
+            IsoMailboxView(unread: service.unreadCount)
+                .moduleScene()
             mailboxRow
             if service.isSearchOpen {
                 searchRow

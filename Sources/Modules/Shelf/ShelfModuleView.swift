@@ -1,89 +1,232 @@
 import AppKit
+import QuickLookThumbnailing
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// "Shelf" module, V3: a dashed drop tile on top, then file rows — icon
-/// tile, name over meta, remove circle. Items drag out; click opens.
+/// "Shelf" module: a small bookcase on top — every parked file is a book —
+/// then the picked file as a card with a preview of what is inside, and
+/// the whole shelf as one grouped list. Files drop anywhere on the module
+/// and drag back out of the card or a row. Clearing lives in the panel
+/// header.
 struct ShelfModuleView: View {
     var shelf: ShelfStore
 
+    @State private var selectedID: UUID?
+    @State private var isTargeted = false
+
+    /// The picked file, or the newest one.
+    private var focus: ShelfStore.Item? {
+        shelf.items.first { $0.id == selectedID } ?? shelf.items.first
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            dropTile
+        let books = ShelfBook.row(for: shelf.items)
+        return VStack(alignment: .leading, spacing: 10) {
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 6) {
-                    ForEach(shelf.items) { item in
-                        itemRow(item)
+                VStack(alignment: .leading, spacing: 14) {
+                    IsoShelfView(
+                        items: shelf.items,
+                        books: books,
+                        selectedID: focus?.id,
+                        isTargeted: isTargeted
+                    ) { item in
+                        select(item)
+                    }
+                    .padding(.top, 4)
+                    if let focus {
+                        fileCard(focus)
+                            // A fresh card per file: it fades up instead of
+                            // swapping text in place.
+                            .id(focus.id)
+                            .transition(.opacity.combined(with: .offset(y: 8)))
+                        if shelf.items.count > 1 {
+                            list(books)
+                        }
+                    } else {
+                        emptyHint
                     }
                 }
             }
-            HStack {
-                Text(L10n.t(.shelfLinksNote))
-                    .font(Theme.subFont)
-                    .foregroundStyle(Theme.textFaint)
-                Spacer(minLength: 0)
-                if !shelf.items.isEmpty {
-                    GlassCapsuleButton(label: L10n.t(.clipClear)) {
-                        shelf.clear()
-                    }
-                }
-            }
+            ModuleFootnote(systemName: "link", text: L10n.t(.shelfLinksNote))
+        }
+        .dropDestination(for: URL.self) { urls, _ in
+            shelf.add(urls)
+            // New files land first — bring the newest one out.
+            withAnimation(.snappy(duration: 0.3)) { selectedID = shelf.items.first?.id }
+            return !urls.isEmpty
+        } isTargeted: { isTargeted = $0 }
+    }
+
+    private func select(_ item: ShelfStore.Item) {
+        withAnimation(Theme.reduceMotion ? nil : .snappy(duration: 0.3)) {
+            selectedID = item.id
         }
     }
 
-    private var dropTile: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "plus")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Theme.textTertiary)
+    private var emptyHint: some View {
+        VStack(spacing: 4) {
             Text(L10n.t(.shelfDrop))
+                .font(Theme.headlineFont)
+                .foregroundStyle(Theme.textSecondary)
+            Text(L10n.t(.shelfDropSub))
                 .font(Theme.subFont)
-                .fontWeight(.medium)
                 .foregroundStyle(Theme.textTertiary)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: shelf.items.isEmpty ? 84 : 52)
-        .background(
-            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                .stroke(Theme.dashedBorder, style: StrokeStyle(lineWidth: 1, dash: [5, 6]))
-        )
+        .padding(.top, 6)
     }
 
-    private func itemRow(_ item: ShelfStore.Item) -> some View {
-        HStack(spacing: 12) {
-            Image(nsImage: NSWorkspace.shared.icon(forFile: item.url.path))
-                .resizable()
-                .frame(width: 26, height: 26)
-                .padding(5)
-                .background(Theme.raisedFill, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    // MARK: - Picked file
+
+    private func fileCard(_ item: ShelfStore.Item) -> some View {
+        HeroCard {
+            HStack(spacing: 12) {
+                fileIcon(item)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.name)
+                        .font(Theme.headlineFont)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .foregroundStyle(Theme.textPrimary)
+                    Text(Self.meta(for: item.url))
+                        .font(Theme.subFont)
+                        .lineLimit(1)
+                        .foregroundStyle(Theme.textTertiary)
+                }
+                Spacer(minLength: 0)
+            }
+            FilePreview(url: item.url)
+                .frame(height: 132)
+            HStack(spacing: 8) {
+                ModuleButton(label: L10n.t(.licManageOpen), systemName: "arrow.up.forward", kind: .light) {
+                    NSWorkspace.shared.open(item.url)
+                }
+                ModuleButton(label: L10n.t(.shelfReveal)) {
+                    NSWorkspace.shared.activateFileViewerSelecting([item.url])
+                }
+                Spacer(minLength: 0)
+                ModuleButton(systemName: "trash") {
+                    withAnimation(.snappy(duration: 0.3)) { shelf.remove(item) }
+                }
+            }
+        }
+        .onDrag {
+            NSItemProvider(object: item.url as NSURL)
+        }
+    }
+
+    private func fileIcon(_ item: ShelfStore.Item) -> some View {
+        Image(nsImage: NSWorkspace.shared.icon(forFile: item.url.path))
+            .resizable()
+            .frame(width: 24, height: 24)
+            .frame(width: 32, height: 32)
+            .background(Theme.raisedFill, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+    }
+
+    // MARK: - List
+
+    private func list(_ books: [UUID: ShelfBook]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: L10n.t(.shelfSection), trailing: "\(shelf.items.count)")
+            GroupedCard {
+                ForEach(Array(shelf.items.enumerated()), id: \.element.id) { index, item in
+                    itemRow(item, book: books[item.id], isLast: index == shelf.items.count - 1)
+                }
+            }
+        }
+    }
+
+    private func itemRow(_ item: ShelfStore.Item, book: ShelfBook?, isLast: Bool) -> some View {
+        let isPicked = item.id == focus?.id
+        return HStack(spacing: 12) {
+            // The book's cloth, so a row can be found on the case above.
+            RoundedRectangle(cornerRadius: 1.5)
+                .fill(book?.color ?? Theme.segmentOn)
+                .frame(width: 3, height: 30)
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.name)
                     .font(Theme.bodyFont)
-                    .fontWeight(.medium)
+                    .fontWeight(isPicked ? .semibold : .regular)
                     .lineLimit(1)
                     .truncationMode(.middle)
                     .foregroundStyle(Theme.textPrimary)
-                Text(Self.sizeLabel(for: item.url))
-                    .font(Theme.captionFont)
-                    .foregroundStyle(Theme.textQuaternary)
+                Text(Self.meta(for: item.url))
+                    .font(Theme.subFont)
+                    .lineLimit(1)
+                    .foregroundStyle(Theme.textTertiary)
             }
             Spacer(minLength: 0)
-            RowRemoveButton { shelf.remove(item) }
+            Button {
+                withAnimation(.snappy(duration: 0.3)) { shelf.remove(item) }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(width: 30, height: 30)
+                    .background(Circle().fill(Theme.raisedFill))
+                    .contentShape(Circle())
+            }
+            .buttonStyle(PressableStyle())
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .background(Theme.cardFill, in: RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous))
+        .groupedRow(isLast: isLast)
         .onDrag {
             NSItemProvider(object: item.url as NSURL)
         }
         .onTapGesture {
-            NSWorkspace.shared.open(item.url)
+            select(item)
         }
     }
 
-    private static func sizeLabel(for url: URL) -> String {
-        guard let bytes = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int64
-        else { return "—" }
-        return ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
+    /// "2.4 MB · PDF document" — folders carry the kind alone.
+    private static func meta(for url: URL) -> String {
+        let values = try? url.resourceValues(forKeys: [.fileSizeKey, .isDirectoryKey, .localizedTypeDescriptionKey])
+        var parts: [String] = []
+        if values?.isDirectory != true, let bytes = values?.fileSize {
+            parts.append(ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file))
+        }
+        if let kind = values?.localizedTypeDescription, !kind.isEmpty {
+            parts.append(kind)
+        }
+        return parts.isEmpty ? "—" : parts.joined(separator: " · ")
+    }
+}
+
+/// A look inside the file: its Quick Look thumbnail — the first page, the
+/// picture, the opening lines — on a dark well. Falls back to the file's
+/// icon for types Quick Look cannot draw.
+private struct FilePreview: View {
+    let url: URL
+
+    @State private var image: NSImage?
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+        ZStack {
+            shape.fill(Color.black.opacity(0.28))
+            if let image {
+                Image(nsImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .padding(10)
+                    .transition(.opacity)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .overlay(shape.stroke(Theme.hairlineSoft, lineWidth: 1))
+        .animation(.easeOut(duration: 0.2), value: image != nil)
+        .task(id: url) {
+            image = await Self.thumbnail(for: url)
+        }
+    }
+
+    private static func thumbnail(for url: URL) async -> NSImage? {
+        let request = QLThumbnailGenerator.Request(
+            fileAt: url,
+            size: CGSize(width: 360, height: 240),
+            scale: 2,
+            representationTypes: .all
+        )
+        let representation = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request)
+        return representation?.nsImage
     }
 }

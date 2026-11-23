@@ -14,6 +14,8 @@ struct ClipboardModuleView: View {
             VStack(alignment: .leading, spacing: 10) {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 18) {
+                        IsoClipboardView(count: clipboard.entries.count, latestID: latest.id)
+                            .moduleScene()
                         hero(latest)
                         let earlier = Array(clipboard.entries.dropFirst())
                         if !earlier.isEmpty {
@@ -30,16 +32,7 @@ struct ClipboardModuleView: View {
                 }
                 // Clearing lives in the panel header; the footer is a quiet
                 // disclosure line, same register as the mail status row.
-                HStack(spacing: 7) {
-                    Image(systemName: "lock")
-                        .font(.system(size: 10, weight: .medium))
-                    Text(L10n.t(.clipMemoryNote))
-                        .font(Theme.subFont)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                }
-                .foregroundStyle(Theme.textTertiary)
-                .padding(.horizontal, 4)
+                ModuleFootnote(systemName: "lock", text: L10n.t(.clipMemoryNote))
             }
         } else {
             EmptyStateZone(label: L10n.t(.clipEmptyTitle), sublabel: L10n.t(.clipEmptySub))

@@ -31,17 +31,19 @@ enum AppVisuals {
     }
 }
 
-/// "Playbooks" module: the last-run playbook as a hero card with Run, the
-/// rest as one grouped list — symbol, name over a one-line recipe of its
-/// steps, a run button — ending in "Add playbook…", which opens the editor
-/// in Settings. A quiet register underneath reports failures of the last
-/// run.
+/// "Playbooks" module: a key pad on top — one key per playbook — and the
+/// same choice as a row of chips, like the System module. Below, the picked
+/// playbook: a hero card with Run and its steps in order, so it is clear
+/// what running it will do. "+" opens the editor in Settings. A quiet
+/// register underneath reports failures of the last run.
 struct PlaybooksModuleView: View {
     var store: PlaybookStore
     var runner: PlaybookRunner
 
     /// Playbook that just finished — it shows a checkmark for 3 s.
     @State private var justRanID: UUID?
+    /// The playbook picked on the pad or the chips.
+    @State private var selectedID: UUID?
     /// Not observable — re-read on appearance, set by the guide on success.
     @State private var accessibilityTrusted = WindowLayoutService.isTrusted
 
@@ -56,8 +58,12 @@ struct PlaybooksModuleView: View {
         }
     }
 
-    /// The hero: the last playbook run, else the first one.
-    private var featured: Playbook? {
+    /// The playbook on show: the picked one, else the last one run, else
+    /// the first.
+    private var focus: Playbook? {
+        if let picked = store.playbooks.first(where: { $0.id == selectedID }) {
+            return picked
+        }
         if let last = runner.lastRun,
            let current = store.playbooks.first(where: { $0.id == last.playbook.id }) {
             return current
@@ -69,10 +75,30 @@ struct PlaybooksModuleView: View {
         VStack(spacing: 10) {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
-                    if let featured {
-                        hero(featured)
+                    IsoLaunchpadView(
+                        count: store.playbooks.count,
+                        selected: store.playbooks.firstIndex { $0.id == focus?.id },
+                        isRunning: runner.runningPlaybookID != nil
+                    ) { index in
+                        guard store.playbooks.indices.contains(index) else { return }
+                        select(store.playbooks[index])
                     }
-                    list(store.playbooks.filter { $0.id != featured?.id })
+                    .moduleScene()
+                    .overlay(alignment: .leading) { arrow(-1) }
+                    .overlay(alignment: .trailing) { arrow(1) }
+                    if let focus {
+                        picker(focus)
+                        VStack(alignment: .leading, spacing: 18) {
+                            hero(focus)
+                            steps(of: focus)
+                        }
+                        // A fresh panel per playbook: it cross-fades instead
+                        // of swapping text in place.
+                        .id(focus.id)
+                        .transition(.opacity)
+                    } else {
+                        GroupedCard { newRow }
+                    }
                 }
             }
             if needsAccessibility {
@@ -155,50 +181,149 @@ struct PlaybooksModuleView: View {
 
     private static let timeFormatter = DateFormatter(format: "HH:mm")
 
-    // MARK: - List
+    // MARK: - Picker
 
-    private func list(_ playbooks: [Playbook]) -> some View {
-        GroupedCard {
-            ForEach(playbooks) { playbook in
-                row(for: playbook)
+    private func select(_ playbook: Playbook) {
+        withAnimation(.snappy) { selectedID = playbook.id }
+    }
+
+    /// Round chevron beside the pad: steps to the neighbouring playbook,
+    /// the same way the System module steps between its devices.
+    @ViewBuilder
+    private func arrow(_ direction: Int) -> some View {
+        let all = store.playbooks
+        let index = all.firstIndex { $0.id == focus?.id } ?? 0
+        let target = index + direction
+        if all.indices.contains(target) {
+            Button {
+                select(all[target])
+            } label: {
+                Image(systemName: direction < 0 ? "chevron.left" : "chevron.right")
+                    .font(Theme.iconSmallFont)
+                    .foregroundStyle(Theme.textPrimary)
+                    .frame(width: 28, height: 28)
+                    .background(Circle().fill(Theme.raisedFill))
+                    .overlay(Circle().stroke(Theme.hairlineSoft, lineWidth: 1))
+                    .contentShape(Circle())
             }
-            newRow
+            .buttonStyle(PressableStyle())
         }
     }
 
-    private func row(for playbook: Playbook) -> some View {
-        let isRunningThis = runner.runningPlaybookID == playbook.id
-        let justRan = justRanID == playbook.id
-        return HStack(alignment: .center, spacing: 12) {
-            IconTile(systemName: playbook.icon)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(playbook.name)
-                    .font(Theme.bodyFont)
-                    .fontWeight(.medium)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .foregroundStyle(Theme.textPrimary)
-                Text(summary(for: playbook))
-                    .font(Theme.subFont)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .foregroundStyle(Theme.textTertiary)
+    /// Every playbook as a labelled chip — the obvious way to switch. The
+    /// row follows the picked playbook, so one out of view scrolls in; "+"
+    /// stays pinned at the end.
+    private func picker(_ focus: Playbook) -> some View {
+        HStack(spacing: 8) {
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(store.playbooks) { playbook in
+                            chip(playbook, isOn: playbook.id == focus.id)
+                                .id(playbook.id)
+                        }
+                    }
+                }
+                .onChange(of: focus.id) { _, id in
+                    withAnimation(.snappy) { proxy.scrollTo(id, anchor: .center) }
+                }
+                .onAppear { proxy.scrollTo(focus.id, anchor: .center) }
             }
-            Spacer(minLength: 0)
-            if justRan {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Theme.accent)
-                    .transition(.opacity)
+            ModuleButton(systemName: "plus", height: 28) {
+                requestSettings(page: .playbooks)
             }
-            CircleGlassButton(systemName: "play.fill", size: 30, solid: isRunningThis) {
-                runner.run(playbook)
-            }
-            .disabled(runner.isRunning)
-            .opacity(runner.isRunning && !isRunningThis ? 0.5 : 1)
+            .help(L10n.t(.playAdd))
         }
-        .groupedRow(isLast: false)
-        .animation(.easeOut(duration: 0.15), value: justRan)
+    }
+
+    private func chip(_ playbook: Playbook, isOn: Bool) -> some View {
+        Button {
+            select(playbook)
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: playbook.icon)
+                    .font(.system(size: 9, weight: .semibold))
+                Text(playbook.name)
+                    .font(Theme.captionFont)
+                    .fontWeight(.semibold)
+                    .lineLimit(1)
+            }
+            .foregroundStyle(isOn ? Theme.inkOnAccent : Theme.textSecondary)
+            .padding(.horizontal, 10)
+            .frame(height: 28)
+            .background(Capsule().fill(isOn ? Theme.lightFill : Theme.cardFill))
+            .contentShape(Capsule())
+        }
+        .buttonStyle(PressableStyle())
+    }
+
+    // MARK: - Steps
+
+    /// What the playbook does, in the order it does it.
+    private func steps(of playbook: Playbook) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: L10n.t(.playSteps), trailing: "\(playbook.steps.count)")
+            if playbook.steps.isEmpty {
+                Text(L10n.t(.playEmpty))
+                    .font(Theme.subFont)
+                    .foregroundStyle(Theme.textTertiary)
+                    .padding(.horizontal, 4)
+            } else {
+                GroupedCard {
+                    ForEach(Array(playbook.steps.enumerated()), id: \.element.id) { index, step in
+                        stepRow(step, number: index + 1, isLast: index == playbook.steps.count - 1)
+                    }
+                }
+            }
+        }
+    }
+
+    private func stepRow(_ step: PlaybookStep, number: Int, isLast: Bool) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            IconTile(systemName: step.kind.icon)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(step.kind.title)
+                    .font(Theme.bodyFont)
+                    .lineLimit(1)
+                    .foregroundStyle(Theme.textPrimary)
+                if let detail = detail(for: step) {
+                    Text(detail)
+                        .font(Theme.subFont)
+                        .lineLimit(2)
+                        .truncationMode(.tail)
+                        .foregroundStyle(Theme.textTertiary)
+                }
+            }
+            Spacer(minLength: 8)
+            Text("\(number)")
+                .font(Theme.subFont)
+                .monospacedDigit()
+                .foregroundStyle(Theme.textQuaternary)
+        }
+        .groupedRow(isLast: isLast)
+    }
+
+    /// The specifics of a step: which apps and how they are laid out, which
+    /// shortcut, how long, which sites.
+    private func detail(for step: PlaybookStep) -> String? {
+        switch step {
+        case .openApps(_, let bundleIDs, let layout):
+            var parts: [String] = []
+            if !bundleIDs.isEmpty {
+                parts.append(bundleIDs.map { AppVisuals.name(for: $0) ?? $0 }.joined(separator: ", "))
+            }
+            if layout != .none { parts.append(layout.title) }
+            return parts.isEmpty ? nil : parts.joined(separator: " · ")
+        case .closeOtherApps:
+            return nil
+        case .runShortcut(_, let name), .setFocus(_, let name):
+            return name.isEmpty ? nil : name
+        case .startTimer(_, let minutes):
+            return L10n.f(.ageMin, minutes)
+        case .openURLs(_, let urls):
+            let hosts = urls.map { URL(string: $0)?.host ?? $0 }
+            return hosts.isEmpty ? nil : hosts.joined(separator: ", ")
+        }
     }
 
     /// "3 apps · Three columns · focus · 25 min" — one token per step.
@@ -224,8 +349,8 @@ struct PlaybooksModuleView: View {
         return parts.isEmpty ? L10n.t(.playEmpty) : parts.joined(separator: " · ")
     }
 
-    /// The last row: the only way to create a playbook from the widget —
-    /// deep-links to Settings → Playbooks.
+    /// Shown when there is no playbook yet: deep-links to Settings →
+    /// Playbooks.
     private var newRow: some View {
         Button {
             requestSettings(page: .playbooks)

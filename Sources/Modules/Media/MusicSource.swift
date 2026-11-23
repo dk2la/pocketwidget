@@ -83,8 +83,15 @@ final class MusicSource: AppleScriptPlayer {
             duration: state.duration,
             playback: playbackSample,
             isPlaying: state.isPlaying,
-            artworkKey: state.persistentID ?? "\(state.title)-\(state.artist)"
+            artworkKey: state.persistentID ?? "\(state.title)-\(state.artist)",
+            playID: state.persistentID
         )
+    }
+
+    /// Starts a library track by its persistent ID.
+    func play(persistentID: String) async {
+        guard !persistentID.isEmpty, persistentID.allSatisfy(\.isHexDigit) else { return }
+        await command("play (some track of library playlist 1 whose persistent ID is \"\(persistentID)\")")
     }
 
     /// One-off full read for a player that was already running when we

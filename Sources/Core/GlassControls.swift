@@ -125,6 +125,7 @@ extension View {
 /// on release.
 struct ScrubberBar: View {
     let fraction: Double
+    var fillColor: Color = Theme.accent
     let onSeek: (Double) -> Void
 
     @State private var dragFraction: Double?
@@ -136,7 +137,7 @@ struct ScrubberBar: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.white.opacity(0.18))
                     .frame(height: 4)
-                Capsule().fill(Theme.accent)
+                Capsule().fill(fillColor)
                     .frame(width: max(4, x), height: 4)
                 Circle().fill(Color.white)
                     .frame(width: 11, height: 11)

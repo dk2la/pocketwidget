@@ -27,11 +27,15 @@ struct AssistantModuleView: View {
             if assistant.transcript.isEmpty {
                 // Same register as the Notes empty state: short caps label,
                 // the hint as the quiet subline.
-                EmptyStateZone(
-                    label: L10n.t(.asstEmptyTitle),
-                    sublabel: assistant.isVoiceMode ? L10n.t(.asstVoiceHint) : L10n.t(.asstHint)
-                )
-                .frame(maxHeight: 90)
+                VStack(spacing: 16) {
+                    IsoAssistantView(mode: robotMode)
+                        .moduleScene()
+                    EmptyStateZone(
+                        label: L10n.t(.asstEmptyTitle),
+                        sublabel: assistant.isVoiceMode ? L10n.t(.asstVoiceHint) : L10n.t(.asstHint)
+                    )
+                    .frame(height: 64)
+                }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 transcript
@@ -57,10 +61,19 @@ struct AssistantModuleView: View {
         .onDisappear { voice.stop() }
     }
 
+    /// What the robot on top is doing.
+    private var robotMode: IsoAssistantView.Mode {
+        if speech.isRecording { return .listening }
+        return assistant.isThinking ? .thinking : .idle
+    }
+
     private var transcript: some View {
         ScrollViewReader { proxy in
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 10) {
+                    IsoAssistantView(mode: robotMode)
+                        .moduleScene()
+                        .padding(.bottom, 4)
                     ForEach(assistant.transcript) { message in
                         row(message)
                     }

@@ -74,37 +74,6 @@ struct SegmentBar: View {
     }
 }
 
-/// V3 key: glass capsule. Primary is a solid white surface with a dark
-/// label; active keeps a bright ring on raised glass.
-struct KeyButton: View {
-    let label: String
-    var isActive = false
-    var enabled = true
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(label)
-                .font(Theme.subFont)
-                .fontWeight(.medium)
-                .kerning(0.3)
-                .foregroundStyle(foreground)
-                .padding(.horizontal, 13)
-                .padding(.vertical, 7)
-                .background(background, in: Capsule())
-                .overlay(Capsule().stroke(border, lineWidth: 1))
-                .contentShape(Capsule())
-        }
-        .buttonStyle(PressableStyle())
-        .opacity(enabled ? 1 : 0.35)
-        .disabled(!enabled)
-    }
-
-    private var foreground: Color { isActive ? Theme.textPrimary : Theme.textSecondary }
-    private var background: Color { isActive ? Theme.raisedFill : Theme.raisedFill.opacity(0.75) }
-    private var border: Color { isActive ? Theme.accentBorder : .clear }
-}
-
 /// 1px separator line.
 struct Hairline: View {
     var color: Color = Theme.hairlineSoft
