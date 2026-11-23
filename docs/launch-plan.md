@@ -55,17 +55,23 @@ Tick an item when it is done and merged.
 ## Owner's steps
 
 - [x] Enrol in the Apple Developer Program as an individual
-- [ ] Send the policy examples
+- [x] Send the policy examples
 - [x] Replace the MIT license with the source-available `LICENSE`
 
 ## After the Apple Developer account
 
 - [x] Hardened runtime, Developer ID signing, notarization in the release
-      workflow. Apple accepted a locally built and signed app on 2026-11-19;
-      the workflow itself first runs with 1.0.0
+      workflow. The workflow published 0.2.0 this way on 2026-11-19; the
+      downloaded DMG and app pass Gatekeeper as "Notarized Developer ID"
 - [x] Sparkle with its signing key and the feed. Not yet seen working end to
       end: that needs two published versions
-- [ ] Rewritten Terms, Privacy and Refund pages
+- [x] App icon and a DMG that opens as an install window (PR #88). Its first
+      release is 0.2.1
+- [ ] Rewritten Terms, Privacy and Refund pages. Terms and Privacy are
+      updated and a Trust page is added (PRs #89, #90); the age rules are
+      open in PR #91; the Refund page is not touched yet
+- [ ] The signed build run by hand: players, dictation, calendar, "Check for
+      Updates", and an update from 0.2.0 to a newer version
 - [ ] Version 1.0.0
 - [ ] Production purchase test on the signed build
 - [ ] Manual Trial check on a clean install, then close issues #42 and #39
