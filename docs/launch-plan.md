@@ -68,8 +68,8 @@ Tick an item when it is done and merged.
 - [x] App icon and a DMG that opens as an install window (PR #88). Its first
       release is 0.2.1
 - [ ] Rewritten Terms, Privacy and Refund pages. Terms and Privacy are
-      updated and a Trust page is added (PRs #89, #90); the age rules are
-      open in PR #91; the Refund page is not touched yet
+      updated and a Trust page is added (PRs #89, #90, #91); the Refund
+      page is not touched yet
 - [ ] The signed build run by hand: players, dictation, calendar, "Check for
       Updates", and an update from 0.2.0 to a newer version
 - [ ] Version 1.0.0
