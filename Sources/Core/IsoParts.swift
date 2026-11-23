@@ -134,11 +134,13 @@ extension View {
         return offset(x: p.x, y: p.y)
     }
 
-    /// Where a module's device sits: centered on top of the scroll, at a
-    /// fixed width so every module opens the same way.
-    func moduleScene(width: CGFloat = 180) -> some View {
-        frame(maxWidth: width)
+    /// Where a module's device sits: one slot of the same size on top of
+    /// every module. The device is fitted into it — a tall one by height,
+    /// a flat one by width — so they all carry about the same weight.
+    func moduleScene() -> some View {
+        frame(maxWidth: 200, maxHeight: 104)
             .frame(maxWidth: .infinity)
+            .frame(height: 112)
             .padding(.top, 4)
     }
 }

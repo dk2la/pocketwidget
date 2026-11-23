@@ -29,7 +29,7 @@ struct AssistantModuleView: View {
                 // the hint as the quiet subline.
                 VStack(spacing: 16) {
                     IsoAssistantView(mode: robotMode)
-                        .moduleScene(width: 150)
+                        .moduleScene()
                     EmptyStateZone(
                         label: L10n.t(.asstEmptyTitle),
                         sublabel: assistant.isVoiceMode ? L10n.t(.asstVoiceHint) : L10n.t(.asstHint)
@@ -72,7 +72,7 @@ struct AssistantModuleView: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 10) {
                     IsoAssistantView(mode: robotMode)
-                        .moduleScene(width: 110)
+                        .moduleScene()
                         .padding(.bottom, 4)
                     ForEach(assistant.transcript) { message in
                         row(message)
