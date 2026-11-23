@@ -14,7 +14,7 @@ export const checkoutURL = 'https://buy.polar.sh/polar_cl_XRl0NamNTAEMF94jkKTJ4G
  * Stable URL of the latest DMG in the public Cloudflare R2 bucket.
  * See "Downloads" in `docs/release-and-licensing.md`.
  */
-export const downloadURL = 'https://pub-3c8757d8d4b64f55bbc715c162c7e969.r2.dev/Pocket.dmg';
+export const downloadURL = 'https://downloads.pocketwidget.tech/Pocket.dmg';
 
 /**
  * One-time prices as shown on the page, before tax. The store charges the

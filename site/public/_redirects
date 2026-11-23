@@ -1,4 +1,4 @@
 # The update feed address built into every released Pocket. It must keep
 # working forever; the file itself lives in the downloads bucket, where the
 # release workflow rewrites it.
-/appcast.xml https://pub-3c8757d8d4b64f55bbc715c162c7e969.r2.dev/appcast.xml 302
+/appcast.xml https://downloads.pocketwidget.tech/appcast.xml 302
