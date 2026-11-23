@@ -10,6 +10,8 @@ final class TimerService {
     private(set) var duration: TimeInterval = 25 * 60
     private(set) var remaining: TimeInterval = 25 * 60
     private(set) var isRunning = false
+    /// The running countdown was set as an alarm for a clock time.
+    private(set) var isAlarm = false
 
     /// The capsule flips between closed and compact on these.
     @ObservationIgnored var onRunningChanged: (() -> Void)?
@@ -25,6 +27,19 @@ final class TimerService {
         guard !isRunning else { return }
         duration = newDuration
         remaining = newDuration
+    }
+
+    /// Alarm: counts down to the next time the clock shows this hour and
+    /// minute, replacing whatever was running.
+    func ring(atHour hour: Int, minute: Int) {
+        let components = DateComponents(hour: hour, minute: minute, second: 0)
+        guard let target = Calendar.current.nextDate(
+            after: Date(), matching: components, matchingPolicy: .nextTime
+        ) else { return }
+        pause()
+        setDuration(target.timeIntervalSinceNow)
+        start()
+        isAlarm = true
     }
 
     func start() {
@@ -44,6 +59,7 @@ final class TimerService {
     func pause() {
         guard isRunning else { return }
         isRunning = false
+        isAlarm = false
         tickTask?.cancel()
         endDate = nil
         onRunningChanged?()
@@ -64,6 +80,7 @@ final class TimerService {
 
     private func finish() {
         isRunning = false
+        isAlarm = false
         tickTask?.cancel()
         endDate = nil
         remaining = duration
