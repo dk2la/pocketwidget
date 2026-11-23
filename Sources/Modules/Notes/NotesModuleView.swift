@@ -25,7 +25,7 @@ struct NotesModuleView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 18) {
                         IsoNotebookView(count: store.notes.count, isRecording: speech.isRecording)
-                            .moduleScene(width: 170)
+                            .moduleScene()
                         hero(latest)
                         let rest = Array(store.notes.dropFirst())
                         if !rest.isEmpty {

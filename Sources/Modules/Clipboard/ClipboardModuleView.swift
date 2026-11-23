@@ -15,7 +15,7 @@ struct ClipboardModuleView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 18) {
                         IsoClipboardView(count: clipboard.entries.count, latestID: latest.id)
-                            .moduleScene(width: 170)
+                            .moduleScene()
                         hero(latest)
                         let earlier = Array(clipboard.entries.dropFirst())
                         if !earlier.isEmpty {

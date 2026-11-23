@@ -70,7 +70,7 @@ struct AppShortcutsModuleView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 18) {
                         IsoKeyboardView()
-                            .moduleScene(width: 200)
+                            .moduleScene()
                         hero(target)
                         content
                     }

@@ -44,7 +44,7 @@ struct TimerModuleView: View {
                 isRunning: timer.isRunning,
                 isAlarm: timer.isAlarm
             )
-            .frame(maxWidth: 230)
+            .moduleScene()
             .animation(.snappy(duration: 0.2), value: timer.isRunning)
             Text(statusLine)
                 .font(Theme.subFont)
@@ -69,7 +69,6 @@ struct TimerModuleView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, 6)
     }
 
     /// "Ends at 17:42" while running, otherwise the state.

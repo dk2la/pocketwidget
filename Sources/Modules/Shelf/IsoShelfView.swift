@@ -81,7 +81,7 @@ struct IsoShelfView: View {
     let onSelect: (ShelfStore.Item) -> Void
 
     /// Points per scene unit.
-    private static let scale: CGFloat = 1.3
+    private static let scale: CGFloat = 1.0
     // Case geometry, in scene units.
     private static let depth: CGFloat = 46
     private static let wall: CGFloat = 96
