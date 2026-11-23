@@ -225,8 +225,9 @@ final class AppSettings {
         // Absent key = on: the tour shows until the user turns it off.
         showOnboardingAtLaunch = (defaults.object(forKey: Self.onboardingAtLaunchKey) as? Bool) ?? true
         onboardingCompleted = defaults.bool(forKey: Self.onboardingCompletedKey)
-        // Coming-soon modules stay off until their services land.
-        let defaultEnabled = Set(ModuleTab.allCases).subtracting(ModuleTab.comingSoon)
+        // A fresh install starts with the core modules only; the rest are
+        // switched on in Settings → Modules.
+        let defaultEnabled = Set(ModuleTab.defaultTabs)
         if let stored = defaults.stringArray(forKey: Self.tabsKey) {
             let tabs = Set(stored.compactMap(ModuleTab.init(rawValue:)))
             enabledTabs = tabs.isEmpty ? defaultEnabled : tabs
