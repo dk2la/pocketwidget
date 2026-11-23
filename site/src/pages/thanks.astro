@@ -1,14 +1,13 @@
 ---
 // Where Polar sends a buyer after payment (the checkout link's success URL):
-// a thank-you over the home page's picture and widget, then the three steps
-// from the email to an activated Pocket. Not linked from the site and kept
-// out of search results.
+// the thank-you written on one wide picture at the top, so it is the first
+// thing seen, then the three steps from the email to an activated Pocket.
+// Everything fits the first screen of a 14-inch MacBook. Not linked from the
+// site and kept out of search results.
 import { Picture } from 'astro:assets';
 import Base from '../layouts/Base.astro';
-import room from '../assets/pictures/room.png';
-import calendar from '../assets/screens/calendar.png';
+import sky from '../assets/pictures/sky.png';
 import { downloadURL, licensePortalURL, supportEmail } from '../config';
-
 const steps = [
   {
     title: 'open the email',
@@ -29,31 +28,23 @@ const steps = [
   <meta slot="head" name="robots" content="noindex" />
 
   <section class="section container thanks">
-    <div class="thanks__stage">
+    <div class="thanks__hero">
       <Picture
-        src={room}
+        src={sky}
         formats={['avif', 'webp']}
         fallbackFormat="jpg"
-        widths={[640, 832, 1024]}
-        sizes="(max-width: 699px) calc(100vw - 40px), 640px"
-        alt="A halftone print of a room: a chair, a table and a plant by a sunlit wall."
+        widths={[700, 1088, 1376]}
+        sizes="(max-width: 1151px) calc(100vw - 2 * var(--gutter)), 1088px"
+        alt=""
         loading="eager"
         fetchpriority="high"
         class="thanks__bg"
       />
-      <Picture
-        src={calendar}
-        formats={['avif', 'webp']}
-        widths={[326, 565]}
-        sizes="(max-width: 699px) 40vw, 240px"
-        alt="The Pocket widget, open."
-        loading="eager"
-        class="thanks__widget"
-      />
+      <div class="thanks__text">
+        <h1 class="thanks__title">thanks for buying pocket</h1>
+        <p class="thanks__lede">your License key is on its way to your inbox.</p>
+      </div>
     </div>
-
-    <h1 class="h thanks__title">thanks for<br />buying pocket</h1>
-    <p class="lede thanks__lede">your License key is on its way to your inbox.</p>
 
     <ol class="steps">
       {
@@ -83,37 +74,48 @@ const steps = [
     display: flex;
     flex-direction: column;
     align-items: center;
+    padding-top: var(--s-5);
     text-align: center;
   }
 
-  /* The home page's picture with the widget standing in the middle of it. */
-  .thanks__stage {
+  /* One wide picture with the thank-you printed on it, in the ground colour. */
+  .thanks__hero {
     position: relative;
-    width: min(640px, 100%);
-    background: var(--paper);
-  }
-
-  .thanks__stage :global(.thanks__bg) {
-    display: block;
+    display: grid;
+    place-items: center;
     width: 100%;
-    height: auto;
+    height: 320px;
+    overflow: hidden;
+    background: var(--paper);
+    color: var(--ground);
   }
 
-  .thanks__stage :global(.thanks__widget) {
+  .thanks__hero :global(.thanks__bg) {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 37.5%;
-    height: auto;
-    transform: translate(-50%, -50%);
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 35%;
+  }
+
+  .thanks__text {
+    position: relative;
+    padding: var(--s-5);
   }
 
   .thanks__title {
-    margin-top: var(--s-7);
+    font-size: 56px;
+    font-weight: 600;
+    line-height: 64px;
+    letter-spacing: -0.03em;
   }
 
   .thanks__lede {
-    margin-top: var(--s-4);
+    margin-top: var(--s-2);
+    font-size: 22px;
+    font-weight: 400;
+    line-height: 28px;
   }
 
   .steps {
@@ -121,7 +123,7 @@ const steps = [
     grid-template-columns: repeat(3, 1fr);
     gap: var(--s-3);
     width: 100%;
-    margin: var(--s-7) 0 0;
+    margin: var(--s-5) 0 0;
     padding: 0;
     list-style: none;
     text-align: left;
@@ -131,7 +133,7 @@ const steps = [
     display: flex;
     flex-direction: column;
     gap: var(--s-1);
-    padding: var(--s-5);
+    padding: var(--s-4) var(--s-5);
     background: var(--card);
   }
 
@@ -144,16 +146,32 @@ const steps = [
     flex-wrap: wrap;
     justify-content: center;
     gap: var(--s-3);
-    margin-top: var(--s-6);
+    margin-top: var(--s-5);
   }
 
   .thanks__help {
-    margin-top: var(--s-4);
+    margin-top: var(--s-3);
   }
 
   @media (max-width: 899px) {
     .steps {
       grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 699px) {
+    .thanks__hero {
+      height: 280px;
+    }
+
+    .thanks__title {
+      font-size: 36px;
+      line-height: 40px;
+    }
+
+    .thanks__lede {
+      font-size: 18px;
+      line-height: 24px;
     }
   }
 </style>
