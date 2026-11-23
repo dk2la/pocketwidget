@@ -128,6 +128,8 @@ struct EmailModuleView: View {
             let read = service.searchResults == nil ? shown.filter { !$0.isUnread } : shown
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
+                    IsoMailboxView(unread: service.unreadCount)
+                        .moduleScene(width: 170)
                     if !unread.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             SectionHeader(title: L10n.t(.mailSectionNew), trailing: "\(unread.count)")
