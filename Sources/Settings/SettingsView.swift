@@ -83,12 +83,12 @@ struct SettingsView: View {
                 Text("Pocket \(Self.version)")
                     .font(Theme.captionFont)
                     .foregroundStyle(Palette.ink40)
-                // Debug builds have no updater (see AppUpdater).
-                if services.updater.isAvailable {
-                    PillButton(L10n.t(.setCheckUpdates), systemName: "arrow.down.circle", size: .small) {
-                        services.updater.checkForUpdates()
-                    }
+                // Debug builds have no updater (see AppUpdater): the button
+                // is shown there too, greyed out, so the layout can be checked.
+                PillButton(L10n.t(.setCheckUpdates), systemName: "arrow.down.circle", size: .small) {
+                    services.updater.checkForUpdates()
                 }
+                .disabled(!services.updater.isAvailable)
             }
             .padding(.horizontal, 10)
             .padding(.bottom, 18)
