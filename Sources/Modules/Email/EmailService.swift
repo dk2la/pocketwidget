@@ -32,8 +32,9 @@ final class EmailService {
     /// is entered again.
     private(set) var isPasswordMissing = false
     /// Nothing to show until the user adds mail: no account, or one whose
-    /// password is gone.
-    var needsSetup: Bool { config == nil || isPasswordMissing }
+    /// password is gone. Never in demo mode: its scripted account has no
+    /// password to miss, whatever state the real one was parked in.
+    var needsSetup: Bool { !isDemo && (config == nil || isPasswordMissing) }
     /// "Add mail" in the module. Lives here so a half-done setup survives
     /// the panel closing while the user fetches an app password.
     let setup: MailSetupFlow
