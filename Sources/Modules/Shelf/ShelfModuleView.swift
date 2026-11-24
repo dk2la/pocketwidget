@@ -4,11 +4,12 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 /// "Shelf" module. Empty, it is the empty screen: a small bookcase, and
-/// the "Add file" bar pinned to the bottom. With files it is one grouped list — icon, name over
-/// size and kind, a remove button — where the picked row opens up to show
-/// a preview of what is inside, Open and Show in Finder; the list ends in
-/// the same "Add file" row. Files drop anywhere on the module in both
-/// states and drag back out of a row. Clearing lives in the panel header.
+/// the "Add file" bar pinned to the bottom. With files there is no
+/// bookcase: the picked file sits on top as a card with a preview of what
+/// is inside, Open and Show in Finder, and under it the whole shelf as one
+/// grouped list, ending in the "Add file" row. Tapping a row puts that
+/// file in the card. Files drop anywhere on the module in both states and
+/// drag back out of the card or a row. Clearing lives in the panel header.
 struct ShelfModuleView: View {
     var shelf: ShelfStore
 
@@ -50,38 +51,35 @@ struct ShelfModuleView: View {
         }
     }
 
-    // MARK: - List
+    // MARK: - Files
 
     private var files: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 14) {
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: L10n.t(.shelfSection), trailing: "\(shelf.items.count)")
-                    GroupedCard {
-                        ForEach(Array(shelf.items.enumerated()), id: \.element.id) { index, item in
-                            itemRow(item, isLast: index == shelf.items.count - 1)
-                        }
-                    }
-                    // The card lights up while files hang over the module.
-                    .overlay(
-                        RoundedRectangle(cornerRadius: Theme.groupRadius, style: .continuous)
-                            .stroke(Theme.accent.opacity(isTargeted ? 0.7 : 0), lineWidth: 1)
-                    )
+                if let focus {
+                    fileCard(focus)
+                        // A fresh card per file: it fades up instead of
+                        // swapping text in place.
+                        .id(focus.id)
+                        .transition(.opacity.combined(with: .offset(y: 8)))
+                }
+                if shelf.items.count > 1 {
+                    list
                 }
                 ShelfAddFileRow(shelf: shelf) { showNewest() }
             }
         }
     }
 
-    private func itemRow(_ item: ShelfStore.Item, isLast: Bool) -> some View {
-        let isPicked = item.id == focus?.id
-        return VStack(alignment: .leading, spacing: 10) {
+    // MARK: - Picked file
+
+    private func fileCard(_ item: ShelfStore.Item) -> some View {
+        HeroCard {
             HStack(spacing: 12) {
                 fileIcon(item)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.name)
-                        .font(Theme.bodyFont)
-                        .fontWeight(isPicked ? .semibold : .regular)
+                        .font(Theme.headlineFont)
                         .lineLimit(1)
                         .truncationMode(.middle)
                         .foregroundStyle(Theme.textPrimary)
@@ -91,35 +89,7 @@ struct ShelfModuleView: View {
                         .foregroundStyle(Theme.textTertiary)
                 }
                 Spacer(minLength: 0)
-                Button {
-                    withAnimation(.snappy(duration: 0.3)) { shelf.remove(item) }
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(Theme.textSecondary)
-                        .frame(width: 30, height: 30)
-                        .background(Circle().fill(Theme.raisedFill))
-                        .contentShape(Circle())
-                }
-                .buttonStyle(PressableStyle())
             }
-            if isPicked {
-                details(item)
-                    .transition(.opacity)
-            }
-        }
-        .groupedRow(isLast: isLast)
-        .onDrag {
-            NSItemProvider(object: item.url as NSURL)
-        }
-        .onTapGesture {
-            select(item)
-        }
-    }
-
-    /// What the picked row opens up to: a look inside and the two ways out.
-    private func details(_ item: ShelfStore.Item) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
             FilePreview(url: item.url)
                 .frame(height: 132)
             HStack(spacing: 8) {
@@ -130,7 +100,69 @@ struct ShelfModuleView: View {
                     NSWorkspace.shared.activateFileViewerSelecting([item.url])
                 }
                 Spacer(minLength: 0)
+                ModuleButton(systemName: "trash") {
+                    withAnimation(.snappy(duration: 0.3)) { shelf.remove(item) }
+                }
             }
+        }
+        // The card lights up while files hang over the module.
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.heroRadius, style: .continuous)
+                .stroke(Theme.accent.opacity(isTargeted ? 0.7 : 0), lineWidth: 1)
+        )
+        .onDrag {
+            NSItemProvider(object: item.url as NSURL)
+        }
+    }
+
+    // MARK: - List
+
+    private var list: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: L10n.t(.shelfSection), trailing: "\(shelf.items.count)")
+            GroupedCard {
+                ForEach(Array(shelf.items.enumerated()), id: \.element.id) { index, item in
+                    itemRow(item, isLast: index == shelf.items.count - 1)
+                }
+            }
+        }
+    }
+
+    private func itemRow(_ item: ShelfStore.Item, isLast: Bool) -> some View {
+        let isPicked = item.id == focus?.id
+        return HStack(spacing: 12) {
+            fileIcon(item)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.name)
+                    .font(Theme.bodyFont)
+                    .fontWeight(isPicked ? .semibold : .regular)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .foregroundStyle(Theme.textPrimary)
+                Text(Self.meta(for: item.url))
+                    .font(Theme.subFont)
+                    .lineLimit(1)
+                    .foregroundStyle(Theme.textTertiary)
+            }
+            Spacer(minLength: 0)
+            Button {
+                withAnimation(.snappy(duration: 0.3)) { shelf.remove(item) }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(width: 30, height: 30)
+                    .background(Circle().fill(Theme.raisedFill))
+                    .contentShape(Circle())
+            }
+            .buttonStyle(PressableStyle())
+        }
+        .groupedRow(isLast: isLast)
+        .onDrag {
+            NSItemProvider(object: item.url as NSURL)
+        }
+        .onTapGesture {
+            select(item)
         }
     }
 
