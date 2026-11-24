@@ -146,6 +146,7 @@ enum L10nKey {
 
     // Playbooks
     case playNew, playEmpty, playDone, playClosed, playOpened, playErrors, playAdd
+    case playNoneTitle, playBack
     case playApps, playCloseRest, playFocus
     case playStepOpenApps, playStepCloseOthers, playStepShortcut, playStepFocus, playStepTimer, playStepURLs
     case playAddStep, playLayout, playGrantAccess, playLayoutHint
@@ -420,6 +421,8 @@ enum L10nKey {
         case .playURLsHint: return ["One link per line", "По одной ссылке на строку", "Un lien par ligne", "Un enlace por línea", "每行一个链接", "Um link por linha", "Ein Link pro Zeile", "Un link per riga", "1行に1リンク", "한 줄에 링크 하나"]
         case .playLinks: return ["%d links", "%d ссыл.", "%d liens", "%d enlaces", "%d 个链接", "%d links", "%d Links", "%d link", "%d件のリンク", "링크 %d개"]
         case .playAdd: return ["Add playbook…", "Добавить плейбук…", "Ajouter un playbook…", "Añadir playbook…", "添加行动手册…", "Adicionar playbook…", "Playbook hinzufügen…", "Aggiungi playbook…", "プレイブックを追加…", "플레이북 추가…"]
+        case .playNoneTitle: return ["no playbooks", "нет плейбуков", "aucun playbook", "sin playbooks", "没有行动手册", "sem playbooks", "keine Playbooks", "nessun playbook", "プレイブックなし", "플레이북 없음"]
+        case .playBack: return ["Back", "Назад", "Retour", "Atrás", "返回", "Voltar", "Zurück", "Indietro", "戻る", "뒤로"]
 
         case .sysMemory: return ["Memory", "Память", "Mémoire", "Memoria", "内存", "Memória", "Speicher", "Memoria", "メモリ", "메모리"]
         case .sysNetwork: return ["Network", "Сеть", "Réseau", "Red", "网络", "Rede", "Netzwerk", "Rete", "ネットワーク", "네트워크"]

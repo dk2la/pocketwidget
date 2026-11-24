@@ -1,15 +1,12 @@
 import SwiftUI
 
-/// Playbooks as a key pad: one armed key per playbook, the picked one
-/// bright and breathing. Clicking a key picks its playbook. While a
-/// playbook runs the keys fire in sequence.
+/// The Playbooks device: a key pad with one armed key per playbook. Shown
+/// while there is no playbook yet, so every key is blank. While a playbook
+/// runs the armed keys fire in sequence.
 struct IsoLaunchpadView: View {
     /// How many playbooks there are.
     let count: Int
-    /// Index of the picked playbook.
-    let selected: Int?
     let isRunning: Bool
-    let onSelect: (Int) -> Void
 
     private static let plate = IsoBox(x: 0, y: 0, z: 0, w: 150, d: 72, h: 5)
     private static let deck = IsoBox(x: 8, y: 6, z: 5, w: 134, d: 60, h: 9)
@@ -21,13 +18,6 @@ struct IsoLaunchpadView: View {
         IsoTicker(every: isRunning ? 0.22 : 1.6) { phase in
             IsoStage(scene: scene) {
                 IsoBlocks(scene: scene, blocks: blocks(phase))
-                // The painted keys are one canvas; these make them clickable.
-                ForEach(0..<min(count, Self.columns * 2), id: \.self) { index in
-                    Color.clear
-                        .contentShape(Rectangle())
-                        .onTapGesture { onSelect(index) }
-                        .isoFace(.top, of: Self.key(index, pressed: false), in: scene)
-                }
                 HStack(spacing: 9) {
                     IsoLamp("RUN", on: isRunning)
                     Spacer(minLength: 0)
@@ -49,8 +39,6 @@ struct IsoLaunchpadView: View {
             let pressed = isRunning && index == firing
             let tone: IsoTone = if pressed {
                 .lit
-            } else if index == selected {
-                phase % 2 == 0 ? Self.picked : Self.pickedDim
             } else if index < armed {
                 .key
             } else {
@@ -68,17 +56,4 @@ struct IsoLaunchpadView: View {
             w: 26, d: 21, h: pressed ? 2.5 : 6
         )
     }
-
-    private static let picked = IsoTone(
-        top: Theme.lightFill,
-        front: Color(white: 0.62),
-        side: Color(white: 0.46),
-        edge: Color.black.opacity(0.3)
-    )
-    private static let pickedDim = IsoTone(
-        top: Color(white: 0.74),
-        front: Color(white: 0.52),
-        side: Color(white: 0.40),
-        edge: Color.black.opacity(0.3)
-    )
 }
