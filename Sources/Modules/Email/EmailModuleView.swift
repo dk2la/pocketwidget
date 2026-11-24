@@ -40,7 +40,11 @@ struct EmailModuleView: View {
 
     var body: some View {
         if service.config == nil {
-            setupPrompt
+            if service.setup.isActive {
+                EmailModuleSetupView(flow: service.setup)
+            } else {
+                addMailScreen
+            }
         } else if service.isComposeOpen, service.composeMode == nil {
             EmailComposeView(service: service, speech: speech)
         } else if let message = service.openMessage {
@@ -81,8 +85,16 @@ struct EmailModuleView: View {
         .animation(Theme.stateSpring, value: service.isComposeOpen)
     }
 
-    private var setupPrompt: some View {
-        ModuleSetupPrompt(title: L10n.t(.mailSetupTitle), sublabel: L10n.t(.mailSetupSub))
+    /// No account yet: the mailbox, the message and the one thing to do
+    /// about it — setup starts right here, not in Settings.
+    private var addMailScreen: some View {
+        ModuleEmptyScreen(label: L10n.t(.mailSetupTitle), sublabel: L10n.t(.mailSetupSub)) {
+            IsoMailboxView(unread: 0)
+        } extra: {
+            GlassCapsuleButton(label: L10n.t(.mailAddAction), systemName: "plus", isPrimary: true) {
+                service.setup.begin()
+            }
+        }
     }
 
     private var inbox: some View {
@@ -95,10 +107,14 @@ struct EmailModuleView: View {
             // The mailbox tiles, search and status stay in both states — an
             // empty section must still let the user switch to another one.
             list(state).emptyScreen(when: state.isEmpty) {
-                ModuleEmptyScreen(
-                    label: L10n.t(state == .noSearchResults ? .mailNoResults : .mailInboxEmpty)
-                ) {
-                    IsoMailboxView(unread: service.unreadCount)
+                // The mailbox stands for an inbox with no mail in it; a
+                // search that found nothing only says so.
+                if state == .noSearchResults {
+                    EmptyStateZone(label: L10n.t(.mailNoResults))
+                } else {
+                    ModuleEmptyScreen(label: L10n.t(.mailInboxEmpty)) {
+                        IsoMailboxView(unread: service.unreadCount)
+                    }
                 }
             }
             statusFooter

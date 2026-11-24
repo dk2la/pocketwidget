@@ -84,6 +84,8 @@ struct ModuleBackButton: View {
                 { services.emailService.closeCompose() }
             } else if services.emailService.openMessage != nil {
                 { services.emailService.closeMessage() }
+            } else if services.emailService.config == nil, services.emailService.setup.isActive {
+                { services.emailService.setup.cancel() }
             } else {
                 nil
             }

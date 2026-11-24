@@ -5,15 +5,8 @@ import SwiftUI
 struct EmailSetupView: View {
     var service: EmailService
 
-    @State private var provider: EmailProvider = .gmail
-    @State private var email = ""
-    @State private var password = ""
-    @State private var imapHost = ""
-    @State private var imapPort = "993"
-    @State private var smtpHost = ""
-    @State private var smtpPort = "465"
+    @State private var draft = MailSetupDraft()
     @State private var checkState: SetupCheckState = .idle
-    @State private var loaded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -21,12 +14,15 @@ struct EmailSetupView: View {
                 WindowSegmented(
                     options: EmailProvider.allCases.map { ($0, $0.title) },
                     selection: Binding(
-                        get: { provider },
-                        set: { applyPreset($0) }
+                        get: { draft.provider },
+                        set: {
+                            draft.select($0)
+                            checkState = .idle
+                        }
                     )
                 )
             }
-            if provider.isPasswordAuthUnreliable {
+            if draft.provider.isPasswordAuthUnreliable {
                 Text(L10n.t(.mailOutlookWarning))
                     .font(Theme.subFont)
                     .foregroundStyle(Theme.critical.opacity(0.9))
@@ -34,102 +30,57 @@ struct EmailSetupView: View {
             }
             Hairline(color: Palette.hairline)
             SetupFieldRow(title: L10n.t(.mailAddress)) {
-                TextField("name@example.com", text: $email)
+                TextField("name@example.com", text: $draft.email)
             }
             Hairline(color: Palette.hairline)
             SetupFieldRow(title: L10n.t(.mailPassword), subtitle: L10n.t(.mailPasswordHint), width: 200) {
-                SecureField("", text: $password)
+                SecureField("", text: $draft.password)
             }
-            if provider == .custom {
+            if draft.provider == .custom {
                 Hairline(color: Palette.hairline)
                 SetupFieldRow(title: L10n.t(.mailImapHost)) {
-                    TextField("imap.example.com", text: $imapHost)
-                    TextField("993", text: $imapPort).frame(width: 56)
+                    TextField("imap.example.com", text: $draft.imapHost)
+                    TextField("993", text: $draft.imapPort).frame(width: 56)
                 }
                 Hairline(color: Palette.hairline)
                 SetupFieldRow(title: L10n.t(.mailSmtpHost)) {
-                    TextField("smtp.example.com", text: $smtpHost)
-                    TextField("465", text: $smtpPort).frame(width: 56)
+                    TextField("smtp.example.com", text: $draft.smtpHost)
+                    TextField("465", text: $draft.smtpPort).frame(width: 56)
                 }
             }
             Hairline(color: Palette.hairline)
             SetupActionRow(
                 checkState: checkState,
-                canCheck: isComplete,
-                canSave: isComplete && !password.isEmpty,
+                canCheck: draft.isComplete,
+                canSave: draft.isComplete && !draft.password.isEmpty,
                 showRemove: service.config != nil,
                 onCheck: runCheck,
                 onRemove: {
                     service.removeAccount()
-                    password = ""
+                    draft.password = ""
                 },
-                onSave: { service.saveAccount(builtConfig, password: password) }
+                onSave: { service.saveAccount(draft.config, password: draft.password) }
             )
         }
         .onAppear(perform: loadExisting)
+        // The account can also be added in the Mail module while this page
+        // is open.
+        .onChange(of: service.config) { loadExisting() }
     }
 
     // MARK: - State
 
-    private var isComplete: Bool {
-        !email.isEmpty && !resolvedConfig.imapHost.isEmpty && !resolvedConfig.smtpHost.isEmpty
-    }
-
-    private var resolvedConfig: (imapHost: String, imapPort: UInt16, smtpHost: String, smtpPort: UInt16, startTLS: Bool) {
-        if let preset = provider.preset {
-            return preset
-        }
-        return (
-            imapHost,
-            UInt16(imapPort) ?? 993,
-            smtpHost,
-            UInt16(smtpPort) ?? 465,
-            (UInt16(smtpPort) ?? 465) == 587
-        )
-    }
-
-    private var builtConfig: EmailAccountConfig {
-        let resolved = resolvedConfig
-        return EmailAccountConfig(
-            email: email.trimmingCharacters(in: .whitespaces),
-            imapHost: resolved.imapHost,
-            imapPort: resolved.imapPort,
-            smtpHost: resolved.smtpHost,
-            smtpPort: resolved.smtpPort,
-            smtpUsesSTARTTLS: resolved.startTLS,
-            presetID: provider.rawValue
-        )
-    }
-
-    private func applyPreset(_ newProvider: EmailProvider) {
-        provider = newProvider
-        checkState = .idle
-        if let preset = newProvider.preset {
-            imapHost = preset.0
-            imapPort = String(preset.1)
-            smtpHost = preset.2
-            smtpPort = String(preset.3)
-        }
-    }
-
+    /// Shows the saved account. A form that already matches it — the one
+    /// just saved here, password still typed in — is left alone.
     private func loadExisting() {
-        guard !loaded else { return }
-        loaded = true
-        guard let config = service.config else {
-            applyPreset(.gmail)
-            return
-        }
-        email = config.email
-        provider = EmailProvider(rawValue: config.presetID) ?? .custom
-        imapHost = config.imapHost
-        imapPort = String(config.imapPort)
-        smtpHost = config.smtpHost
-        smtpPort = String(config.smtpPort)
+        guard let config = service.config, config != draft.config else { return }
+        draft = MailSetupDraft(config: config)
+        checkState = .idle
     }
 
     private func runCheck() {
-        let config = builtConfig
-        let secret = password
+        let config = draft.config
+        let secret = draft.password
         probeSetup($checkState) { await EmailService.testConnection(config, password: secret) }
     }
 }
