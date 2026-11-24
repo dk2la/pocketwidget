@@ -21,33 +21,13 @@ struct NotesModuleView: View {
 
     private var list: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if let latest = store.notes.first {
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 18) {
-                        IsoNotebookView(count: store.notes.count, isRecording: speech.isRecording)
-                            .moduleScene()
-                        hero(latest)
-                        let rest = Array(store.notes.dropFirst())
-                        if !rest.isEmpty {
-                            GroupedCard {
-                                ForEach(Array(rest.enumerated()), id: \.element.id) { index, note in
-                                    NoteRow(note: note, age: Self.age(of: note), isLast: index == rest.count - 1) {
-                                        store.open(note)
-                                    } onDelete: {
-                                        store.delete(note)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                EmptyStateZone(
+            notes.emptyScreen(when: store.notes.isEmpty) {
+                ModuleEmptyScreen(
                     label: L10n.t(.notesEmptyTitle),
                     sublabel: L10n.t(.notesEmptySub)
-                )
-                .frame(maxHeight: 100)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                ) {
+                    IsoNotebookView(count: 0, isRecording: speech.isRecording)
+                }
             }
             SpeechStatusRow(speech: speech)
             captureBar
@@ -55,6 +35,29 @@ struct NotesModuleView: View {
         .animation(Theme.stateSpring, value: speech.isRecording)
         // Opening the module is consent enough to read the folder.
         .onAppear { store.activate() }
+    }
+
+    @ViewBuilder
+    private var notes: some View {
+        if let latest = store.notes.first {
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 18) {
+                    hero(latest)
+                    let rest = Array(store.notes.dropFirst())
+                    if !rest.isEmpty {
+                        GroupedCard {
+                            ForEach(Array(rest.enumerated()), id: \.element.id) { index, note in
+                                NoteRow(note: note, age: Self.age(of: note), isLast: index == rest.count - 1) {
+                                    store.open(note)
+                                } onDelete: {
+                                    store.delete(note)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private func hero(_ note: NoteFile) -> some View {

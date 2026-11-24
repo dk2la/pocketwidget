@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Shared pieces of the small devices that open every module: the stage
+// Shared pieces of the small devices the modules show: the stage
 // that scales a scene to its width, a one-canvas painter for many boxes,
 // a slow clock for idle motion, lamps, and a few extra tones.
 
@@ -134,13 +134,16 @@ extension View {
         return offset(x: p.x, y: p.y)
     }
 
-    /// Where a module's device sits: one slot of the same size on top of
-    /// every module. The device is fitted into it — a tall one by height,
-    /// a flat one by width — so they all carry about the same weight.
-    func moduleScene() -> some View {
+    /// Where a module's device sits: one slot of the same size in every
+    /// module. The device is fitted into it — a tall one by height, a flat
+    /// one by width — so they all carry about the same weight. With
+    /// `shrinks` the slot gives height back when the panel is too short
+    /// for it, and the device scales down instead of pushing its
+    /// neighbours out (the empty screen uses this).
+    func moduleScene(shrinks: Bool = false) -> some View {
         frame(maxWidth: 200, maxHeight: 104)
             .frame(maxWidth: .infinity)
-            .frame(height: 112)
+            .frame(minHeight: shrinks ? 0 : 112, maxHeight: 112)
             .padding(.top, 4)
     }
 }
