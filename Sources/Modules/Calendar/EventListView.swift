@@ -172,27 +172,12 @@ struct WeekView: View {
     /// Dashed "+" and the slot the new event will take — the same one the
     /// form opens with (next full hour today, 09:00 otherwise).
     private var newEventRow: some View {
-        Button {
+        AddRow(
+            label: L10n.f(.calNewEventAt, Self.slotLabel(on: service.selectedDay, calendar: calendar)),
+            iconSlot: 42
+        ) {
             service.startCreating(on: service.selectedDay)
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "plus")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(Theme.textSecondary)
-                    .frame(width: 28, height: 28)
-                    .overlay(
-                        Circle().stroke(Theme.dashedBorder, style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
-                    )
-                    .frame(width: 42, alignment: .leading)
-                Text(L10n.f(.calNewEventAt, Self.slotLabel(on: service.selectedDay, calendar: calendar)))
-                    .font(Theme.bodyFont)
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.textSecondary)
-                Spacer(minLength: 0)
-            }
-            .groupedRow(isLast: true)
         }
-        .buttonStyle(PressableStyle())
     }
 
     private static func slotLabel(on day: Date, calendar: Calendar) -> String {
