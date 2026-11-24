@@ -162,6 +162,8 @@ struct ModuleButton: View {
     var kind: Kind = .ghost
     var height: CGFloat = 32
     var enabled = true
+    /// Overrides the content colour — a destructive ghost button is red.
+    var tint: Color?
     let action: () -> Void
 
     var body: some View {
@@ -179,7 +181,7 @@ struct ModuleButton: View {
                         .lineLimit(1)
                 }
             }
-            .foregroundStyle(kind == .ghost ? Theme.textPrimary : Theme.inkOnAccent)
+            .foregroundStyle(tint ?? (kind == .ghost ? Theme.textPrimary : Theme.inkOnAccent))
             .padding(.horizontal, label == nil ? 0 : 14)
             .frame(minWidth: height, minHeight: height)
             .background(shape.fill(fill))
