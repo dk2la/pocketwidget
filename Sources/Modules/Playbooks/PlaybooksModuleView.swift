@@ -1,10 +1,11 @@
 import AppKit
 import SwiftUI
 
-/// "Playbooks" module: every playbook in one grouped list — symbol, name
-/// over a one-line recipe of its steps, a run button — ending in "Add
-/// playbook…", which opens the editor right here in the panel. Clicking a
-/// row outside its run button opens the playbook: a hero card with Run and
+/// "Playbooks" module: the last-run playbook as a hero card with Run, the
+/// rest as one grouped list — symbol, name over a one-line recipe of its
+/// steps, a run button — ending in "Add playbook…", which opens the editor
+/// right here in the panel. Clicking the hero or a row outside its run
+/// button opens the playbook: a hero card with Run and
 /// its steps in order, so it is clear what running it will do, and Edit,
 /// which opens the same editor filled with it. With no playbook at all the
 /// key pad device stands over the empty message. A quiet register
@@ -111,14 +112,35 @@ struct PlaybooksModuleView: View {
 
     // MARK: - List
 
+    /// The hero: the last playbook run, else the first one.
+    private var featured: Playbook? {
+        if let last = runner.lastRun,
+           let current = store.playbooks.first(where: { $0.id == last.playbook.id }) {
+            return current
+        }
+        return store.playbooks.first
+    }
+
     private var list: some View {
         ScrollView(.vertical, showsIndicators: false) {
-            GroupedCard {
-                ForEach(store.playbooks) { playbook in
-                    row(for: playbook)
+            VStack(alignment: .leading, spacing: 18) {
+                if let featured {
+                    // Like a row: a click outside Run opens the playbook.
+                    hero(featured)
+                        .contentShape(Rectangle())
+                        .onTapGesture { show(.playbook(featured.id)) }
                 }
-                newRow
+                list(store.playbooks.filter { $0.id != featured?.id })
             }
+        }
+    }
+
+    private func list(_ playbooks: [Playbook]) -> some View {
+        GroupedCard {
+            ForEach(playbooks) { playbook in
+                row(for: playbook)
+            }
+            newRow
         }
     }
 

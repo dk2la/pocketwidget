@@ -23,38 +23,16 @@ struct WeekView: View {
             let nextID = calendar.isDateInToday(service.selectedDay)
                 ? EventRow.next(in: events, at: context.date)?.id
                 : nil
-            // The week strip and the day's title stay in both states — an
-            // empty day must still let the user move to another one.
-            VStack(alignment: .leading, spacing: 14) {
-                weekNav
-                HStack(spacing: 6) {
-                    ForEach(days, id: \.self) { day in
-                        dayTile(day, now: context.date)
-                    }
-                }
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: sectionTitle, trailing: events.isEmpty ? nil : "\(events.count)")
-                        .padding(.top, 6)
-                    ScrollView(.vertical, showsIndicators: false) {
-                        GroupedCard {
-                            ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
-                                EventRow(
-                                    event: event,
-                                    isNext: event.id == nextID,
-                                    isLast: index == events.count - 1 && !canCreate,
-                                    stacked: true,
-                                    now: context.date
-                                ) {
-                                    service.open(event)
-                                }
-                            }
-                            if canCreate {
-                                newEventRow
-                            }
-                        }
-                    }
-                    // The tear-off calendar is the empty day only.
-                    .emptyScreen(when: events.isEmpty) {
+            if events.isEmpty {
+                // The tear-off calendar is the empty day only. The week
+                // strip and the day's title stay — an empty day must still
+                // let the user move to another one.
+                VStack(alignment: .leading, spacing: 14) {
+                    weekNav
+                    weekStrip(now: context.date)
+                    VStack(alignment: .leading, spacing: 8) {
+                        SectionHeader(title: sectionTitle, trailing: nil)
+                            .padding(.top, 6)
                         ModuleEmptyScreen(label: L10n.t(.calNoEvents)) {
                             IsoCalendarView(date: context.date, events: 0)
                         } extra: {
@@ -64,6 +42,41 @@ struct WeekView: View {
                         }
                     }
                 }
+            } else {
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        weekNav
+                        weekStrip(now: context.date)
+                        VStack(alignment: .leading, spacing: 8) {
+                            SectionHeader(title: sectionTitle, trailing: "\(events.count)")
+                                .padding(.top, 6)
+                            GroupedCard {
+                                ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
+                                    EventRow(
+                                        event: event,
+                                        isNext: event.id == nextID,
+                                        isLast: index == events.count - 1 && !canCreate,
+                                        stacked: true,
+                                        now: context.date
+                                    ) {
+                                        service.open(event)
+                                    }
+                                }
+                                if canCreate {
+                                    newEventRow
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func weekStrip(now: Date) -> some View {
+        HStack(spacing: 6) {
+            ForEach(days, id: \.self) { day in
+                dayTile(day, now: now)
             }
         }
     }
