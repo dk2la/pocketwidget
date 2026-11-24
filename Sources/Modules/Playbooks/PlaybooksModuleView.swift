@@ -204,7 +204,7 @@ struct PlaybooksModuleView: View {
                 }
                 Spacer(minLength: 0)
                 ModuleButton(
-                    label: confirming ? L10n.t(.calConfirmDelete) : nil,
+                    label: confirming ? L10n.t(.calDelete) : nil,
                     systemName: "trash",
                     height: 28,
                     tint: Theme.critical.opacity(0.9)
@@ -235,9 +235,9 @@ struct PlaybooksModuleView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    /// Delete asks first, as it does in the editor: the first click turns
-    /// it into "Confirm delete" for a few seconds, the second one deletes
-    /// and leads back to the list.
+    /// Delete asks first, as it does in the editor: the first click grows
+    /// the trash button a "Delete" label for a few seconds, the second one
+    /// deletes and leads back to the list.
     private func deleteTapped(_ playbook: Playbook) {
         confirmTask?.cancel()
         guard confirmingDeleteID == playbook.id else {

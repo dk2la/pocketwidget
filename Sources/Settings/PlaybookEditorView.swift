@@ -13,7 +13,7 @@ struct PlaybookEditorView: View {
         /// Settings: a wide page, labels beside the fields, actions in a
         /// row at the bottom.
         case page
-        /// The module's panel, down to its smallest size: Back and Save
+        /// The module's panel, down to its smallest size: Back, Delete and Save
         /// pinned on top, everything else stacked in one scrolling column.
         case panel
     }
@@ -58,9 +58,6 @@ struct PlaybookEditorView: View {
                 VStack(alignment: .leading, spacing: isPanel ? 14 : 18) {
                     identitySection
                     stepsSection
-                    if isPanel, !draft.isNew {
-                        deleteButton
-                    }
                 }
                 // The panel already insets its module.
                 .padding(isPanel ? 0 : 20)
@@ -213,14 +210,35 @@ struct PlaybookEditorView: View {
     /// from it. Both stay put while the fields scroll.
     private var panelBar: some View {
         HStack(spacing: 8) {
-            ModuleButton(label: L10n.t(.playBack), systemName: "chevron.left", height: 28) {
+            // Back gives up its label while Delete shows one: all three do
+            // not fit at the smallest panel size.
+            ModuleButton(
+                label: confirmingDelete ? nil : L10n.t(.playBack),
+                systemName: "chevron.left",
+                height: 28
+            ) {
                 onDone()
             }
+            .help(L10n.t(.playBack))
             Spacer(minLength: 0)
+            if !draft.isNew {
+                // The same trash button the opened playbook carries.
+                ModuleButton(
+                    label: confirmingDelete ? L10n.t(.calDelete) : nil,
+                    systemName: "trash",
+                    height: 28,
+                    tint: Theme.critical.opacity(0.9)
+                ) {
+                    deleteTapped()
+                }
+                .help(L10n.t(.calDelete))
+                .accessibilityLabel(L10n.t(confirmingDelete ? .calConfirmDelete : .calDelete))
+            }
             ModuleButton(label: L10n.t(.calSave), kind: .accent, height: 28, enabled: draft.canSave) {
                 save()
             }
         }
+        .animation(Theme.stateSpring, value: confirmingDelete)
     }
 
     /// Page layout: everything in one row under the fields.
@@ -244,12 +262,12 @@ struct PlaybookEditorView: View {
     }
 
     /// Delete asks first: the first click turns it into "Confirm delete"
-    /// for a few seconds, the second one deletes.
+    /// (the trash button of the panel grows a label instead) for a few
+    /// seconds, the second one deletes.
     private var deleteButton: some View {
         PaletteButton(
             confirmingDelete ? L10n.t(.calConfirmDelete) : L10n.t(.calDelete),
-            color: Theme.critical.opacity(0.9),
-            vPad: isPanel ? 6 : 0
+            color: Theme.critical.opacity(0.9)
         ) {
             deleteTapped()
         }
