@@ -86,14 +86,21 @@ struct EmailModuleView: View {
     }
 
     private var inbox: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            IsoMailboxView(unread: service.unreadCount)
-                .moduleScene()
+        let state = InboxListState(messages: service.messages, searchResults: service.searchResults)
+        return VStack(alignment: .leading, spacing: 14) {
             mailboxRow
             if service.isSearchOpen {
                 searchRow
             }
-            list
+            // The mailbox tiles, search and status stay in both states — an
+            // empty section must still let the user switch to another one.
+            list(state).emptyScreen(when: state.isEmpty) {
+                ModuleEmptyScreen(
+                    label: L10n.t(state == .noSearchResults ? .mailNoResults : .mailInboxEmpty)
+                ) {
+                    IsoMailboxView(unread: service.unreadCount)
+                }
+            }
             statusFooter
         }
     }
@@ -115,15 +122,8 @@ struct EmailModuleView: View {
     }
 
     @ViewBuilder
-    private var list: some View {
-        let shown = service.searchResults ?? service.messages
-        if shown.isEmpty {
-            EmptyStateZone(
-                label: L10n.t(service.searchResults != nil ? .mailNoResults : .mailInboxEmpty)
-            )
-            .frame(maxHeight: 90)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
+    private func list(_ state: InboxListState) -> some View {
+        if case .messages(let shown) = state {
             // Search results stay one list; the mailbox splits into what is
             // new and what has been read.
             let unread = service.searchResults == nil ? shown.filter(\.isUnread) : []

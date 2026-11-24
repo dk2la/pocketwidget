@@ -74,6 +74,31 @@ struct MessageKey: Hashable, Sendable, Codable {
     var uid: UInt32
 }
 
+/// What the inbox's list area shows. A search that has run decides alone:
+/// its hits replace the mailbox list, and no hits is an empty screen even
+/// when the mailbox has mail.
+enum InboxListState: Equatable {
+    /// The selected mailbox has no messages.
+    case emptyInbox
+    /// A search ran and found nothing.
+    case noSearchResults
+    case messages([EmailMessage])
+
+    init(messages: [EmailMessage], searchResults: [EmailMessage]?) {
+        if let searchResults {
+            self = searchResults.isEmpty ? .noSearchResults : .messages(searchResults)
+        } else {
+            self = messages.isEmpty ? .emptyInbox : .messages(messages)
+        }
+    }
+
+    /// True when the list area is the empty screen.
+    var isEmpty: Bool {
+        if case .messages = self { return false }
+        return true
+    }
+}
+
 /// One inbox message. `bodyPlain` is filled lazily on open.
 struct EmailMessage: Identifiable, Equatable, Sendable, Codable {
     let uid: UInt32

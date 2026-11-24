@@ -24,21 +24,15 @@ struct AssistantModuleView: View {
 
     private var chat: some View {
         VStack(spacing: 10) {
-            if assistant.transcript.isEmpty {
-                // Same register as the Notes empty state: short caps label,
-                // the hint as the quiet subline.
-                VStack(spacing: 16) {
+            // The robot is the empty chat only: once there is a turn, the
+            // transcript has the panel to itself.
+            transcript.emptyScreen(when: assistant.transcript.isEmpty) {
+                ModuleEmptyScreen(
+                    label: L10n.t(.asstEmptyTitle),
+                    sublabel: assistant.isVoiceMode ? L10n.t(.asstVoiceHint) : L10n.t(.asstHint)
+                ) {
                     IsoAssistantView(mode: robotMode)
-                        .moduleScene()
-                    EmptyStateZone(
-                        label: L10n.t(.asstEmptyTitle),
-                        sublabel: assistant.isVoiceMode ? L10n.t(.asstVoiceHint) : L10n.t(.asstHint)
-                    )
-                    .frame(height: 64)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                transcript
             }
             // A playbook closes apps, so the model only gets to ask.
             if let playbook = assistant.pendingPlaybook {
@@ -61,7 +55,7 @@ struct AssistantModuleView: View {
         .onDisappear { voice.stop() }
     }
 
-    /// What the robot on top is doing.
+    /// What the robot of the empty chat is doing.
     private var robotMode: IsoAssistantView.Mode {
         if speech.isRecording { return .listening }
         return assistant.isThinking ? .thinking : .idle
@@ -71,9 +65,6 @@ struct AssistantModuleView: View {
         ScrollViewReader { proxy in
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 10) {
-                    IsoAssistantView(mode: robotMode)
-                        .moduleScene()
-                        .padding(.bottom, 4)
                     ForEach(assistant.transcript) { message in
                         row(message)
                     }
