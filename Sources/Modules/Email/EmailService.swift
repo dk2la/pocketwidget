@@ -27,6 +27,13 @@ private struct RefreshResult: Sendable {
 @Observable
 final class EmailService {
     private(set) var config: EmailAccountConfig?
+    /// The account is saved but its password is not in the Keychain (another
+    /// build saved it, or the item was removed). Mail cannot work until it
+    /// is entered again.
+    private(set) var isPasswordMissing = false
+    /// Nothing to show until the user adds mail: no account, or one whose
+    /// password is gone.
+    var needsSetup: Bool { config == nil || isPasswordMissing }
     /// "Add mail" in the module. Lives here so a half-done setup survives
     /// the panel closing while the user fetches an app password.
     let setup: MailSetupFlow
@@ -185,6 +192,7 @@ final class EmailService {
         dropSessions()
         idleSupported = nil
         config = newConfig
+        isPasswordMissing = false
         if let data = try? JSONEncoder().encode(newConfig) {
             defaults.set(data, forKey: EmailAccountConfig.defaultsKey)
         }
@@ -195,6 +203,12 @@ final class EmailService {
         return true
     }
 
+    /// "Add mail" in the module. An account that only lost its password
+    /// comes back filled in, so the password is all there is to enter.
+    func beginSetup() {
+        setup.begin(from: config)
+    }
+
     func removeAccount() {
         guard !isDemo else { return }
         if let config {
@@ -202,6 +216,7 @@ final class EmailService {
         }
         dropSessions()
         config = nil
+        isPasswordMissing = false
         defaults.removeObject(forKey: EmailAccountConfig.defaultsKey)
         resetLists()
         openMessage = nil
@@ -375,9 +390,11 @@ final class EmailService {
     func refresh() {
         guard !isDemo, refreshTask == nil, config != nil else { return }
         guard accountPassword() != nil else {
+            isPasswordMissing = true
             connection = .failed("No password in Keychain")
             return
         }
+        isPasswordMissing = false
         guard let session = activePollSession() else { return }
         connection = messages.isEmpty ? .connecting : connection
         let limit = Self.messageLimit
