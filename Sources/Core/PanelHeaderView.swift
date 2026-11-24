@@ -84,7 +84,7 @@ struct ModuleBackButton: View {
                 { services.emailService.closeCompose() }
             } else if services.emailService.openMessage != nil {
                 { services.emailService.closeMessage() }
-            } else if services.emailService.config == nil, services.emailService.setup.isActive {
+            } else if services.emailService.needsSetup, services.emailService.setup.isActive {
                 { services.emailService.setup.cancel() }
             } else {
                 nil
@@ -163,7 +163,7 @@ struct ModuleAccessoriesView: View {
     @ViewBuilder
     private var emailAccessories: some View {
         let service = services.emailService
-        if service.config != nil, !service.isComposeOpen {
+        if !service.needsSetup, !service.isComposeOpen {
             if let message = service.openMessage {
                 // Sent and Spam mail is not in the inbox — nothing to archive.
                 if service.canArchive(message) {

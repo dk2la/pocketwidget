@@ -39,7 +39,7 @@ struct EmailModuleView: View {
     var avatars: SenderAvatarStore
 
     var body: some View {
-        if service.config == nil {
+        if service.needsSetup {
             if service.setup.isActive {
                 EmailModuleSetupView(flow: service.setup)
             } else {
@@ -93,7 +93,7 @@ struct EmailModuleView: View {
                 IsoMailboxView(unread: 0)
             }
             EmptyActionBar(label: L10n.t(.mailAddAction)) {
-                service.setup.begin()
+                service.beginSetup()
             }
         }
     }

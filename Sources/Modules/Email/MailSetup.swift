@@ -190,8 +190,11 @@ final class MailSetupFlow {
 
     // MARK: - Steps
 
-    func begin() {
+    func begin(from config: EmailAccountConfig? = nil) {
         guard phase == .idle else { return }
+        if let config {
+            draft = MailSetupDraft(config: config)
+        }
         phase = .editing
     }
 
