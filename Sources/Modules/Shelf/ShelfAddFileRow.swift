@@ -12,19 +12,9 @@ struct ShelfAddFileRow: View {
 
     var body: some View {
         GroupedCard {
-            Button {
+            AddRow(label: L10n.t(.shelfAdd)) {
                 pick()
-            } label: {
-                HStack(spacing: 12) {
-                    IconTile(systemName: "plus", dashed: true)
-                    Text(L10n.t(.shelfAdd))
-                        .font(Theme.bodyFont)
-                        .foregroundStyle(Theme.textSecondary)
-                    Spacer(minLength: 0)
-                }
-                .groupedRow(isLast: true)
             }
-            .buttonStyle(PressableStyle())
         }
     }
 

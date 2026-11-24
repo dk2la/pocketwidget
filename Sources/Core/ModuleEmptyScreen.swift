@@ -66,20 +66,22 @@ struct EmptyActionBar: View {
     let action: () -> Void
 
     var body: some View {
-        ComposerBar {
-            CircleGlassButton(systemName: systemName, size: 30, action: action)
-            Text(label)
-                .font(Theme.bodyFont)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .foregroundStyle(Theme.textTertiary)
-            Spacer(minLength: 0)
+        Button(action: action) {
+            ComposerBar {
+                // Same dashed plus tile and label as `AddRow`, so adding
+                // looks the same on an empty screen and under a list.
+                IconTile(systemName: systemName, size: 30, dashed: true)
+                Text(label)
+                    .font(Theme.bodyFont)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .foregroundStyle(Theme.textSecondary)
+                Spacer(minLength: 0)
+            }
+            .contentShape(Rectangle())
         }
-        // The whole bar is the button, not just the round one.
-        .contentShape(Rectangle())
-        .onTapGesture(perform: action)
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isButton)
+        .buttonStyle(PressableStyle())
     }
 }
 

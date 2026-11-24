@@ -385,19 +385,9 @@ struct PlaybooksModuleView: View {
 
     /// The last row of the list: opens the editor on a new playbook.
     private var newRow: some View {
-        Button {
+        AddRow(label: L10n.t(.playAdd)) {
             show(.editor(nil))
-        } label: {
-            HStack(spacing: 12) {
-                IconTile(systemName: "plus", dashed: true)
-                Text(L10n.t(.playAdd))
-                    .font(Theme.bodyFont)
-                    .foregroundStyle(Theme.textSecondary)
-                Spacer(minLength: 0)
-            }
-            .groupedRow(isLast: true)
         }
-        .buttonStyle(PressableStyle())
     }
 
     // MARK: - Access notice
