@@ -134,7 +134,13 @@ struct ModuleAccessoriesView: View {
         case .assistant:
             assistantAccessories
         case .notes:
-            if services.notesStore.openNote == nil {
+            if let note = services.notesStore.openNote {
+                // Any note can be deleted once it is open — the newest one
+                // has no row to carry a remove button.
+                HeaderIconButton("trash") {
+                    services.notesStore.delete(note)
+                }
+            } else {
                 HeaderIconButton("plus", help: L10n.t(.notesNew)) {
                     services.notesStore.create()
                 }
