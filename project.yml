@@ -84,6 +84,7 @@ targets:
       - path: Sources/Core/PanelHold.swift
       - path: Sources/Modules/Shelf/ShelfStore.swift
       - path: Sources/Modules/Shelf/ShelfFilePicker.swift
+      - path: Sources/Modules/Timers/TimerService.swift
       - path: Sources/Modules/Email/EmailHTMLSanitizer.swift
       - path: Sources/Modules/Email/MailTransport.swift
       - path: Sources/Modules/Email/IMAPClient.swift
