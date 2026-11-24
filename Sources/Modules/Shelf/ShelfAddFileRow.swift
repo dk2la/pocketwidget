@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// "Add file…" — what Shelf ends in: a card of its own under the list, or,
-/// with `isBar`, the bar pinned under the empty screen like in every other
+/// "Add file…" — what Shelf ends in: the last row of the files'
+/// `GroupedCard`, or, with `isBar`, the bar pinned under the empty screen like in every other
 /// empty module. Opens the file picker; `onAdded` runs once new files are
 /// on the shelf.
 struct ShelfAddFileRow: View {
@@ -18,10 +18,8 @@ struct ShelfAddFileRow: View {
                 pick()
             }
         } else {
-            GroupedCard {
-                AddRow(label: L10n.t(.shelfAdd)) {
-                    pick()
-                }
+            AddRow(label: L10n.t(.shelfAdd)) {
+                pick()
             }
         }
     }
