@@ -6,8 +6,8 @@ import SwiftUI
 /// steps, a run button — ending in "Add playbook…", which opens the editor
 /// right here in the panel. Clicking the hero or a row outside its run
 /// button opens the playbook: a hero card with Run and
-/// its steps in order, so it is clear what running it will do, and Edit,
-/// which opens the same editor filled with it. With no playbook at all the
+/// its steps in order, so it is clear what running it will do, Delete, and
+/// Edit, which opens the same editor filled with it. With no playbook at all the
 /// key pad device stands over the empty message. A quiet register
 /// underneath reports failures of the last run.
 struct PlaybooksModuleView: View {
@@ -18,6 +18,10 @@ struct PlaybooksModuleView: View {
     @State private var justRanID: UUID?
     /// Where the module is; read through `shown`.
     @State private var route: PlaybooksRoute = .list
+    /// Opened playbook whose Delete was clicked once and waits for the
+    /// confirming click.
+    @State private var confirmingDeleteID: UUID?
+    @State private var confirmTask: Task<Void, Never>?
     /// Not observable — re-read on appearance, set by the guide on success.
     @State private var accessibilityTrusted = WindowLayoutService.isTrusted
 
@@ -189,19 +193,38 @@ struct PlaybooksModuleView: View {
 
     // MARK: - Opened playbook
 
-    /// One playbook on its own: Back and Edit pinned on top, then the hero
-    /// card with Run and the steps in order.
+    /// One playbook on its own: Back, Delete and Edit pinned on top, then
+    /// the hero card with Run and the steps in order.
     private func opened(_ playbook: Playbook) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        let confirming = confirmingDeleteID == playbook.id
+        return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 ModuleButton(label: L10n.t(.playBack), systemName: "chevron.left", height: 28) {
                     show(.list)
                 }
                 Spacer(minLength: 0)
-                ModuleButton(label: L10n.t(.calEdit), systemName: "pencil", height: 28) {
+                ModuleButton(
+                    label: confirming ? L10n.t(.calConfirmDelete) : nil,
+                    systemName: "trash",
+                    height: 28,
+                    tint: Theme.critical.opacity(0.9)
+                ) {
+                    deleteTapped(playbook)
+                }
+                .help(L10n.t(.calDelete))
+                .accessibilityLabel(L10n.t(confirming ? .calConfirmDelete : .calDelete))
+                // Edit gives up its label while Delete shows one: both do
+                // not fit beside Back at the smallest panel size.
+                ModuleButton(
+                    label: confirming ? nil : L10n.t(.calEdit),
+                    systemName: "pencil",
+                    height: 28
+                ) {
                     show(.editor(playbook.id))
                 }
+                .help(L10n.t(.calEdit))
             }
+            .animation(Theme.stateSpring, value: confirming)
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
                     hero(playbook)
@@ -210,6 +233,27 @@ struct PlaybooksModuleView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    /// Delete asks first, as it does in the editor: the first click turns
+    /// it into "Confirm delete" for a few seconds, the second one deletes
+    /// and leads back to the list.
+    private func deleteTapped(_ playbook: Playbook) {
+        confirmTask?.cancel()
+        guard confirmingDeleteID == playbook.id else {
+            confirmingDeleteID = playbook.id
+            confirmTask = Task {
+                try? await Task.sleep(for: .seconds(3))
+                guard !Task.isCancelled else { return }
+                confirmingDeleteID = nil
+            }
+            return
+        }
+        confirmingDeleteID = nil
+        withAnimation(.snappy) {
+            store.remove(playbook)
+            route = .list
+        }
     }
 
     // MARK: - Editor
