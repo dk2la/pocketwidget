@@ -106,7 +106,7 @@ enum L10nKey {
     case ageNow, ageMin, ageHour, kindLink, kindText
 
     // Shelf
-    case shelfDrop, shelfLinksNote, shelfDropSub, shelfSection, shelfReveal
+    case shelfEmpty, shelfLinksNote, shelfEmptySub, shelfSection, shelfReveal, shelfAdd
 
     // Calendar
     case calAllDay, calJoin, calNow, calNoEvents, calToday, calTomorrow
@@ -265,11 +265,12 @@ enum L10nKey {
         case .kindLink: return ["link", "ссылка", "lien", "enlace", "链接", "ligação", "Link", "link", "リンク", "링크"]
         case .kindText: return ["text", "текст", "texte", "texto", "文本", "texto", "Text", "testo", "テキスト", "텍스트"]
 
-        case .shelfDrop: return ["Drop files here", "Перетащите файлы сюда", "Déposez des fichiers ici", "Suelta archivos aquí", "拖放文件到这里", "Largue ficheiros aqui", "Dateien hier ablegen", "Trascina i file qui", "ここにファイルをドロップ", "여기에 파일을 놓으세요"]
+        case .shelfEmpty: return ["Add files to the shelf", "Добавьте файлы на полку", "Ajoutez des fichiers à l'étagère", "Añade archivos al estante", "把文件添加到暂存架", "Adicione ficheiros à prateleira", "Dateien zur Ablage hinzufügen", "Aggiungi file alla mensola", "シェルフにファイルを追加", "선반에 파일을 추가하세요"]
         case .shelfLinksNote: return ["Links only — originals stay in place", "Только ссылки — оригиналы остаются на месте", "Liens seulement — les originaux restent en place", "Solo enlaces — los originales no se mueven", "仅链接 — 原文件保持原位", "Só ligações — os originais ficam no lugar", "Nur Links — Originale bleiben am Ort", "Solo link — gli originali restano al loro posto", "リンクのみ — 元ファイルは移動しません", "링크만 — 원본은 그대로"]
-        case .shelfDropSub: return ["Drag them back out anywhere", "Потом перетащите их куда угодно", "Faites-les ensuite glisser où vous voulez", "Luego arrástralos adonde quieras", "之后可拖到任何地方", "Depois arraste-os para onde quiser", "Später überallhin herausziehen", "Poi trascinali dove vuoi", "あとでどこへでもドラッグできます", "나중에 어디로든 끌어다 놓으세요"]
+        case .shelfEmptySub: return ["Then drag them out anywhere", "Потом перетащите их куда угодно", "Faites-les ensuite glisser où vous voulez", "Luego arrástralos adonde quieras", "之后可拖到任何地方", "Depois arraste-os para onde quiser", "Später überallhin herausziehen", "Poi trascinali dove vuoi", "あとでどこへでもドラッグできます", "나중에 어디로든 끌어다 놓으세요"]
         case .shelfSection: return ["On the shelf", "На полке", "Sur l'étagère", "En la estantería", "架上文件", "Na prateleira", "Im Regal", "Sullo scaffale", "シェルフ内", "선반에 있음"]
         case .shelfReveal: return ["Show in Finder", "Показать в Finder", "Afficher dans le Finder", "Mostrar en Finder", "在访达中显示", "Mostrar no Finder", "Im Finder zeigen", "Mostra nel Finder", "Finderに表示", "Finder에서 보기"]
+        case .shelfAdd: return ["Add file…", "Добавить файл…", "Ajouter un fichier…", "Añadir archivo…", "添加文件…", "Adicionar ficheiro…", "Datei hinzufügen…", "Aggiungi file…", "ファイルを追加…", "파일 추가…"]
 
         case .calAllDay: return ["all day", "весь день", "toute la journée", "todo el día", "全天", "o dia todo", "ganztägig", "tutto il giorno", "終日", "종일"]
         case .calJoin: return ["Join", "Войти", "Rejoindre", "Unirse", "加入", "Entrar", "Beitreten", "Entra", "参加", "참여"]

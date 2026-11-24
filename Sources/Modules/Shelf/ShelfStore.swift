@@ -1,7 +1,8 @@
 import AppKit
 import Observation
 
-/// Temporary parking spot for files dragged onto the capsule. Stores
+/// Temporary parking spot for files — dropped on Pocket or picked with the
+/// "Add file" row. Stores
 /// references (paths), not copies; entries whose files disappear are
 /// dropped on next launch.
 @MainActor
@@ -16,10 +17,11 @@ final class ShelfStore {
 
     private(set) var items: [Item] = []
 
-    @ObservationIgnored private let defaults = UserDefaults.standard
+    @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private static let key = "shelf.paths"
 
-    init() {
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
         let paths = defaults.stringArray(forKey: Self.key) ?? []
         items = paths
             .filter { FileManager.default.fileExists(atPath: $0) }

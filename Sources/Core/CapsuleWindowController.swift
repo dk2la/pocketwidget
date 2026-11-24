@@ -193,6 +193,7 @@ final class CapsuleWindowController: NSObject {
     private func handleOutsideClick(at location: NSPoint) {
         guard targetState == .expanded, viewModel.content != .onboarding,
               !PermissionGuide.shared.isShowing, !viewModel.isResizingPanel,
+              !PanelHold.shared.isHeld,
               panel.attachedSheet == nil, !panel.hasOwnPopupWindow,
               let screen = CapsuleGeometry.targetScreen else { return }
         if !expandedContains(location, on: screen) {
@@ -329,6 +330,7 @@ final class CapsuleWindowController: NSObject {
     /// nothing of ours (a menu, a popover, a sheet) is up in front of it.
     private func collapseIfCursorLeft() {
         guard targetState == .expanded, !settingsPinned, !viewModel.isResizingPanel else { return }
+        guard !PanelHold.shared.isHeld else { return }
         guard panel.attachedSheet == nil, !panel.hasOwnPopupWindow else { return }
         guard let screen = CapsuleGeometry.targetScreen else { return }
         if expandedContains(NSEvent.mouseLocation, on: screen) { return }

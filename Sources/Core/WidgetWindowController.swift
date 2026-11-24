@@ -193,7 +193,12 @@ final class WidgetWindowController: NSObject {
         guard settings.closeOnOutsideClick else { return }
         outsideClickMonitors.install(
             isOutside: { [weak self] event in self.map { event.window !== $0.panel } ?? false },
-            onClick: { [weak self] in self?.closePanel() }
+            onClick: { [weak self] in
+                // A file picker of ours is up: clicks in it, or on the way
+                // to it, are not clicks away.
+                guard !PanelHold.shared.isHeld else { return }
+                self?.closePanel()
+            }
         )
         watchMouseLeave()
     }
@@ -217,7 +222,13 @@ final class WidgetWindowController: NSObject {
             while !Task.isCancelled {
                 try? await Task.sleep(for: Self.mouseLeavePoll)
                 guard !Task.isCancelled, let self else { return }
-                if self.containsMouse {
+                if PanelHold.shared.isHeld {
+                    // Held open (see PanelHold). Afterwards the cursor has
+                    // to come back before leaving counts again, or the
+                    // panel would shut the moment a picker closes.
+                    hasBeenInside = false
+                    outsideSince = nil
+                } else if self.containsMouse {
                     hasBeenInside = true
                     outsideSince = nil
                 } else if hasBeenInside, self.mayCloseOnLeave {
