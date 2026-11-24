@@ -3,6 +3,9 @@
 /// (two clipboard histories) or double the work (two media pollers).
 @MainActor
 final class ModuleServices {
+    /// Sparkle. Shared so the status-bar menu and the settings sidebar ask
+    /// the same updater.
+    let updater = AppUpdater()
     let powerMonitor = PowerSourceMonitor()
     let audioMonitor = AudioSystemMonitor()
     let mediaCenter = MediaCenter()
