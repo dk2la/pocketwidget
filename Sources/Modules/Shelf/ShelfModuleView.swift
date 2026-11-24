@@ -5,9 +5,9 @@ import UniformTypeIdentifiers
 
 /// "Shelf" module: a small bookcase on top — every parked file is a book —
 /// then the picked file as a card with a preview of what is inside, and
-/// the whole shelf as one grouped list. Files drop anywhere on the module
-/// and drag back out of the card or a row. Clearing lives in the panel
-/// header.
+/// the whole shelf as one grouped list, ending in the "Add file" row. Files
+/// also drop anywhere on the module, and drag back out of the card or a
+/// row. Clearing lives in the panel header.
 struct ShelfModuleView: View {
     var shelf: ShelfStore
 
@@ -45,16 +45,21 @@ struct ShelfModuleView: View {
                     } else {
                         emptyHint
                     }
+                    ShelfAddFileRow(shelf: shelf) { showNewest() }
                 }
             }
             ModuleFootnote(systemName: "link", text: L10n.t(.shelfLinksNote))
         }
         .dropDestination(for: URL.self) { urls, _ in
             shelf.add(urls)
-            // New files land first — bring the newest one out.
-            withAnimation(.snappy(duration: 0.3)) { selectedID = shelf.items.first?.id }
+            showNewest()
             return !urls.isEmpty
         } isTargeted: { isTargeted = $0 }
+    }
+
+    /// New files land first — bring the newest one out.
+    private func showNewest() {
+        withAnimation(.snappy(duration: 0.3)) { selectedID = shelf.items.first?.id }
     }
 
     private func select(_ item: ShelfStore.Item) {
@@ -65,10 +70,10 @@ struct ShelfModuleView: View {
 
     private var emptyHint: some View {
         VStack(spacing: 4) {
-            Text(L10n.t(.shelfDrop))
+            Text(L10n.t(.shelfEmpty))
                 .font(Theme.headlineFont)
                 .foregroundStyle(Theme.textSecondary)
-            Text(L10n.t(.shelfDropSub))
+            Text(L10n.t(.shelfEmptySub))
                 .font(Theme.subFont)
                 .foregroundStyle(Theme.textTertiary)
         }
