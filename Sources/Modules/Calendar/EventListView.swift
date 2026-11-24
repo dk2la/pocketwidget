@@ -23,22 +23,19 @@ struct WeekView: View {
             let nextID = calendar.isDateInToday(service.selectedDay)
                 ? EventRow.next(in: events, at: context.date)?.id
                 : nil
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 14) {
-                    IsoCalendarView(
-                        date: context.date,
-                        events: service.events(forDay: context.date).count
-                    )
-                    .moduleScene()
-                    weekNav
-                    HStack(spacing: 6) {
-                        ForEach(days, id: \.self) { day in
-                            dayTile(day, now: context.date)
-                        }
+            // The week strip and the day's title stay in both states — an
+            // empty day must still let the user move to another one.
+            VStack(alignment: .leading, spacing: 14) {
+                weekNav
+                HStack(spacing: 6) {
+                    ForEach(days, id: \.self) { day in
+                        dayTile(day, now: context.date)
                     }
-                    VStack(alignment: .leading, spacing: 8) {
-                        SectionHeader(title: sectionTitle, trailing: events.isEmpty ? nil : "\(events.count)")
-                            .padding(.top, 6)
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionHeader(title: sectionTitle, trailing: events.isEmpty ? nil : "\(events.count)")
+                        .padding(.top, 6)
+                    ScrollView(.vertical, showsIndicators: false) {
                         GroupedCard {
                             ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
                                 EventRow(
@@ -53,11 +50,16 @@ struct WeekView: View {
                             }
                             if canCreate {
                                 newEventRow
-                            } else if events.isEmpty {
-                                Text(L10n.t(.calNoEvents).prefix(1).uppercased() + L10n.t(.calNoEvents).dropFirst())
-                                    .font(Theme.bodyFont)
-                                    .foregroundStyle(Theme.textTertiary)
-                                    .groupedRow(isLast: true)
+                            }
+                        }
+                    }
+                    // The tear-off calendar is the empty day only.
+                    .emptyScreen(when: events.isEmpty) {
+                        ModuleEmptyScreen(label: L10n.t(.calNoEvents)) {
+                            IsoCalendarView(date: context.date, events: 0)
+                        } extra: {
+                            if canCreate {
+                                GroupedCard { newEventRow }
                             }
                         }
                     }
@@ -207,31 +209,29 @@ struct AgendaListView: View {
     }
 
     var body: some View {
-        let shown = sections
-        if shown.isEmpty {
-            EmptyStateZone(label: L10n.t(.calNoEvents))
-                .frame(maxHeight: 90)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
-            TimelineView(.periodic(from: .now, by: 30)) { context in
-                let today = todayEvents(in: shown)
-                let nextID = EventRow.next(in: today, at: context.date)?.id
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 18) {
-                        IsoCalendarView(date: context.date, events: today.count)
-                            .moduleScene()
-                        if let upNext = UpNextCard.event(in: today, at: context.date) {
-                            UpNextCard(event: upNext, now: context.date) {
-                                service.open(upNext)
-                            }
-                        }
-                        ForEach(shown, id: \.day) { day, events in
-                            VStack(alignment: .leading, spacing: 8) {
-                                SectionHeader(title: service.dayLabel(day), trailing: "\(events.count)")
-                                EventGroup(events: events, nextID: nextID, now: context.date, onOpen: service.open)
-                            }
+        TimelineView(.periodic(from: .now, by: 30)) { context in
+            let shown = sections
+            let today = todayEvents(in: shown)
+            let nextID = EventRow.next(in: today, at: context.date)?.id
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 18) {
+                    if let upNext = UpNextCard.event(in: today, at: context.date) {
+                        UpNextCard(event: upNext, now: context.date) {
+                            service.open(upNext)
                         }
                     }
+                    ForEach(shown, id: \.day) { day, events in
+                        VStack(alignment: .leading, spacing: 8) {
+                            SectionHeader(title: service.dayLabel(day), trailing: "\(events.count)")
+                            EventGroup(events: events, nextID: nextID, now: context.date, onOpen: service.open)
+                        }
+                    }
+                }
+            }
+            // The tear-off calendar is the empty agenda only.
+            .emptyScreen(when: shown.isEmpty) {
+                ModuleEmptyScreen(label: L10n.t(.calNoEvents)) {
+                    IsoCalendarView(date: context.date, events: 0)
                 }
             }
         }
