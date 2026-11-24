@@ -232,7 +232,10 @@ final class MailSetupFlow {
 
     private var isWaitingForPassword: Bool {
         switch phase {
-        case .editing, .failed: draft.provider.appPasswordURL != nil
+        // A filled field is not waiting: a later copy must not replace it.
+        case .editing: draft.provider.appPasswordURL != nil && draft.password.isEmpty
+        // The password that was just refused may be replaced by a new one.
+        case .failed: draft.provider.appPasswordURL != nil
         case .idle, .connecting: false
         }
     }

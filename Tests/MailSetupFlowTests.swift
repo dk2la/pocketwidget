@@ -124,6 +124,18 @@ final class MailSetupFlowTests: XCTestCase {
         XCTAssertEqual(flow.draft.password, "")
     }
 
+    func testTheWatchStopsOnceThePasswordIsFilled() {
+        let flow = makeFlow()
+        flow.begin()
+        flow.draft.password = "typed by hand"
+        XCTAssertFalse(flow.isWatching)
+        pasteboard.copy("abcd efgh ijkl mnop")
+        flow.checkClipboard()
+        XCTAssertEqual(flow.draft.password, "typed by hand")
+        flow.draft.password = ""
+        XCTAssertTrue(flow.isWatching)
+    }
+
     func testTypingOverAPickedUpPasswordDropsTheNotice() {
         let flow = makeFlow()
         flow.begin()

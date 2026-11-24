@@ -70,6 +70,8 @@ final class ClipboardStore {
     /// sees the copy first, the text does not stay listed.
     func withhold(_ text: String) {
         history.withhold(text)
+        // History parked under demo mode must not bring it back either.
+        parkedEntries.removeAll { $0.text == text }
     }
 
     /// Puts an entry back onto the pasteboard and moves it to the top.

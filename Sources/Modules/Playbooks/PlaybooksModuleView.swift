@@ -150,9 +150,10 @@ struct PlaybooksModuleView: View {
                     .transition(.opacity)
             }
             CircleGlassButton(systemName: "play.fill", size: 30, solid: isRunningThis) {
+                // Stays enabled during a run so the click is not passed on to
+                // the row, which would open the playbook; the runner ignores it.
                 runner.run(playbook)
             }
-            .disabled(runner.isRunning)
             .opacity(runner.isRunning && !isRunningThis ? 0.5 : 1)
             .help(L10n.t(.asstPlaybookRun))
         }
