@@ -159,6 +159,7 @@ enum L10nKey {
 
     // Settings
     case setTitle, setGeneral, setAppearance, setModules, setHotkeys
+    case setCheckUpdates
     case setBehavior, setLaunch, setLaunchSub
     case setIdle, setIdleSub, setIdleInvisible, setIdleCompact
     case setLanguage, setLanguageSub
@@ -433,6 +434,7 @@ enum L10nKey {
         case .sysDownload: return ["Download", "Загрузка", "Réception", "Descarga", "下载", "Download", "Empfang", "Download", "ダウンロード", "다운로드"]
         case .sysUpload: return ["Upload", "Отдача", "Envoi", "Subida", "上传", "Upload", "Senden", "Upload", "アップロード", "업로드"]
 
+        case .setCheckUpdates: return ["Check for Updates", "Проверить обновления", "Rechercher des mises à jour", "Buscar actualizaciones", "检查更新", "Buscar atualizações", "Nach Updates suchen", "Verifica aggiornamenti", "アップデートを確認", "업데이트 확인"]
         case .setTitle: return ["Settings", "Настройки", "Réglages", "Ajustes", "设置", "Ajustes", "Einstellungen", "Impostazioni", "設定", "설정"]
         case .setGeneral: return ["General", "Общие", "Général", "General", "通用", "Geral", "Allgemein", "Generali", "一般", "일반"]
         case .setAppearance: return ["Appearance", "Вид", "Apparence", "Apariencia", "外观", "Aparência", "Aussehen", "Aspetto", "外観", "모양"]
