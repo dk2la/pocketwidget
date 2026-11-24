@@ -93,6 +93,12 @@ targets:
       - path: Sources/Licensing/MacID.swift
       - path: Sources/Licensing/PolarLicenseAPI.swift
       - path: Sources/Modules/Playbooks/PlaybooksRoute.swift
+      - path: Sources/Modules/Playbooks/Playbook.swift
+      - path: Sources/Modules/Playbooks/PlaybookStore.swift
+      - path: Sources/Modules/Playbooks/PlaybookDraft.swift
+      - path: Sources/Modules/Playbooks/AppVisuals.swift
+      - path: Sources/Services/WindowLayout.swift
+      - path: Sources/Core/Localization.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dk2la.pocket.tests

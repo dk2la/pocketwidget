@@ -1,42 +1,13 @@
 import AppKit
 import SwiftUI
 
-/// Icons and display names of the apps a playbook opens — the fastest way
-/// to tell rows apart at a glance. Looked up once per bundle id, cached for
-/// the app's lifetime (workspace lookups touch the disk).
-@MainActor
-enum AppVisuals {
-    private static var icons: [String: NSImage?] = [:]
-    private static var names: [String: String?] = [:]
-
-    static func icon(for bundleID: String) -> NSImage? {
-        if let cached = icons[bundleID] { return cached }
-        let image = url(for: bundleID).map { NSWorkspace.shared.icon(forFile: $0.path) }
-        icons[bundleID] = image
-        return image
-    }
-
-    static func name(for bundleID: String) -> String? {
-        if let cached = names[bundleID] { return cached }
-        let name = url(for: bundleID).map {
-            FileManager.default.displayName(atPath: $0.path)
-                .replacingOccurrences(of: ".app", with: "")
-        }
-        names[bundleID] = name
-        return name
-    }
-
-    private static func url(for bundleID: String) -> URL? {
-        NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
-    }
-}
-
 /// "Playbooks" module: every playbook in one grouped list — symbol, name
 /// over a one-line recipe of its steps, a run button — ending in "Add
-/// playbook…", which opens the editor in Settings. Clicking a row outside
-/// its run button opens the playbook: a hero card with Run and its steps in
-/// order, so it is clear what running it will do. With no playbook at all
-/// the key pad device stands over the empty message. A quiet register
+/// playbook…", which opens the editor right here in the panel. Clicking a
+/// row outside its run button opens the playbook: a hero card with Run and
+/// its steps in order, so it is clear what running it will do, and Edit,
+/// which opens the same editor filled with it. With no playbook at all the
+/// key pad device stands over the empty message. A quiet register
 /// underneath reports failures of the last run.
 struct PlaybooksModuleView: View {
     var store: PlaybookStore
@@ -60,8 +31,8 @@ struct PlaybooksModuleView: View {
         }
     }
 
-    /// The route on screen: an opened playbook deleted meanwhile in
-    /// Settings drops back to the list.
+    /// The route on screen: an opened or edited playbook deleted meanwhile
+    /// (in Settings, or by the editor itself) drops back to the list.
     private var shown: PlaybooksRoute {
         route.resolved(existing: store.playbooks.map(\.id))
     }
@@ -71,17 +42,22 @@ struct PlaybooksModuleView: View {
     }
 
     var body: some View {
-        VStack(spacing: 10) {
-            if store.playbooks.isEmpty {
+        let isEditing = shown.isEditor
+        return VStack(spacing: 10) {
+            if store.playbooks.isEmpty, !isEditing {
                 emptyScreen
             } else {
                 screens
             }
-            if needsAccessibility {
-                accessNotice
-            }
-            if let last = runner.lastRun, !last.result.failures.isEmpty {
-                runRegister(last)
+            // The editor gets the whole panel: at the smallest size there
+            // is no room to spare, and it has its own access hint.
+            if !isEditing {
+                if needsAccessibility {
+                    accessNotice
+                }
+                if let last = runner.lastRun, !last.result.failures.isEmpty {
+                    runRegister(last)
+                }
             }
         }
         .onAppear { accessibilityTrusted = WindowLayoutService.isTrusted }
@@ -114,6 +90,9 @@ struct PlaybooksModuleView: View {
                     opened(playbook)
                         .transition(.opacity)
                 }
+            case .editor(let id):
+                editor(for: id)
+                    .transition(.opacity)
             }
         }
     }
@@ -189,12 +168,18 @@ struct PlaybooksModuleView: View {
 
     // MARK: - Opened playbook
 
-    /// One playbook on its own: Back pinned on top, then the hero card with
-    /// Run and the steps in order.
+    /// One playbook on its own: Back and Edit pinned on top, then the hero
+    /// card with Run and the steps in order.
     private func opened(_ playbook: Playbook) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            ModuleButton(label: L10n.t(.playBack), systemName: "chevron.left", height: 28) {
-                show(.list)
+            HStack(spacing: 8) {
+                ModuleButton(label: L10n.t(.playBack), systemName: "chevron.left", height: 28) {
+                    show(.list)
+                }
+                Spacer(minLength: 0)
+                ModuleButton(label: L10n.t(.calEdit), systemName: "pencil", height: 28) {
+                    show(.editor(playbook.id))
+                }
             }
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
@@ -204,6 +189,25 @@ struct PlaybooksModuleView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    // MARK: - Editor
+
+    /// The Settings editor in its panel layout: empty for a new playbook,
+    /// filled for an existing one. It works on a draft of its own, so
+    /// leaving it any way but Save — Back, or the panel closed by hand —
+    /// changes nothing. Done leads back to where it was opened from: the
+    /// list after adding, the playbook after editing, the list again when
+    /// that playbook was just deleted.
+    private func editor(for id: UUID?) -> some View {
+        PlaybookEditorView(
+            store: store,
+            existing: store.playbooks.first { $0.id == id },
+            layout: .panel
+        ) {
+            show(PlaybooksRoute.editor(id).back.resolved(existing: store.playbooks.map(\.id)))
+        }
+        .id(id)
     }
 
     // MARK: - Hero
@@ -359,10 +363,10 @@ struct PlaybooksModuleView: View {
     }
 
     /// The last row of the list and the only row of the empty screen:
-    /// deep-links to Settings → Playbooks.
+    /// opens the editor on a new playbook.
     private var newRow: some View {
         Button {
-            requestSettings(page: .playbooks)
+            show(.editor(nil))
         } label: {
             HStack(spacing: 12) {
                 IconTile(systemName: "plus", dashed: true)

@@ -28,3 +28,55 @@ final class PlaybooksRouteTests: XCTestCase {
         XCTAssertEqual(PlaybooksRoute.playbook(first).openedID, first)
     }
 }
+
+/// The editor is one more destination: it knows where it was opened from
+/// and goes back there, whether the user saved or cancelled.
+final class PlaybooksEditorRouteTests: XCTestCase {
+    private let first = UUID()
+    private let second = UUID()
+
+    func testAddingReturnsToTheList() {
+        XCTAssertEqual(PlaybooksRoute.editor(nil).back, .list)
+    }
+
+    func testEditingReturnsToTheOpenedPlaybook() {
+        XCTAssertEqual(PlaybooksRoute.editor(first).back, .playbook(first))
+    }
+
+    func testAnOpenedPlaybookGoesBackToTheList() {
+        XCTAssertEqual(PlaybooksRoute.playbook(first).back, .list)
+        XCTAssertEqual(PlaybooksRoute.list.back, .list)
+    }
+
+    func testEditorOfANewPlaybookNeedsNoExistingPlaybook() {
+        XCTAssertEqual(PlaybooksRoute.editor(nil).resolved(existing: []), .editor(nil))
+        XCTAssertEqual(PlaybooksRoute.editor(nil).resolved(existing: [first]), .editor(nil))
+    }
+
+    func testEditorStaysWhileItsPlaybookExists() {
+        XCTAssertEqual(PlaybooksRoute.editor(second).resolved(existing: [first, second]), .editor(second))
+    }
+
+    func testEditorOfARemovedPlaybookFallsBackToList() {
+        // Deleted in Settings while it was being edited in the widget.
+        XCTAssertEqual(PlaybooksRoute.editor(second).resolved(existing: [first]), .list)
+    }
+
+    func testDeletingFromTheEditorLandsOnTheList() {
+        // Back from the editor points at the playbook, which is gone.
+        let afterDelete = PlaybooksRoute.editor(second).back.resolved(existing: [first])
+        XCTAssertEqual(afterDelete, .list)
+    }
+
+    func testOnlyTheEditorIsEditing() {
+        XCTAssertTrue(PlaybooksRoute.editor(nil).isEditor)
+        XCTAssertTrue(PlaybooksRoute.editor(first).isEditor)
+        XCTAssertFalse(PlaybooksRoute.list.isEditor)
+        XCTAssertFalse(PlaybooksRoute.playbook(first).isEditor)
+    }
+
+    func testOpenedIDIsNotSetForTheEditor() {
+        XCTAssertNil(PlaybooksRoute.editor(first).openedID)
+        XCTAssertNil(PlaybooksRoute.editor(nil).openedID)
+    }
+}
