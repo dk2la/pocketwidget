@@ -101,12 +101,15 @@ struct PlaybooksModuleView: View {
     // MARK: - Empty
 
     /// No playbook yet: the device over the empty message, centred in the
-    /// free space, and the row that adds the first one.
+    /// free space, and the bar that adds the first one.
     private var emptyScreen: some View {
-        ModuleEmptyScreen(label: L10n.t(.playNoneTitle)) {
-            IsoLaunchpadView(count: 0, isRunning: false)
-        } extra: {
-            GroupedCard { newRow }
+        VStack(spacing: 10) {
+            ModuleEmptyScreen(label: L10n.t(.playNoneTitle)) {
+                IsoLaunchpadView(count: 0, isRunning: false)
+            }
+            EmptyActionBar(label: L10n.t(.playAdd)) {
+                show(.editor(nil))
+            }
         }
     }
 
@@ -380,8 +383,7 @@ struct PlaybooksModuleView: View {
         return parts.isEmpty ? L10n.t(.playEmpty) : parts.joined(separator: " · ")
     }
 
-    /// The last row of the list and the only row of the empty screen:
-    /// opens the editor on a new playbook.
+    /// The last row of the list: opens the editor on a new playbook.
     private var newRow: some View {
         Button {
             show(.editor(nil))

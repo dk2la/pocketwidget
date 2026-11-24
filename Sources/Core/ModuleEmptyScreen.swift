@@ -52,6 +52,37 @@ extension ModuleEmptyScreen where Extra == EmptyView {
     }
 }
 
+/// The one thing an empty module still offers — "Add playbook…", "Add
+/// mail" — as a bar pinned under the empty screen. Same card and place as
+/// the text box of Assistant and Notes, so every module ends the same way.
+///
+///     VStack(spacing: 10) {
+///         ModuleEmptyScreen(label: …) { device }
+///         EmptyActionBar(label: L10n.t(.playAdd)) { … }
+///     }
+struct EmptyActionBar: View {
+    let label: String
+    var systemName = "plus"
+    let action: () -> Void
+
+    var body: some View {
+        ComposerBar {
+            CircleGlassButton(systemName: systemName, size: 30, action: action)
+            Text(label)
+                .font(Theme.bodyFont)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .foregroundStyle(Theme.textTertiary)
+            Spacer(minLength: 0)
+        }
+        // The whole bar is the button, not just the round one.
+        .contentShape(Rectangle())
+        .onTapGesture(perform: action)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+    }
+}
+
 extension View {
     /// Shows `screen` in place of this view while `isEmpty` is true. The
     /// two share one frame that fills the free space and cross-fade in it,

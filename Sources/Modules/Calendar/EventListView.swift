@@ -35,11 +35,15 @@ struct WeekView: View {
                             .padding(.top, 6)
                         ModuleEmptyScreen(label: L10n.t(.calNoEvents)) {
                             IsoCalendarView(date: context.date, events: 0)
-                        } extra: {
-                            if canCreate {
-                                GroupedCard { newEventRow }
-                            }
                         }
+                    }
+                    if canCreate {
+                        EmptyActionBar(
+                            label: L10n.f(.calNewEventAt, Self.slotLabel(on: service.selectedDay, calendar: calendar))
+                        ) {
+                            service.startCreating(on: service.selectedDay)
+                        }
+                        .padding(.top, -4)
                     }
                 }
             } else {
