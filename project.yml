@@ -88,6 +88,8 @@ targets:
       - path: Sources/Modules/Email/MailTransport.swift
       - path: Sources/Modules/Email/IMAPClient.swift
       - path: Sources/Modules/Email/MailSession.swift
+      - path: Sources/Modules/Email/MailSetup.swift
+      - path: Sources/Modules/Clipboard/ClipboardHistory.swift
       - path: Sources/Licensing/AccessPorts.swift
       - path: Sources/Licensing/Access.swift
       - path: Sources/Licensing/MacID.swift

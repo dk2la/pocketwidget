@@ -27,6 +27,9 @@ private struct RefreshResult: Sendable {
 @Observable
 final class EmailService {
     private(set) var config: EmailAccountConfig?
+    /// "Add mail" in the module. Lives here so a half-done setup survives
+    /// the panel closing while the user fetches an app password.
+    let setup: MailSetupFlow
     private(set) var connection: MailConnectionState = .offline
     private(set) var unreadCount = 0
     /// The section on screen; remembered across launches.
@@ -147,6 +150,9 @@ final class EmailService {
     private static let idleReenterDelay: Duration = .seconds(1)
 
     init() {
+        setup = MailSetupFlow(pasteboard: SystemMailSetupPasteboard()) { config, password in
+            await EmailService.testConnection(config, password: password)
+        }
         if let data = defaults.data(forKey: EmailAccountConfig.defaultsKey),
            let stored = try? JSONDecoder().decode(EmailAccountConfig.self, from: data) {
             config = stored
@@ -155,20 +161,27 @@ final class EmailService {
         if config != nil {
             loadCachedLists()
         }
+        setup.onConnected = { [weak self] config, password in
+            self?.saveAccount(config, password: password) ?? false
+        }
         startPolling()
         log.info("configured=\(self.config != nil, privacy: .public)")
     }
 
     // MARK: - Account
 
-    func saveAccount(_ newConfig: EmailAccountConfig, password: String) {
-        guard !isDemo else { return }
+    /// False when the password could not be stored; nothing changes then.
+    @discardableResult
+    func saveAccount(_ newConfig: EmailAccountConfig, password: String) -> Bool {
+        guard !isDemo else { return false }
         do {
             try vault.set(password, account: newConfig.email)
         } catch {
             log.error("keychain write failed: \(error.localizedDescription, privacy: .public)")
-            return
+            return false
         }
+        // However the account was added, setup in the module is over.
+        setup.cancel()
         dropSessions()
         idleSupported = nil
         config = newConfig
@@ -179,6 +192,7 @@ final class EmailService {
         log.info("account saved host=\(newConfig.imapHost, privacy: .public)")
         startPolling()
         refresh()
+        return true
     }
 
     func removeAccount() {
