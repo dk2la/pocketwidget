@@ -93,6 +93,7 @@ targets:
       - path: Sources/Licensing/MacID.swift
       - path: Sources/Licensing/PolarLicenseAPI.swift
       - path: Sources/Modules/Playbooks/PlaybooksRoute.swift
+      - path: Sources/Modules/Hotkeys/ShortcutListState.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dk2la.pocket.tests
