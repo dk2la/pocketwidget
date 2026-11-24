@@ -88,10 +88,11 @@ struct EmailModuleView: View {
     /// No account yet: the mailbox, the message and the one thing to do
     /// about it — setup starts right here, not in Settings.
     private var addMailScreen: some View {
-        ModuleEmptyScreen(label: L10n.t(.mailSetupTitle), sublabel: L10n.t(.mailSetupSub)) {
-            IsoMailboxView(unread: 0)
-        } extra: {
-            GlassCapsuleButton(label: L10n.t(.mailAddAction), systemName: "plus", isPrimary: true) {
+        VStack(spacing: 10) {
+            ModuleEmptyScreen(label: L10n.t(.mailSetupTitle), sublabel: L10n.t(.mailSetupSub)) {
+                IsoMailboxView(unread: 0)
+            }
+            EmptyActionBar(label: L10n.t(.mailAddAction)) {
                 service.setup.begin()
             }
         }

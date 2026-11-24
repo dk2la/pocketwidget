@@ -85,14 +85,15 @@ struct AppShortcutsModuleView: View {
                 .emptyScreen(when: state == .noShortcuts) {
                     // The app card stays: it names the app and holds
                     // re-read and preset import, the ways out of empty.
-                    VStack(alignment: .leading, spacing: 18) {
-                        hero(target)
-                        ModuleEmptyScreen(label: L10n.t(.keysNone), sublabel: L10n.t(.keysNoneSub)) {
-                            IsoKeyboardView()
-                        } extra: {
-                            ModuleButton(label: L10n.t(.keysAddOwn), systemName: "plus", kind: .light) {
-                                editing = .new
+                    VStack(alignment: .leading, spacing: 10) {
+                        VStack(alignment: .leading, spacing: 18) {
+                            hero(target)
+                            ModuleEmptyScreen(label: L10n.t(.keysNone), sublabel: L10n.t(.keysNoneSub)) {
+                                IsoKeyboardView()
                             }
+                        }
+                        EmptyActionBar(label: L10n.t(.keysAddOwn)) {
+                            editing = .new
                         }
                     }
                 }
