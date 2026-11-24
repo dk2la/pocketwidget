@@ -1,19 +1,27 @@
 import SwiftUI
 
-/// "Add file…" — the row Shelf ends in, a card of its own so it sits the
-/// same under an empty shelf and under a full one. Opens the file picker;
-/// `onAdded` runs once new files are on the shelf.
+/// "Add file…" — what Shelf ends in: a card of its own under the list, or,
+/// with `isBar`, the bar pinned under the empty screen like in every other
+/// empty module. Opens the file picker; `onAdded` runs once new files are
+/// on the shelf.
 struct ShelfAddFileRow: View {
     var shelf: ShelfStore
+    var isBar = false
     var onAdded: () -> Void = {}
 
     /// One picker at a time.
     @State private var isPicking = false
 
     var body: some View {
-        GroupedCard {
-            AddRow(label: L10n.t(.shelfAdd)) {
+        if isBar {
+            EmptyActionBar(label: L10n.t(.shelfAdd)) {
                 pick()
+            }
+        } else {
+            GroupedCard {
+                AddRow(label: L10n.t(.shelfAdd)) {
+                    pick()
+                }
             }
         }
     }
