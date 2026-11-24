@@ -102,14 +102,9 @@ struct PlaybooksModuleView: View {
     /// No playbook yet: the device over the empty message, centred in the
     /// free space, and the row that adds the first one.
     private var emptyScreen: some View {
-        VStack(spacing: 10) {
-            VStack(spacing: 16) {
-                IsoLaunchpadView(count: 0, isRunning: false)
-                    .moduleScene()
-                EmptyStateZone(label: L10n.t(.playNoneTitle))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        ModuleEmptyScreen(label: L10n.t(.playNoneTitle)) {
+            IsoLaunchpadView(count: 0, isRunning: false)
+        } extra: {
             GroupedCard { newRow }
         }
     }
