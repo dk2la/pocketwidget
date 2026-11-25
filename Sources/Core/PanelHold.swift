@@ -15,16 +15,16 @@ final class PanelHold {
     static let shared = PanelHold()
 
     /// Holds nest: two pickers open at once keep the panel until both end.
-    private var count = 0
+    private var depth = 0
 
-    var isHeld: Bool { count > 0 }
+    var isHeld: Bool { depth > 0 }
 
     func begin() {
-        count += 1
+        depth += 1
     }
 
     func end() {
-        count = max(count - 1, 0)
+        depth = max(depth - 1, 0)
     }
 
     func during<T>(_ work: @MainActor () async -> T) async -> T {
