@@ -114,7 +114,6 @@ enum L10nKey {
     case calNewEvent, calEditEvent, calTitleField, calStarts, calEnds
     case calLocationField, calURLField, calNotesField, calAttendees, calOrganizer
     case calOpenInCalendar, calInviteesHint, calDelete, calConfirmDelete, calSave, calEdit
-    case timerCustomPlaceholder
 
     // Notes
     case notesEmptyTitle, notesEmptySub, notesQuickPlaceholder, notesNew
@@ -302,7 +301,6 @@ enum L10nKey {
         case .calConfirmDelete: return ["Confirm delete", "Подтвердить удаление", "Confirmer la suppression", "Confirmar eliminación", "确认删除", "Confirmar exclusão", "Löschen bestätigen", "Conferma eliminazione", "削除を確認", "삭제 확인"]
         case .calSave: return ["Save", "Сохранить", "Enregistrer", "Guardar", "保存", "Guardar", "Sichern", "Salva", "保存", "저장"]
         case .calEdit: return ["Edit", "Изменить", "Modifier", "Editar", "编辑", "Editar", "Bearbeiten", "Modifica", "編集", "편집"]
-        case .timerCustomPlaceholder: return ["min", "мин", "min", "min", "分", "min", "Min", "min", "分", "분"]
 
         case .notesEmptyTitle: return ["no notes", "нет заметок", "aucune note", "sin notas", "没有备忘录", "sem notas", "keine Notizen", "nessuna nota", "メモなし", "메모 없음"]
         case .notesContinue: return ["Continue", "Продолжить", "Reprendre", "Continuar", "继续", "Continuar", "Weiter", "Continua", "続ける", "이어서"]

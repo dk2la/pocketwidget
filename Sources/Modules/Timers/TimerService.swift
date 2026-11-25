@@ -21,7 +21,7 @@ final class TimerService {
     @ObservationIgnored private var tickTask: Task<Void, Never>?
     @ObservationIgnored private let log = Logger(subsystem: "com.dk2la.pocket", category: "timer")
 
-    static let presets: [TimeInterval] = [5 * 60, 10 * 60, 25 * 60, 45 * 60]
+    static let presets: [TimeInterval] = [5 * 60, 10 * 60, 25 * 60, 45 * 60, 60 * 60]
 
     /// Nothing to show yet: no countdown or alarm going, and none paused
     /// partway. The module shows its empty screen exactly then.
