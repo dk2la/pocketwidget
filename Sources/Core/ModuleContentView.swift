@@ -17,6 +17,7 @@ struct ModuleContentView: View {
         case .metrics:
             MetricsModuleView(
                 stats: services.statsService,
+                processes: services.processMonitor,
                 power: services.powerMonitor,
                 audio: services.audioMonitor,
                 settings: services.settings

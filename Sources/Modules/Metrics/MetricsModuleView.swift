@@ -2,10 +2,12 @@ import SwiftUI
 
 /// "System" module: one large card on top with the chart of the selected
 /// metric (current / average / peak over the last two minutes), and below
-/// it, under a "Metrics" heading, a card with a small chart for each metric.
-/// Clicking a card selects it; the choice is remembered.
+/// it, under a "Metrics" heading, a card with a small chart for each metric,
+/// then the processes loading the Mac most. Clicking a card selects it; the
+/// choice is remembered.
 struct MetricsModuleView: View {
     var stats: SystemStatsService
+    var processes: ProcessMonitor
     var power: PowerSourceMonitor
     var audio: AudioSystemMonitor
     var settings: AppSettings
@@ -40,6 +42,7 @@ struct MetricsModuleView: View {
                         .id(focus)
                         .transition(.opacity)
                         cards(width: proxy.size.width)
+                        TopProcessesSection(loads: processes.loads, gauge: focus, isDemo: stats.isDemo)
                     }
                 }
             }
@@ -49,11 +52,13 @@ struct MetricsModuleView: View {
             guard !isObservingStats else { return }
             isObservingStats = true
             stats.beginObserving()
+            processes.beginObserving()
         }
         .onDisappear {
             guard isObservingStats else { return }
             isObservingStats = false
             stats.endObserving()
+            processes.endObserving()
         }
         .task {
             // One clock for every series, so the charts line up.

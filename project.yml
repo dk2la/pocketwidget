@@ -116,6 +116,7 @@ targets:
       - path: Sources/Core/Localization.swift
       - path: Sources/Modules/Metrics/MetricSelection.swift
       - path: Sources/Modules/Media/MusicPanelContent.swift
+      - path: Sources/Modules/Metrics/ProcessLoad.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dk2la.pocket.tests
