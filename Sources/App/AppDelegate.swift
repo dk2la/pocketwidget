@@ -44,15 +44,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         startLicensing()
 
-        // A demo event is asked for from the settings capsule, which sits
-        // where the event would show — close it first, then flash the event.
+        // A demo event is asked for from Settings, an open panel the pill
+        // is skipped over — the widget closes it first, then shows the pill.
         services.demo.presentEvent = { [weak self] event in
-            guard let capsule = self?.capsuleController else { return }
-            capsule.closeSettings()
-            Task {
-                try? await Task.sleep(for: .milliseconds(700))
-                capsule.present(event)
-            }
+            self?.widgetController?.presentEvent(event, closingPanel: true)
         }
 
         // `--demo`: scripted data in every module from the first frame.

@@ -13,8 +13,8 @@ import OSLog
 final class DemoMode {
     private(set) var isActive = false
 
-    /// Shows a live event on the capsule — wired by the AppDelegate, which
-    /// owns the capsule controller.
+    /// Shows a live event as the widget's event pill — wired by the
+    /// AppDelegate, which owns the widget controller.
     @ObservationIgnored var presentEvent: ((LiveEvent) -> Void)?
 
     @ObservationIgnored private weak var services: ModuleServices?
@@ -91,7 +91,7 @@ final class DemoMode {
         log.info("demo mode off")
     }
 
-    /// Flashes a sample event on the capsule.
+    /// Flashes a sample event as the event pill.
     func fire(_ event: LiveEvent) {
         presentEvent?(event)
     }
