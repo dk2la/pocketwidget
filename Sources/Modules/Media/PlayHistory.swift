@@ -3,26 +3,7 @@ import SwiftUI
 import Observation
 import OSLog
 
-/// One remembered track: what played, how often, and how to start it again.
-struct PlayHistoryEntry: Codable, Identifiable, Equatable {
-    /// Title and artist — the same song from any player is one entry.
-    var id: String
-    var title: String
-    var artist: String
-    /// `MediaSourceKind.id` of the player it was last heard in.
-    var sourceID: String
-    /// Player-specific handle to start it again (Spotify URI, Music
-    /// persistent ID); `nil` for browsers and other clients.
-    var playID: String?
-    var playCount: Int
-    var lastPlayed: Date
-    /// File name of the cached cover in the artwork folder.
-    var artworkFile: String?
-
-    static func key(title: String, artist: String) -> String {
-        "\(title)\u{1F}\(artist)"
-    }
-
+extension PlayHistoryEntry {
     var source: MediaSourceKind {
         MediaSourceKind(bundleID: sourceID)
     }
@@ -66,17 +47,18 @@ final class PlayHistory {
 
     // MARK: - Reading
 
-    /// Recently played, without the track that is on right now.
-    func recent(excluding current: MediaTrack?) -> [PlayHistoryEntry] {
+    /// Recently played songs that can be started again in one of
+    /// `usableSourceIDs`, without the track that is on right now.
+    func recent(excluding current: MediaTrack?, usableSourceIDs: Set<String>) -> [PlayHistoryEntry] {
         let currentKey = current.map { PlayHistoryEntry.key(title: $0.title, artist: $0.artist) }
-        return entries.filter { $0.id != currentKey }
+        return ReplayableHistory.filter(entries, usableSourceIDs: usableSourceIDs).filter { $0.id != currentKey }
     }
 
-    /// The most played track of the last two weeks, once something has been
-    /// heard more than once.
-    var onRepeat: PlayHistoryEntry? {
+    /// The most played replayable track of the last two weeks, once
+    /// something has been heard more than once.
+    func onRepeat(usableSourceIDs: Set<String>) -> PlayHistoryEntry? {
         let since = Date().addingTimeInterval(-Self.repeatWindow)
-        return entries
+        return ReplayableHistory.filter(entries, usableSourceIDs: usableSourceIDs)
             .filter { $0.lastPlayed >= since && $0.playCount > 1 }
             .max { ($0.playCount, $0.lastPlayed) < ($1.playCount, $1.lastPlayed) }
     }
@@ -104,7 +86,7 @@ final class PlayHistory {
 
     /// A new song started playing.
     func recordPlay(_ track: MediaTrack) {
-        guard !track.title.isEmpty else { return }
+        guard !track.title.isEmpty, ReplayableHistory.shouldRecord(sourceID: track.source.id) else { return }
         let key = PlayHistoryEntry.key(title: track.title, artist: track.artist)
         var entry = entries.first { $0.id == key } ?? PlayHistoryEntry(
             id: key, title: track.title, artist: track.artist, sourceID: track.source.id,
