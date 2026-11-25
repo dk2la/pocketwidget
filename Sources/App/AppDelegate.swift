@@ -20,15 +20,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         registerHotkeys()
         capsuleController = CapsuleWindowController(settings: settings, services: services)
 
-        // Modules live in the edge widget; the capsule shows live
-        // events and, when opened, the settings.
+        // Modules, Settings and the welcome tour live in the edge widget.
         widgetController = WidgetWindowController(settings: settings, services: services)
         settings.addChangeHandler { [weak self] in
             self?.widgetController?.settingsDidChange()
         }
 
-        // Widget UI (e.g. the "+ new" playbook card) asks for the settings
-        // capsule through this notification.
+        // Module UI (e.g. the "+ new" playbook card) asks for a settings
+        // page through this notification.
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(handleOpenSettings(_:)),
@@ -73,11 +72,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             || CommandLine.arguments.contains("--onboarding") {
             // UI tests get the tour only when they ask for it.
             deferProtectedAccessUntilTourCloses()
-            // A beat after launch, so the capsule visibly drops open instead
-            // of appearing already expanded.
+            // A beat after launch, so the panel visibly opens instead of
+            // appearing already open.
             Task { [weak self] in
                 try? await Task.sleep(for: .milliseconds(600))
-                self?.capsuleController?.openOnboarding()
+                self?.widgetController?.openOnboarding()
             }
         } else {
             services.beginProtectedAccess()
@@ -118,22 +117,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// First launch: no access prompt may pile up on top of the tour. Its
     /// pages ask for the calendar and the notes folder one by one; the rest
-    /// (clipboard, music players) starts once the capsule closes.
+    /// (clipboard, music players) starts once the tour closes.
     private func deferProtectedAccessUntilTourCloses() {
         guard !settings.onboardingCompleted else {
             services.beginProtectedAccess()
             return
         }
-        capsuleController?.onCollapse = { [weak self] in
+        widgetController?.onTourClosed = { [weak self] in
             guard let self else { return }
-            self.capsuleController?.onCollapse = nil
+            self.widgetController?.onTourClosed = nil
             self.settings.onboardingCompleted = true
             self.services.beginProtectedAccess()
         }
     }
 
     /// Global shortcuts (Carbon — no permissions needed). H and P act on
-    /// the widget; M opens or closes the settings capsule.
+    /// the widget; M opens or closes its Settings module.
     private func registerHotkeys() {
         let hotkeys = services.hotkeys
         hotkeys.register(.toggleWidgetHidden) { [weak self] in
@@ -145,7 +144,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.settings.closeOnOutsideClick.toggle()
         }
         hotkeys.register(.toggleSettings) { [weak self] in
-            self?.capsuleController?.toggleSettings()
+            self?.widgetController?.toggleSettings()
         }
     }
 
@@ -202,7 +201,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openOnboarding() {
-        capsuleController?.openOnboarding()
+        widgetController?.openOnboarding()
     }
 
     @objc private func handleOpenSettings(_ notification: Notification) {
@@ -212,6 +211,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func showSettings(page: SettingsView.Page?) {
-        capsuleController?.openSettings(page: page)
+        widgetController?.openSettings(page: page)
     }
 }

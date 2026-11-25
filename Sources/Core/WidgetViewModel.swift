@@ -23,6 +23,17 @@ final class WidgetViewModel {
     /// Settings was opened from the welcome tour: its page list then leads
     /// with "‹ Back" to the tour page it left (`onResumeOnboarding`).
     var cameFromOnboarding = false
+    /// The Settings slot shows the welcome tour instead of Settings (see
+    /// WidgetPanelContent).
+    var showsTour = false
+    /// The tour's page. Kept here rather than in the view so a detour into
+    /// Settings (connecting an account) comes back to the same page.
+    var onboardingStep: OnboardingStep = .welcome
+
+    /// What the open panel shows; nil while collapsed.
+    var panelContent: WidgetPanelContent? {
+        WidgetPanelContent.resolve(selectedTab: selectedTab, showsTour: showsTour, locked: isLocked)
+    }
 
     var edge: WidgetEdge = .right
     var stripFrame: CGRect = .zero

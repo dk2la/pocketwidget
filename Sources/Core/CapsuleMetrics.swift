@@ -12,10 +12,6 @@ enum CapsuleMetrics {
     static let expandedMinSize = CGSize(width: 720, height: 520)
     static let expandedMaxSize = CGSize(width: 1100, height: 760)
 
-    /// The welcome tour's body. Fixed, and small enough for the smallest
-    /// supported screen, so it needs none of the settings' clamping.
-    static let onboardingSize = CGSize(width: 600, height: 560)
-
     /// Corner radius of the expanded capsule's body — the large, soft
     /// corners of a floating glass sheet.
     static let dropRadius: CGFloat = 30

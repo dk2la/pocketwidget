@@ -1,10 +1,9 @@
 import CoreGraphics
 import Observation
 
-/// What the expanded capsule hosts.
+/// What the expanded capsule hosts. The welcome tour moved to the widget.
 enum CapsuleContent: Equatable {
     case settings
-    case onboarding
 }
 
 @MainActor
@@ -23,22 +22,12 @@ final class CapsuleViewModel {
     /// into it ("Set up account" → Accounts).
     let pageSelection = SettingsPageSelection()
 
-    /// The tour's page. Kept here rather than in the view so a detour into
-    /// the settings (connecting an account) can come back to the same page.
-    var onboardingStep: OnboardingStep = .welcome
-
-    /// The settings were opened from the tour — they offer the way back.
-    var cameFromOnboarding = false
-
     /// Fired by a click on the resting capsule — the controller expands it
     /// into the settings panel.
     @ObservationIgnored var onCapsuleTapped: (() -> Void)?
 
     /// Fired by the panel's close button.
     @ObservationIgnored var onClose: (() -> Void)?
-
-    /// Fired by "back to tour" in the settings.
-    @ObservationIgnored var onResumeOnboarding: (() -> Void)?
 
     /// True while the user drags the panel's resize grip — outside-click
     /// collapse is suppressed for the duration.
@@ -50,12 +39,10 @@ final class CapsuleViewModel {
     }
 
     /// Body size of the expanded capsule for `content` — the one place the
-    /// window and the SwiftUI drop both take it from. The settings are
-    /// user-sized; the tour has a fixed, designed size.
+    /// window and the SwiftUI drop both take it from. User-sized.
     func panelSize(for content: CapsuleContent, settings: AppSettings) -> CGSize {
         switch content {
         case .settings: settings.expandedPanelSize
-        case .onboarding: CapsuleMetrics.onboardingSize
         }
     }
 }

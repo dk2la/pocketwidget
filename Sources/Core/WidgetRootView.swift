@@ -37,6 +37,8 @@ struct WidgetRootView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .animation(Theme.stateSpring, value: viewModel.selectedTab)
+        // Tour ⇄ Settings swaps in place, same slot and size.
+        .animation(Theme.stateSpring, value: viewModel.showsTour)
         .animation(Theme.stateSpring, value: viewModel.edge)
     }
 
@@ -106,7 +108,7 @@ struct WidgetRootView: View {
             ForEach(visibleTabs) { tab in
                 RailIconButton(
                     tab: tab,
-                    isActive: viewModel.selectedTab == tab,
+                    isActive: viewModel.panelContent?.highlightedTab == tab,
                     showsBadge: tab == .email && services.emailService.unreadCount > 0,
                     liveBadge: liveBadge(for: tab)
                 ) {
@@ -187,16 +189,19 @@ struct WidgetRootView: View {
     private func panel(for tab: ModuleTab) -> some View {
         GlassSurface(shape: panelShape, dark: darkGlass)
             .overlay {
-                if viewModel.isLocked {
+                switch viewModel.panelContent ?? .module(tab) {
+                case .lockScreen:
                     LockScreenView(access: services.access)
-                } else if tab == .settings {
+                case .tour:
+                    tourContent
+                case .settings:
                     settingsContent
-                } else {
+                case .module(let module):
                     VStack(spacing: 0) {
-                        PanelHeaderView(tab: tab, services: services) {
+                        PanelHeaderView(tab: module, services: services) {
                             viewModel.onClose?()
                         }
-                        ModuleContentView(tab: tab, services: services)
+                        ModuleContentView(tab: module, services: services)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .padding(.horizontal, Theme.panelInset)
                             .padding(.top, Theme.panelInset)
@@ -231,6 +236,22 @@ struct WidgetRootView: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("panel.settings")
+    }
+
+    /// The welcome tour, in the Settings slot and at its size.
+    private var tourContent: some View {
+        @Bindable var viewModel = viewModel
+        return OnboardingView(
+            step: $viewModel.onboardingStep,
+            services: services,
+            settings: settings
+        ) {
+            viewModel.onClose?()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .transition(.opacity)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("panel.tour")
     }
 
     /// Each grip lives on an edge facing away from the strip — a side the
