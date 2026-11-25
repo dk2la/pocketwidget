@@ -2,7 +2,8 @@ import AppKit
 import OSLog
 import SwiftUI
 
-/// Owns the capsule panel: positions it on the camera housing, resizes the window in
+/// Owns the capsule panel: positions it at the top center of the strip's
+/// display (on the camera housing, where there is one), resizes the window in
 /// step with the state machine, and survives display configuration changes.
 /// Resting, the capsule shows live events and compact indicators; expanded,
 /// it hosts the app's settings (click the capsule, ⌃⌥M, or the menu bar) or
@@ -31,6 +32,8 @@ final class CapsuleWindowController: NSObject {
     private var settingsPinned = false
     private let services: ModuleServices
     private let settings: AppSettings
+    /// The screen the capsule was last built on — the strip's display.
+    private weak var attachedScreen: NSScreen?
     /// Fired when the expanded capsule (settings or tour) closes.
     var onCollapse: (() -> Void)?
     private let log = Logger(subsystem: "com.dk2la.pocket", category: "window")
@@ -46,6 +49,19 @@ final class CapsuleWindowController: NSObject {
 
         settings.addChangeHandler { [weak self] in
             guard let self else { return }
+            // The strip was dragged to another display, or its display went
+            // away: the capsule and its hover zone go where the strip is.
+            if self.settings.stripScreen !== self.attachedScreen {
+                // What was opened deliberately (the settings, the welcome
+                // tour) comes along open; a hover glance does not.
+                let reopen = self.targetState == .expanded && self.settingsPinned
+                self.moveToStripScreen()
+                if reopen {
+                    self.settingsPinned = true
+                    self.requestState(.expanded)
+                }
+                return
+            }
             self.refreshIdleState()
             // Live window resize while the user drags the panel grip.
             if self.targetState == .expanded, let screen = settings.stripScreen {
@@ -436,6 +452,8 @@ final class CapsuleWindowController: NSObject {
 
     private func attachToScreen() {
         guard let screen = settings.stripScreen else { return }
+        attachedScreen = screen
+        // The housing's own size, or the fallback on a display without one.
         closedSize = CapsuleGeometry.closedSize(on: screen)
 
         let rootView = CapsuleRootView(
@@ -487,6 +505,15 @@ final class CapsuleWindowController: NSObject {
     }
 
     @objc private func screenParametersDidChange() {
+        // Settles which display the strip is on now and re-clamps the panel
+        // sizes to it.
+        settings.refreshStripDisplay()
+        moveToStripScreen()
+    }
+
+    /// Rebuilds the capsule, closed, at the top center of the strip's
+    /// display — after a screen change, or once the strip changed display.
+    private func moveToStripScreen() {
         // The capsule rebuilds from scratch on the (possibly new) screen, so
         // every in-flight transition and the live-event ownership must go
         // with it — otherwise `targetState` would still say "expanded" for a
@@ -501,7 +528,8 @@ final class CapsuleWindowController: NSObject {
         panel.allowsKeyFocus = false
         targetState = .closed
         viewModel.setState(.closed)
-        settings.revalidatePanelSize()
+        settingsPinned = false
+        cancelHoverOpen()
         attachToScreen()
     }
 }
