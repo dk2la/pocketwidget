@@ -148,7 +148,7 @@ enum L10nKey {
 
     // Playbooks
     case playNew, playEmpty, playDone, playClosed, playOpened, playErrors, playAdd
-    case playNoneTitle, playBack
+    case playNoneTitle, playNoneSub, playBack
     case playApps, playCloseRest, playFocus
     case playStepOpenApps, playStepCloseOthers, playStepShortcut, playStepFocus, playStepTimer, playStepURLs
     case playAddStep, playLayout, playGrantAccess, playLayoutHint
@@ -431,6 +431,7 @@ enum L10nKey {
         case .playURLsHint: return ["One link per line", "По одной ссылке на строку", "Un lien par ligne", "Un enlace por línea", "每行一个链接", "Um link por linha", "Ein Link pro Zeile", "Un link per riga", "1行に1リンク", "한 줄에 링크 하나"]
         case .playLinks: return ["%d links", "%d ссыл.", "%d liens", "%d enlaces", "%d 个链接", "%d links", "%d Links", "%d link", "%d件のリンク", "링크 %d개"]
         case .playAdd: return ["Add playbook…", "Добавить плейбук…", "Ajouter un playbook…", "Añadir playbook…", "添加行动手册…", "Adicionar playbook…", "Playbook hinzufügen…", "Aggiungi playbook…", "プレイブックを追加…", "플레이북 추가…"]
+        case .playNoneSub: return ["Open your apps and windows in one click", "Откройте свои приложения и окна одним кликом", "Ouvrez vos apps et fenêtres en un clic", "Abre tus apps y ventanas con un clic", "一键打开你的应用和窗口", "Abra as suas apps e janelas com um clique", "Apps und Fenster mit einem Klick öffnen", "Apri app e finestre con un clic", "アプリとウインドウをワンクリックで開く", "앱과 창을 클릭 한 번으로 열기"]
         case .playNoneTitle: return ["no playbooks", "нет плейбуков", "aucun playbook", "sin playbooks", "没有行动手册", "sem playbooks", "keine Playbooks", "nessun playbook", "プレイブックなし", "플레이북 없음"]
         case .playBack: return ["Back", "Назад", "Retour", "Atrás", "返回", "Voltar", "Zurück", "Indietro", "戻る", "뒤로"]
 
