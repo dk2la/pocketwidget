@@ -48,7 +48,7 @@ Tick an item when it is done and merged.
       requests sent at once), so it slows a flood rather than stopping it. A
       Cloudflare rate limiting rule on the zone would be the strict version.
 - [ ] Mail DNS: remove Cloudflare from SPF, add DMARC
-- [ ] Polar: product icon and the text of the License key email
+- [x] Polar: product icon and the text of the License key email
 - [x] Close issues #54 and #58
 - [x] Merge PR #85 (owner)
 
@@ -67,12 +67,12 @@ Tick an item when it is done and merged.
       end: that needs two published versions
 - [x] App icon and a DMG that opens as an install window (PR #88). Its first
       release is 0.2.1
-- [ ] Rewritten Terms, Privacy and Refund pages. Terms and Privacy are
-      updated and a Trust page is added (PRs #89, #90, #91); the Refund
-      page is not touched yet
-- [ ] The signed build run by hand: players, dictation, calendar, "Check for
+- [x] Rewritten Terms, Privacy and Refund pages (PRs #89, #90, #91; the
+      Refund page on 2026-11-23)
+- [x] The signed build run by hand: players, dictation, calendar, "Check for
       Updates", and an update from 0.2.0 to a newer version
-- [ ] Version 1.0.0
-- [ ] Production purchase test on the signed build
-- [ ] Manual Trial check on a clean install, then close issues #42 and #39
-- [ ] Launch day: Buy opens checkout again, the launch price gets its end date
+- [x] ~~Version 1.0.0~~ Dropped: Pocket launches as 0.3.1
+- [x] Production purchase test on the signed build (a $1 purchase with a
+      promo code)
+- [x] Manual Trial check on a clean install, then close issues #42 and #39
+- [x] Launch day (2026-11-25): Buy opens checkout again, the launch price gets its end date
