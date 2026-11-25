@@ -85,6 +85,8 @@ targets:
       - path: Sources/Core/WidgetGeometry.swift
       - path: Sources/Core/StripDisplay.swift
       - path: Sources/Core/PanelHold.swift
+      - path: Sources/Core/IconBadge.swift
+      - path: Sources/Core/ModuleTab.swift
       - path: Sources/Modules/Shelf/ShelfStore.swift
       - path: Sources/Modules/Shelf/ShelfFilePicker.swift
       - path: Sources/Modules/Timers/TimerService.swift
