@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import Observation
 import OSLog
 import ServiceManagement
@@ -72,6 +72,28 @@ final class AppSettings {
         }
     }
 
+    /// Stable id (`NSScreen.stableID`) of the display the strip was last
+    /// put on. Nil until the strip is first dragged: it then follows the
+    /// display with a camera housing, as it did before displays were saved.
+    private(set) var widgetDisplayID: String? {
+        didSet {
+            guard widgetDisplayID != oldValue else { return }
+            if let widgetDisplayID {
+                persist(widgetDisplayID, Self.widgetDisplayKey, log: "widgetDisplay")
+            } else {
+                defaults.removeObject(forKey: Self.widgetDisplayKey)
+                notifyChange()
+            }
+        }
+    }
+
+    /// The display the strip is on — the one source of truth. The capsule
+    /// sits at its top centre and both panels take their size limits from
+    /// it. See `StripDisplay.choose` for the rule. Resolved at launch, on
+    /// every screen change (`refreshStripDisplay`) and when a drag ends,
+    /// rather than on each read: it is read on every mouse move.
+    @ObservationIgnored private(set) var stripScreen: NSScreen?
+
     /// Edge the widget strip is docked to.
     private(set) var widgetEdge: WidgetEdge {
         didSet { persist(widgetEdge.rawValue, Self.widgetEdgeKey) }
@@ -105,6 +127,12 @@ final class AppSettings {
     /// macOS for access on its own — the tour asks, page by page.
     var onboardingCompleted: Bool {
         didSet { persist(onboardingCompleted, Self.onboardingCompletedKey, log: "onboardingCompleted") }
+    }
+
+    /// The metric on the System module's large chart: CPU until another is
+    /// chosen. Written straight to defaults: no window reacts to it.
+    var systemMetric: Gauge {
+        didSet { MetricSelection.save(systemMetric, to: defaults) }
     }
 
     /// Size of the widget-mode panel, each axis dragged by its own grip.
@@ -157,10 +185,19 @@ final class AppSettings {
         if let name {
             log.info("\(name, privacy: .public) -> \(String(describing: value), privacy: .public)")
         }
+        notifyChange()
+    }
+
+    /// Held back while several properties change as one (see
+    /// `setWidgetPlacement`), so nobody lays out a half-written placement.
+    private func notifyChange() {
+        guard !isBatchingChanges else { return }
         for handler in changeHandlers {
             handler()
         }
     }
+
+    @ObservationIgnored private var isBatchingChanges = false
 
     @ObservationIgnored private let defaults = UserDefaults.standard
     @ObservationIgnored private let log = Logger(subsystem: "com.dk2la.pocket", category: "settings")
@@ -184,6 +221,9 @@ final class AppSettings {
     @ObservationIgnored private static let languageKey = "settings.language"
     @ObservationIgnored private static let widgetEdgeKey = "settings.widgetEdge"
     @ObservationIgnored private static let widgetOffsetKey = "settings.widgetOffset"
+    @ObservationIgnored private static let widgetDisplayKey = "settings.widgetDisplay"
+    @ObservationIgnored private static let displayGoneGrace: Duration = .seconds(10)
+    @ObservationIgnored private var displayGoneTask: Task<Void, Never>?
     @ObservationIgnored private static let outsideClickKey = "settings.closeOnOutsideClick"
     @ObservationIgnored private static let widgetMinimizedKey = "settings.widgetMinimized"
     @ObservationIgnored private static let onboardingAtLaunchKey = "settings.showOnboardingAtLaunch"
@@ -193,19 +233,35 @@ final class AppSettings {
 
     init() {
         let defaults = UserDefaults.standard
+        // Resolved before anything else: the panel size limits below come
+        // from the strip's display. A saved display that is gone is
+        // replaced here, at launch, the same way as on a screen change.
+        let storedDisplay = defaults.string(forKey: Self.widgetDisplayKey)
+        let display = StripScreen.resolve(savedID: storedDisplay)
+        let screen = display?.screen
+        stripScreen = screen
+        // A saved display that is missing is given a moment to appear
+        // before it is given up (see `forgetGoneDisplayAfterGrace`).
+        widgetDisplayID = storedDisplay
+        let displayIsGone = display.map { $0.savedID != storedDisplay } ?? false
         let storedWidth = defaults.double(forKey: Self.panelWidthKey)
         let storedHeight = defaults.double(forKey: Self.panelHeightKey)
-        expandedPanelSize = Self.clampPanelSize(CGSize(
-            width: storedWidth > 0 ? storedWidth : CapsuleMetrics.expandedMinSize.width,
-            height: storedHeight > 0 ? storedHeight : CapsuleMetrics.expandedMinSize.height
-        ))
+        expandedPanelSize = Self.clampPanelSize(
+            CGSize(
+                width: storedWidth > 0 ? storedWidth : CapsuleMetrics.expandedMinSize.width,
+                height: storedHeight > 0 ? storedHeight : CapsuleMetrics.expandedMinSize.height
+            ),
+            on: screen
+        )
         let storedPanelWidth = defaults.double(forKey: Self.widgetPanelWidthKey)
-        widgetPanelWidth = Self.clampWidgetPanelWidth(
-            storedPanelWidth > 0 ? storedPanelWidth : WidgetMetrics.panelDefaultWidth
+        widgetPanelWidth = WidgetGeometry.clampedPanelWidth(
+            storedPanelWidth > 0 ? storedPanelWidth : WidgetMetrics.panelDefaultWidth,
+            screenFrame: screen?.frame
         )
         let storedPanelHeight = defaults.double(forKey: Self.widgetPanelHeightKey)
-        widgetPanelHeight = Self.clampWidgetPanelHeight(
-            storedPanelHeight > 0 ? storedPanelHeight : WidgetMetrics.panelDefaultHeight
+        widgetPanelHeight = WidgetGeometry.clampedPanelHeight(
+            storedPanelHeight > 0 ? storedPanelHeight : WidgetMetrics.panelDefaultHeight,
+            visibleFrame: screen?.visibleFrame
         )
         theme = defaults.string(forKey: Self.themeKey)
             .flatMap(CapsuleTheme.init(rawValue:)) ?? .stealth
@@ -225,6 +281,7 @@ final class AppSettings {
         // Absent key = on: the tour shows until the user turns it off.
         showOnboardingAtLaunch = (defaults.object(forKey: Self.onboardingAtLaunchKey) as? Bool) ?? true
         onboardingCompleted = defaults.bool(forKey: Self.onboardingCompletedKey)
+        systemMetric = MetricSelection.load(from: defaults)
         // A fresh install starts with the core modules only; the rest are
         // switched on in Settings → Modules.
         let defaultEnabled = Set(ModuleTab.defaultTabs)
@@ -252,6 +309,9 @@ final class AppSettings {
         tabOrder = order
         launchAtLogin = SMAppService.mainApp.status == .enabled
         L10n.shared.language = language
+        if displayIsGone {
+            forgetGoneDisplayAfterGrace()
+        }
         log.info("""
         loaded theme=\(self.theme.rawValue, privacy: .public) \
         idle=\(self.idleMode.rawValue, privacy: .public) \
@@ -259,44 +319,79 @@ final class AppSettings {
         """)
     }
 
-    func setWidgetPlacement(edge: WidgetEdge, offset: Double) {
+    /// Where a drag left the strip: the display it was dropped on, the
+    /// nearest edge and the offset along it. Written as one change.
+    func setWidgetPlacement(screen: NSScreen, edge: WidgetEdge, offset: Double) {
         let clamped = min(max(offset, 0), 1)
-        guard edge != widgetEdge || clamped != widgetOffset else { return }
-        log.info("widget placement -> \(edge.rawValue, privacy: .public) @ \(clamped, privacy: .public)")
+        let displayID = screen.stableID
+        let displayChanged = screen !== stripScreen || displayID != widgetDisplayID
+        guard displayChanged || edge != widgetEdge || clamped != widgetOffset else { return }
+        log.info("""
+        widget placement -> \(edge.rawValue, privacy: .public) @ \(clamped, privacy: .public) \
+        display=\(displayID ?? "-", privacy: .public)
+        """)
+        isBatchingChanges = true
+        stripScreen = screen
+        widgetDisplayID = displayID
         widgetEdge = edge
         widgetOffset = clamped
+        isBatchingChanges = false
+        notifyChange()
+        if displayChanged {
+            revalidatePanelSize()
+        }
+    }
+
+    /// Call on every screen change. When the saved display is gone the
+    /// strip moves to the display it falls back to at once, and after a
+    /// grace period that display becomes the saved one, so the strip stays
+    /// there when the old display returns; the panel sizes are re-clamped
+    /// to the display the strip is on now. Idempotent — both window
+    /// controllers call it, in whichever order the notification arrives.
+    func refreshStripDisplay() {
+        let resolved = StripScreen.resolve(savedID: widgetDisplayID)
+        stripScreen = resolved?.screen
+        if let resolved, resolved.savedID != widgetDisplayID {
+            forgetGoneDisplayAfterGrace()
+        } else {
+            displayGoneTask?.cancel()
+            displayGoneTask = nil
+        }
+        revalidatePanelSize()
+    }
+
+    /// macOS can report an external display as missing for a moment on
+    /// wake or at login. Giving the saved display up at once would move the
+    /// strip to the built-in screen for good, so the choice is rewritten
+    /// only if the display is still gone after the grace period.
+    private func forgetGoneDisplayAfterGrace() {
+        guard displayGoneTask == nil else { return }
+        displayGoneTask = Task { [weak self] in
+            try? await Task.sleep(for: Self.displayGoneGrace)
+            guard let self, !Task.isCancelled else { return }
+            displayGoneTask = nil
+            let resolved = StripScreen.resolve(savedID: widgetDisplayID)
+            if let resolved, resolved.savedID != widgetDisplayID {
+                log.info("widget display gone")
+                widgetDisplayID = resolved.savedID
+            }
+        }
     }
 
     func setWidgetPanelWidth(_ raw: CGFloat) {
-        let clamped = Self.clampWidgetPanelWidth(raw)
+        let clamped = WidgetGeometry.clampedPanelWidth(raw, screenFrame: stripScreen?.frame)
         guard clamped != widgetPanelWidth else { return }
         widgetPanelWidth = clamped
     }
 
-    private static func clampWidgetPanelWidth(_ width: CGFloat) -> CGFloat {
-        var maxWidth = WidgetMetrics.panelMaxWidth
-        if let screen = CapsuleGeometry.targetScreen {
-            maxWidth = min(maxWidth, screen.frame.width - 80)
-        }
-        return min(max(width, WidgetMetrics.panelMinWidth), maxWidth)
-    }
-
     func setWidgetPanelHeight(_ raw: CGFloat) {
-        let clamped = Self.clampWidgetPanelHeight(raw)
+        let clamped = WidgetGeometry.clampedPanelHeight(raw, visibleFrame: stripScreen?.visibleFrame)
         guard clamped != widgetPanelHeight else { return }
         widgetPanelHeight = clamped
     }
 
-    private static func clampWidgetPanelHeight(_ height: CGFloat) -> CGFloat {
-        var maxHeight = WidgetMetrics.panelMaxHeight
-        if let screen = CapsuleGeometry.targetScreen {
-            maxHeight = min(maxHeight, screen.visibleFrame.height - 2 * WidgetMetrics.edgeInset)
-        }
-        return min(max(height, WidgetMetrics.panelMinHeight), maxHeight)
-    }
-
     func setPanelSize(_ raw: CGSize) {
-        let clamped = Self.clampPanelSize(raw)
+        let clamped = Self.clampPanelSize(raw, on: stripScreen)
         guard clamped != expandedPanelSize else { return }
         log.info("panel size -> \(Int(clamped.width), privacy: .public)x\(Int(clamped.height), privacy: .public)")
         expandedPanelSize = clamped
@@ -307,9 +402,9 @@ final class AppSettings {
     /// SwiftUI would draw a capsule larger than its window and the bottom
     /// strip — including the resize grip — would be clipped into
     /// unreachability.
-    private static func clampPanelSize(_ size: CGSize) -> CGSize {
+    private static func clampPanelSize(_ size: CGSize, on screen: NSScreen?) -> CGSize {
         var maxSize = CapsuleMetrics.expandedMaxSize
-        if let screen = CapsuleGeometry.targetScreen {
+        if let screen {
             maxSize.width = min(maxSize.width, screen.frame.width - 40)
             maxSize.height = min(maxSize.height, screen.frame.height * 2 / 3)
         }
@@ -319,10 +414,13 @@ final class AppSettings {
         )
     }
 
-    /// Re-clamp after display changes (a smaller screen may no longer fit
-    /// the stored size).
+    /// Re-clamp every panel size to the strip's display — after a display
+    /// change, or once the strip moved to another display (a smaller
+    /// screen may no longer fit the stored size).
     func revalidatePanelSize() {
         setPanelSize(expandedPanelSize)
+        setWidgetPanelWidth(widgetPanelWidth)
+        setWidgetPanelHeight(widgetPanelHeight)
     }
 
     func moveTabs(fromOffsets source: IndexSet, toOffset destination: Int) {

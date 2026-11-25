@@ -304,6 +304,9 @@ final class AssistantToolbox {
             return ToolOutcome(text: "\(track.title) — \(track.artist) (\(state)).")
 
         case "today_events":
+            guard services.calendarService.access == .granted else {
+                return ToolOutcome(text: "Calendar access is not granted in the widget.")
+            }
             let events = services.calendarService.events(forDay: Date())
             guard !events.isEmpty else { return ToolOutcome(text: "No events today.") }
             let lines = Self.lines(for: events)

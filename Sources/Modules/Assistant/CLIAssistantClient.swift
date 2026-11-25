@@ -1,5 +1,6 @@
 import Foundation
 import OSLog
+import os
 
 /// The CLI backends speak plain text, not the tool-call wire format, so tool
 /// use rides on a marker the model is asked to emit verbatim. A model that
@@ -55,6 +56,8 @@ struct CLIAssistantClient: Sendable {
 
     enum CLIError: Error, LocalizedError {
         case notInstalled(String)
+        /// The program itself says nobody is signed in.
+        case notSignedIn
         case failed(String)
         case timedOut
         case emptyOutput
@@ -62,6 +65,7 @@ struct CLIAssistantClient: Sendable {
         var errorDescription: String? {
             switch self {
             case .notInstalled(let name): "\(name) CLI not found — install it and sign in"
+            case .notSignedIn: "Not signed in"
             case .failed(let message): message
             case .timedOut: "The CLI did not answer in time"
             case .emptyOutput: "The CLI returned nothing"
@@ -87,34 +91,27 @@ struct CLIAssistantClient: Sendable {
               let executable = await Task.detached(operation: { commandLine.locate(name) }).value
         else { throw CLIError.notInstalled(provider.executableName ?? "CLI") }
 
-        let arguments: [String]
-        switch provider {
-        case .claudeCode:
-            var flags = [
-                "-p", prompt,
-                "--output-format", "json",
-                "--append-system-prompt", system,
-                // The widget is a chat surface: no file edits, no shell.
-                "--disallowed-tools", "Bash", "Edit", "Write", "NotebookEdit", "Task",
-                // Ignore project CLAUDE.md/hooks/MCP — answers must not
-                // depend on whichever directory the app happens to run in.
-                "--safe-mode",
-            ]
-            if !model.isEmpty { flags += ["--model", model] }
-            arguments = flags
-        case .codex:
-            var flags = ["exec", "--json"]
-            if !model.isEmpty { flags += ["--model", model] }
-            flags.append(system + "\n\n" + prompt)
-            arguments = flags
-        case .api:
-            throw CLIError.notInstalled("CLI")
-        }
-
         // Looked up before the hop to the worker thread; the shell behind it
         // is asked at most once per launch.
         let path = commandLine.path(for: executable)
-        let result = try await Self.run(executable: executable, arguments: arguments, path: path)
+        let safeMode = !Self.withoutSafeMode.withLock { $0.contains(executable) }
+        var result = try await Self.run(
+            executable: executable,
+            arguments: try arguments(system: system, prompt: prompt, safeMode: safeMode),
+            path: path
+        )
+        // `claude` before 2.1.169 does not know `--safe-mode` and refuses to
+        // start. An older program still answers, just without that guard.
+        if safeMode, provider == .claudeCode, result.exitCode != 0, Self.rejectsSafeMode(stderr: result.stderr) {
+            Self.log.info("claude does not know --safe-mode, running without it")
+            // Remembered until relaunch, so later turns start once, not twice.
+            Self.withoutSafeMode.withLock { _ = $0.insert(executable) }
+            result = try await Self.run(
+                executable: executable,
+                arguments: try arguments(system: system, prompt: prompt, safeMode: false),
+                path: path
+            )
+        }
         // Both CLIs write the conversation to disk under the user's home.
         // The widget is an ephemeral surface, so its own trace is removed
         // before the answer is even shown.
@@ -124,9 +121,65 @@ struct CLIAssistantClient: Sendable {
         return text
     }
 
+    private func arguments(system: String, prompt: String, safeMode: Bool) throws -> [String] {
+        switch provider {
+        case .claudeCode:
+            return Self.claudeArguments(system: system, prompt: prompt, model: model, safeMode: safeMode)
+        case .codex:
+            var flags = ["exec", "--json"]
+            if !model.isEmpty { flags += ["--model", model] }
+            flags.append(system + "\n\n" + prompt)
+            return flags
+        case .api:
+            throw CLIError.notInstalled("CLI")
+        }
+    }
+
+    static func claudeArguments(system: String, prompt: String, model: String, safeMode: Bool) -> [String] {
+        var flags = [
+            "-p", prompt,
+            "--output-format", "json",
+            "--append-system-prompt", system,
+            // The widget is a chat surface: no file edits, no shell.
+            "--disallowed-tools", "Bash", "Edit", "Write", "NotebookEdit", "Task",
+        ]
+        // Ignore project CLAUDE.md/hooks/MCP — answers must not depend on
+        // whichever directory the app happens to run in.
+        if safeMode { flags.append("--safe-mode") }
+        if !model.isEmpty { flags += ["--model", model] }
+        return flags
+    }
+
+    /// Programs found too old for `--safe-mode` since launch.
+    private static let withoutSafeMode = OSAllocatedUnfairLock(initialState: Set<URL>())
+
+    /// What a `claude` too old for `--safe-mode` prints before exiting.
+    static func rejectsSafeMode(stderr: String) -> Bool {
+        stderr.contains("unknown option '--safe-mode'")
+    }
+
     /// Probe for the setup form: cheapest possible round-trip.
     func check() async throws -> String {
-        try await send(system: "Answer with a single word.", prompt: "Say: ok")
+        try await requireCodexSignIn()
+        return try await send(system: "Answer with a single word.", prompt: "Say: ok")
+    }
+
+    /// `codex exec` without a sign-in retries the network for some twenty
+    /// seconds before giving up, while `codex login status` answers at once
+    /// from local files. Only its plain "Not logged in" counts: an older
+    /// program without the command falls through to the real request.
+    private func requireCodexSignIn() async throws {
+        guard provider == .codex else { return }
+        let commandLine = commandLine
+        guard let executable = await Task.detached(operation: { commandLine.locate("codex") }).value else { return }
+        let status = try await Self.run(
+            executable: executable,
+            arguments: ["login", "status"],
+            path: commandLine.path(for: executable)
+        )
+        if status.exitCode != 0, (status.stderr + status.stdout).contains("Not logged in") {
+            throw CLIError.notSignedIn
+        }
     }
 
     // MARK: - Leaving no trace

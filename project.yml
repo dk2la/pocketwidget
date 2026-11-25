@@ -49,7 +49,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dk2la.pocket
-        MARKETING_VERSION: 0.2.4
+        MARKETING_VERSION: 0.3.0
         CURRENT_PROJECT_VERSION: 1
         SWIFT_VERSION: "6.0"
         # Drawn by Support/make-art.swift.
@@ -80,8 +80,10 @@ targets:
       - path: Sources/Modules/Assistant/AssistantModels.swift
       - path: Sources/Modules/Assistant/CLIAssistantClient.swift
       - path: Sources/Modules/Assistant/CommandLineEnvironment.swift
+      - path: Sources/Modules/Assistant/AssistantSetup.swift
       - path: Sources/Services/SpeechCaptureService.swift
       - path: Sources/Core/WidgetGeometry.swift
+      - path: Sources/Core/StripDisplay.swift
       - path: Sources/Core/PanelHold.swift
       - path: Sources/Modules/Shelf/ShelfStore.swift
       - path: Sources/Modules/Shelf/ShelfFilePicker.swift
@@ -104,6 +106,7 @@ targets:
       - path: Sources/Modules/Playbooks/AppVisuals.swift
       - path: Sources/Services/WindowLayout.swift
       - path: Sources/Core/Localization.swift
+      - path: Sources/Modules/Metrics/MetricSelection.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dk2la.pocket.tests

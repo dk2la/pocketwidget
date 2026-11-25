@@ -38,7 +38,8 @@ enum WidgetMetrics {
 
 /// Pure frame math for the edge-docked widget. All rects are in Cocoa screen
 /// coordinates (y-up) unless named "local" — those are window-local SwiftUI
-/// coordinates (y-down, origin at the window's top-left).
+/// coordinates (y-down, origin at the window's top-left). `visibleFrame` is
+/// that of the display the strip is on (see StripDisplay).
 enum WidgetGeometry {
     struct ExpandedLayout {
         let window: NSRect
@@ -73,9 +74,9 @@ enum WidgetGeometry {
         offset: Double,
         iconCount: Int,
         minimized: Bool = false,
-        on screen: NSScreen
+        in visibleFrame: CGRect
     ) -> NSRect {
-        let full = fullStripFrame(edge: edge, offset: offset, iconCount: iconCount, on: screen)
+        let full = fullStripFrame(edge: edge, offset: offset, iconCount: iconCount, in: visibleFrame)
         guard minimized else { return full }
         let size = stripSize(iconCount: iconCount, edge: edge, minimized: true)
         return edge.isVertical
@@ -87,9 +88,9 @@ enum WidgetGeometry {
         edge: WidgetEdge,
         offset: Double,
         iconCount: Int,
-        on screen: NSScreen
+        in visibleFrame: CGRect
     ) -> NSRect {
-        let vf = screen.visibleFrame
+        let vf = visibleFrame
         let size = stripSize(iconCount: iconCount, edge: edge)
         let inset = WidgetMetrics.edgeInset
         switch edge {
@@ -128,10 +129,10 @@ enum WidgetGeometry {
         offset: Double,
         iconCount: Int,
         panelSize: CGSize,
-        on screen: NSScreen
+        in visibleFrame: CGRect
     ) -> ExpandedLayout {
-        let vf = screen.visibleFrame
-        let strip = stripFrame(edge: edge, offset: offset, iconCount: iconCount, on: screen)
+        let vf = visibleFrame
+        let strip = stripFrame(edge: edge, offset: offset, iconCount: iconCount, in: visibleFrame)
         let gap = WidgetMetrics.panelGap
         let inset = WidgetMetrics.edgeInset
 
@@ -186,8 +187,8 @@ enum WidgetGeometry {
     }
 
     /// Nearest edge + normalized offset for a dropped strip frame.
-    static func nearestPlacement(for frame: NSRect, on screen: NSScreen) -> (edge: WidgetEdge, offset: Double) {
-        let vf = screen.visibleFrame
+    static func nearestPlacement(for frame: NSRect, in visibleFrame: CGRect) -> (edge: WidgetEdge, offset: Double) {
+        let vf = visibleFrame
         let center = CGPoint(x: frame.midX, y: frame.midY)
         let distances: [(WidgetEdge, CGFloat)] = [
             (.left, center.x - vf.minX),
@@ -200,6 +201,27 @@ enum WidgetGeometry {
             ? (center.y - vf.minY) / max(vf.height, 1)
             : (center.x - vf.minX) / max(vf.width, 1)
         return (edge, min(max(offset, 0), 1))
+    }
+
+    // MARK: - Panel size limits
+
+    /// Panel width within the fixed limits and what the strip's display
+    /// leaves; `screenFrame` is nil when no display is known.
+    static func clampedPanelWidth(_ width: CGFloat, screenFrame: CGRect?) -> CGFloat {
+        var maxWidth = WidgetMetrics.panelMaxWidth
+        if let screenFrame {
+            maxWidth = min(maxWidth, screenFrame.width - 80)
+        }
+        return min(max(width, WidgetMetrics.panelMinWidth), maxWidth)
+    }
+
+    /// Panel height, same rule against the display's visible frame.
+    static func clampedPanelHeight(_ height: CGFloat, visibleFrame: CGRect?) -> CGFloat {
+        var maxHeight = WidgetMetrics.panelMaxHeight
+        if let visibleFrame {
+            maxHeight = min(maxHeight, visibleFrame.height - 2 * WidgetMetrics.edgeInset)
+        }
+        return min(max(height, WidgetMetrics.panelMinHeight), maxHeight)
     }
 
     /// Cocoa screen rect → window-local SwiftUI rect (y flipped).

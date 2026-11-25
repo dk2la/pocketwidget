@@ -1,7 +1,7 @@
 import Charts
 import SwiftUI
 
-/// The Grafana-style panel under the devices: the focused parameter's
+/// The large card on top of the System module: the selected metric's
 /// current value, average and peak, and an area chart of the last two
 /// minutes with a dashed average line. Volume adds a slider.
 struct MetricPanel: View {
@@ -9,6 +9,7 @@ struct MetricPanel: View {
     let history: [MetricSample]
     let now: MetricSample
     var audio: AudioSystemMonitor
+    var chartHeight: CGFloat = 150
 
     /// One line on the chart.
     private struct Series: Identifiable {
@@ -25,20 +26,15 @@ struct MetricPanel: View {
     }
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: Theme.heroRadius, style: .continuous)
-        VStack(alignment: .leading, spacing: 14) {
+        HeroCard {
             header
             stats
             chart
-                .frame(height: 150)
+                .frame(height: chartHeight)
             if gauge == .volume {
                 volumeControl
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.cardFill, in: shape)
-        .overlay(shape.stroke(Theme.hairlineSoft, lineWidth: 1))
     }
 
     // MARK: - Header and stats
@@ -293,8 +289,9 @@ extension Gauge {
     }
 }
 
-/// A small Grafana stat panel: name, current value and a sparkline.
-/// Clicking it brings that gauge into focus.
+/// One metric as a card: name, current value and a small chart of the same
+/// two minutes. Clicking it puts that metric on the large chart; the card
+/// of the metric shown there is highlighted.
 struct MetricStatCard: View {
     let gauge: Gauge
     let history: [MetricSample]
@@ -303,58 +300,63 @@ struct MetricStatCard: View {
     let action: () -> Void
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-        let values = history.map { gauge.value(of: $0) }
-        let top = gauge.chartTop(history: history, now: now)
-        // Newest sample on the right edge, like the big chart.
-        let shift = MetricsModuleView.window - values.count
+        let shape = RoundedRectangle(cornerRadius: Theme.groupRadius, style: .continuous)
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 6) {
-                    StatusDot(color: gauge.color, size: 5)
+                    StatusDot(color: gauge.color, size: 6)
                     Text(gauge.title)
-                        .font(Theme.captionFont)
+                        .font(Theme.subFont)
                         .fontWeight(.medium)
-                        .foregroundStyle(Theme.textSecondary)
+                        .foregroundStyle(isSelected ? Theme.textPrimary : Theme.textSecondary)
                         .lineLimit(1)
                 }
                 Text(gauge.format(gauge.value(of: now)))
-                    .font(Theme.headlineFont)
+                    .font(Theme.heroFont)
                     .monospacedDigit()
                     .contentTransition(.numericText())
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Chart {
-                    ForEach(Array(values.enumerated()), id: \.offset) { index, v in
-                        AreaMark(x: .value("t", index + shift), yStart: .value("b", 0), yEnd: .value("v", v))
-                            .interpolationMethod(.monotone)
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [gauge.color.opacity(0.3), gauge.color.opacity(0)],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
-                        LineMark(x: .value("t", index + shift), y: .value("v", v))
-                            .interpolationMethod(.monotone)
-                            .foregroundStyle(gauge.color)
-                            .lineStyle(StrokeStyle(lineWidth: 1.2))
-                    }
-                }
-                .chartXScale(domain: 0...max(MetricsModuleView.window - 1, 1))
-                .chartYScale(domain: 0...top)
-                .chartXAxis(.hidden)
-                .chartYAxis(.hidden)
-                .chartLegend(.hidden)
-                .frame(height: 30)
+                    .minimumScaleFactor(0.6)
+                sparkline
+                    .frame(height: 48)
             }
-            .padding(10)
+            .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.cardFill, in: shape)
-            .overlay(shape.stroke(isSelected ? gauge.color.opacity(0.6) : Theme.hairlineSoft, lineWidth: 1))
+            .background(isSelected ? Theme.raisedFill : Theme.cardFill, in: shape)
+            .overlay(shape.stroke(isSelected ? gauge.color.opacity(0.7) : Theme.hairlineSoft, lineWidth: 1))
             .contentShape(shape)
         }
         .buttonStyle(PressableStyle())
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private var sparkline: some View {
+        let values = history.map { gauge.value(of: $0) }
+        let top = gauge.chartTop(history: history, now: now)
+        // Newest sample on the right edge, like the large chart.
+        let shift = MetricsModuleView.window - values.count
+        return Chart {
+            ForEach(Array(values.enumerated()), id: \.offset) { index, v in
+                AreaMark(x: .value("t", index + shift), yStart: .value("b", 0), yEnd: .value("v", v))
+                    .interpolationMethod(.monotone)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [gauge.color.opacity(0.3), gauge.color.opacity(0)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                LineMark(x: .value("t", index + shift), y: .value("v", v))
+                    .interpolationMethod(.monotone)
+                    .foregroundStyle(gauge.color)
+                    .lineStyle(StrokeStyle(lineWidth: 1.4))
+            }
+        }
+        .chartXScale(domain: 0...max(MetricsModuleView.window - 1, 1))
+        .chartYScale(domain: 0...top)
+        .chartXAxis(.hidden)
+        .chartYAxis(.hidden)
+        .chartLegend(.hidden)
     }
 }

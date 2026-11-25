@@ -359,10 +359,6 @@ struct SettingsView: View {
                     )
                 }
             }
-            section(L10n.t(.modAssistant)) {
-                AssistantSetupView(assistant: services.assistantService)
-                    .padding(.bottom, 12)
-            }
         }
     }
 

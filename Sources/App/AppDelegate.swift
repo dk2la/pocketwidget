@@ -2,12 +2,18 @@ import AppKit
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let settings = AppSettings()
-    private let services = ModuleServices()
+    private let settings: AppSettings
+    private let services: ModuleServices
     private var statusItem: NSStatusItem?
     private var capsuleController: CapsuleWindowController?
     private var widgetController: WidgetWindowController?
     private var licensingTask: Task<Void, Never>?
+
+    override init() {
+        settings = AppSettings()
+        services = ModuleServices(settings: settings)
+        super.init()
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setUpStatusItem()
