@@ -20,14 +20,14 @@ final class SenderAvatarStore {
     /// The user's choice (Settings → Accounts). While off, no address is
     /// looked up and rows show initials, even for pictures already cached.
     var isEnabled: Bool {
-        didSet { UserDefaults.standard.set(isEnabled, forKey: Self.enabledKey) }
+        didSet { UserDefaults.app.set(isEnabled, forKey: Self.enabledKey) }
     }
 
     @ObservationIgnored private static let enabledKey = "settings.senderPictures"
 
     init() {
         // Absent key = off.
-        isEnabled = UserDefaults.standard.bool(forKey: Self.enabledKey)
+        isEnabled = UserDefaults.app.bool(forKey: Self.enabledKey)
     }
 
     @ObservationIgnored private var inFlight: Set<String> = []

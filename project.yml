@@ -61,6 +61,7 @@ targets:
     scheme:
       testTargets:
         - PocketTests
+        - PocketUITests
 
   # Logic-only bundle: it compiles the pure mail parsing sources into itself,
   # so the tests need no app host and never touch Keychain or the network.
@@ -84,7 +85,14 @@ targets:
       - path: Sources/Services/SpeechCaptureService.swift
       - path: Sources/Core/WidgetGeometry.swift
       - path: Sources/Core/StripDisplay.swift
+      - path: Sources/Settings/SettingsLayout.swift
+      - path: Sources/Modules/LiveEvents/LiveEvent.swift
+      - path: Sources/Modules/LiveEvents/LiveEventGate.swift
+      - path: Sources/Core/StripLineup.swift
       - path: Sources/Core/PanelHold.swift
+      - path: Sources/Core/IconBadge.swift
+      - path: Sources/Core/ModuleTab.swift
+      - path: Sources/Core/WidgetPanelContent.swift
       - path: Sources/Modules/Shelf/ShelfStore.swift
       - path: Sources/Modules/Shelf/ShelfFilePicker.swift
       - path: Sources/Modules/Timers/TimerService.swift
@@ -112,3 +120,22 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.dk2la.pocket.tests
         SWIFT_VERSION: "6.0"
         GENERATE_INFOPLIST_FILE: YES
+
+  # Drives the real app (launched with --ui-testing, see UITestMode.swift).
+  # Runs on GitHub-hosted runners only, never on a developer's Mac.
+  PocketUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    configFiles:
+      Debug: Support/Signing.xcconfig
+      Release: Support/Signing.xcconfig
+    sources:
+      - path: UITests
+    dependencies:
+      - target: Pocket
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.dk2la.pocket.uitests
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Pocket

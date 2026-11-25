@@ -53,10 +53,11 @@ enum LicensingConfig {
 
     /// Release builds always enforce licensing. Debug builds skip it, so
     /// daily work and demo recordings are not blocked; `--licensing` turns
-    /// it on for testing the real flow.
+    /// it on for testing the real flow, except under `--ui-testing`. Release
+    /// ignores `--ui-testing` here: a launch flag must not unlock Pocket.
     static var isEnforced: Bool {
         #if DEBUG
-        CommandLine.arguments.contains("--licensing")
+        CommandLine.arguments.contains("--licensing") && !UITestMode.isActive
         #else
         true
         #endif

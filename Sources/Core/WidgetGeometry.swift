@@ -34,6 +34,11 @@ enum WidgetMetrics {
     static let panelMinHeight: CGFloat = 260
     static let panelMaxHeight: CGFloat = 1200
     static let panelDefaultHeight: CGFloat = 360
+    /// The Settings module's panel: sized on its own, so a roomy Settings
+    /// does not make every module large. Same limits as the module panel.
+    static let settingsPanelDefaultSize = CGSize(width: 720, height: 520)
+    /// Delay before shrinking the window after the close animation (ms).
+    static let windowCollapseDelayMilliseconds = 450
 }
 
 /// Pure frame math for the edge-docked widget. All rects are in Cocoa screen
@@ -186,6 +191,25 @@ enum WidgetGeometry {
         )
     }
 
+    /// Live event pill beside the strip, on the side facing the screen
+    /// centre (the same side a panel opens on), centred on the strip along
+    /// its axis and clamped to the visible frame. The strip never moves.
+    static func eventPillFrame(strip: NSRect, edge: WidgetEdge, pillSize size: CGSize, visibleFrame vf: NSRect) -> NSRect {
+        let gap = WidgetMetrics.panelGap
+        let origin: CGPoint = switch edge {
+        case .left: CGPoint(x: strip.maxX + gap, y: strip.midY - size.height / 2)
+        case .right: CGPoint(x: strip.minX - gap - size.width, y: strip.midY - size.height / 2)
+        case .bottom: CGPoint(x: strip.midX - size.width / 2, y: strip.maxY + gap)
+        case .top: CGPoint(x: strip.midX - size.width / 2, y: strip.minY - gap - size.height)
+        }
+        return NSRect(
+            x: min(max(origin.x, vf.minX), max(vf.maxX - size.width, vf.minX)),
+            y: min(max(origin.y, vf.minY), max(vf.maxY - size.height, vf.minY)),
+            width: size.width,
+            height: size.height
+        )
+    }
+
     /// Nearest edge + normalized offset for a dropped strip frame.
     static func nearestPlacement(for frame: NSRect, in visibleFrame: CGRect) -> (edge: WidgetEdge, offset: Double) {
         let vf = visibleFrame
@@ -222,6 +246,14 @@ enum WidgetGeometry {
             maxHeight = min(maxHeight, visibleFrame.height - 2 * WidgetMetrics.edgeInset)
         }
         return min(max(height, WidgetMetrics.panelMinHeight), maxHeight)
+    }
+
+    /// Both axes at once (the Settings panel size).
+    static func clampedPanelSize(_ size: CGSize, screenFrame: CGRect?, visibleFrame: CGRect?) -> CGSize {
+        CGSize(
+            width: clampedPanelWidth(size.width, screenFrame: screenFrame),
+            height: clampedPanelHeight(size.height, visibleFrame: visibleFrame)
+        )
     }
 
     /// Cocoa screen rect → window-local SwiftUI rect (y flipped).

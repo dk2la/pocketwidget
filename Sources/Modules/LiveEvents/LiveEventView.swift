@@ -1,17 +1,17 @@
 import SwiftUI
 
-/// Compact event presentation: instrument caption on the left of the camera housing,
-/// mono readout on the right (the middle is the camera housing).
+/// Compact event presentation for the widget's event pill: instrument
+/// caption first, mono readout after it. The readout takes what is left and
+/// truncates (long device and playbook names).
 struct LiveEventView: View {
     let event: LiveEvent
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 10) {
             leading
-                .frame(width: CapsuleMetrics.eventSideWidth - 24, alignment: .leading)
+                .fixedSize()
             Spacer(minLength: 0)
             trailing
-                .frame(width: CapsuleMetrics.eventSideWidth - 24, alignment: .trailing)
         }
         .padding(.horizontal, 14)
     }
@@ -79,6 +79,7 @@ struct LiveEventView: View {
             Text(name)
                 .font(Theme.readoutSFont)
                 .lineLimit(1)
+                .truncationMode(.tail)
                 .foregroundStyle(Theme.textSecondary)
         }
     }

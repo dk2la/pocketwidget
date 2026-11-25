@@ -24,7 +24,7 @@ final class MediaCenter {
     /// title/artwork views are not invalidated by timing updates.
     private(set) var track: MediaTrack?
     private(set) var artwork: NSImage?
-    /// Average artwork color — feeds the Glow theme's accent ring.
+    /// Average artwork color — tints the player card.
     private(set) var artworkAccent: Color?
     private(set) var availableSources: [MediaSourceKind] = []
     private(set) var activeSource: MediaSourceKind?
@@ -32,10 +32,6 @@ final class MediaCenter {
     /// Demo mode: one scripted player stands in for every real source.
     private(set) var isDemo = false
     @ObservationIgnored private var demoSource: DemoMediaSource?
-
-    /// Fired when playback starts/stops — the window controller uses it to
-    /// flip the capsule between closed and compact.
-    @ObservationIgnored var onPlaybackChanged: (() -> Void)?
 
     /// Songs heard on this Mac — "recently played" and "on repeat".
     @ObservationIgnored let history = PlayHistory()
@@ -52,7 +48,6 @@ final class MediaCenter {
     @ObservationIgnored private var pendingRefresh: Task<Void, Never>?
     @ObservationIgnored private var artworkTask: Task<Void, Never>?
     @ObservationIgnored private var lastArtworkKey: String?
-    @ObservationIgnored private var wasPlaying = false
     /// Explicit user choice — auto-follow never overrides it while the
     /// source stays available.
     @ObservationIgnored private var pinnedSource: MediaSourceKind?
@@ -489,10 +484,6 @@ final class MediaCenter {
     }
 
     private func apply(_ newTrack: MediaTrack?) {
-        let isPlaying = newTrack?.isPlaying ?? false
-        let playbackChanged = isPlaying != wasPlaying
-        wasPlaying = isPlaying
-
         let now = Date()
         if let newTrack, let current = track, current.isSameItem(as: newTrack),
            abs(current.position(at: now) - newTrack.position(at: now)) < Self.positionDriftTolerance {
@@ -540,10 +531,6 @@ final class MediaCenter {
             if artwork != nil { artwork = nil }
             if artworkAccent != nil { artworkAccent = nil }
             lastArtworkKey = nil
-        }
-
-        if playbackChanged {
-            onPlaybackChanged?()
         }
     }
 

@@ -37,6 +37,8 @@ struct WidgetRootView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .animation(Theme.stateSpring, value: viewModel.selectedTab)
+        // Tour ⇄ Settings swaps in place, same slot and size.
+        .animation(Theme.stateSpring, value: viewModel.showsTour)
         .animation(Theme.stateSpring, value: viewModel.edge)
     }
 
@@ -69,6 +71,8 @@ struct WidgetRootView: View {
             .overlay { stripContent }
             .clipShape(stripShape)
             .contentShape(stripShape)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("widget.strip")
             .gesture(dragGesture)
             // Minimized: a click on the dots brings the icons back. The drag
             // gesture keeps priority, so moving the widget still works.
@@ -104,14 +108,28 @@ struct WidgetRootView: View {
             ForEach(visibleTabs) { tab in
                 RailIconButton(
                     tab: tab,
-                    isActive: viewModel.selectedTab == tab,
-                    showsBadge: tab == .email && services.emailService.unreadCount > 0
+                    isActive: viewModel.panelContent?.highlightedTab == tab,
+                    showsBadge: tab == .email && services.emailService.unreadCount > 0,
+                    liveBadge: liveBadge(for: tab)
                 ) {
                     viewModel.onTabTapped?(tab)
                 }
             }
         }
         .padding(viewModel.edge.isVertical ? .vertical : .horizontal, WidgetMetrics.endPadding)
+    }
+
+    /// Badges ride on the icons, so a minimized strip shows only the first
+    /// icon's badge and never a floating one.
+    private func liveBadge(for tab: ModuleTab) -> IconBadge? {
+        let timer = services.timerService
+        let track = services.mediaCenter.track
+        return IconBadge.badge(
+            for: tab,
+            enabled: settings.enabledTabs.contains(tab),
+            timer: .init(isRunning: timer.isRunning, remaining: timer.remaining, duration: timer.duration),
+            playback: track.map { $0.isPlaying ? .playing : .paused } ?? .none
+        )
     }
 
     /// Minimized the strip keeps its first module button — the widget still
@@ -171,14 +189,19 @@ struct WidgetRootView: View {
     private func panel(for tab: ModuleTab) -> some View {
         GlassSurface(shape: panelShape, dark: darkGlass)
             .overlay {
-                if viewModel.isLocked {
+                switch viewModel.panelContent ?? .module(tab) {
+                case .lockScreen:
                     LockScreenView(access: services.access)
-                } else {
+                case .tour:
+                    tourContent
+                case .settings:
+                    settingsContent
+                case .module(let module):
                     VStack(spacing: 0) {
-                        PanelHeaderView(tab: tab, services: services) {
+                        PanelHeaderView(tab: module, services: services) {
                             viewModel.onClose?()
                         }
-                        ModuleContentView(tab: tab, services: services)
+                        ModuleContentView(tab: module, services: services)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .padding(.horizontal, Theme.panelInset)
                             .padding(.top, Theme.panelInset)
@@ -189,6 +212,46 @@ struct WidgetRootView: View {
             .clipShape(panelShape)
             .overlay(alignment: widthGripAlignment) { widthGrip }
             .overlay(alignment: heightGripAlignment) { heightGrip }
+    }
+
+    /// The Settings module: the settings pages with their own title, so no
+    /// module header — just a close button in the corner.
+    private var settingsContent: some View {
+        SettingsView(
+            settings: settings,
+            services: services,
+            pageSelection: viewModel.settingsPage,
+            // A detour out of the tour (connecting an account) keeps the
+            // way back to the page it left.
+            onBack: viewModel.cameFromOnboarding ? { viewModel.onResumeOnboarding?() } : nil
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay(alignment: .topTrailing) {
+            GlassCloseButton {
+                viewModel.onClose?()
+            }
+            .keyboardShortcut(.cancelAction)
+            .padding(.top, 18)
+            .padding(.trailing, 18)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("panel.settings")
+    }
+
+    /// The welcome tour, in the Settings slot and at its size.
+    private var tourContent: some View {
+        @Bindable var viewModel = viewModel
+        return OnboardingView(
+            step: $viewModel.onboardingStep,
+            services: services,
+            settings: settings
+        ) {
+            viewModel.onClose?()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .transition(.opacity)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("panel.tour")
     }
 
     /// Each grip lives on an edge facing away from the strip — a side the
@@ -227,6 +290,8 @@ struct WidgetRootView: View {
                     .onChanged { _ in changed() }
                     .onEnded { _ in ended() }
             )
+            .accessibilityElement()
+            .accessibilityIdentifier(vertical ? "panel.grip.width" : "panel.grip.height")
             .onHover { inside in
                 if inside {
                     (vertical ? NSCursor.resizeLeftRight : NSCursor.resizeUpDown).push()
@@ -242,6 +307,7 @@ struct WidgetRootView: View {
         let tab: ModuleTab
         let isActive: Bool
         let showsBadge: Bool
+        var liveBadge: IconBadge?
         let action: () -> Void
 
         @State private var hovered = false
@@ -252,6 +318,7 @@ struct WidgetRootView: View {
                 Image(systemName: tab.icon)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(isActive ? Theme.accent : Theme.textSecondary)
+                    .offset(y: liveBadge == nil ? 0 : -IconBadgeView.glyphLift)
                     .frame(width: WidgetMetrics.cell, height: WidgetMetrics.cell)
                     .background(
                         cellShape.fill(isActive ? Theme.accentWash : hovered ? Theme.raisedFill : .clear)
@@ -264,6 +331,9 @@ struct WidgetRootView: View {
                                 .padding(6)
                         }
                     }
+                    .overlay(alignment: .bottom) {
+                        if let liveBadge { IconBadgeView(badge: liveBadge) }
+                    }
                     .contentShape(cellShape)
             }
             .buttonStyle(PressableStyle())
@@ -271,6 +341,7 @@ struct WidgetRootView: View {
             .animation(.easeOut(duration: 0.15), value: hovered)
             // Eight abstract glyphs need names — the system tooltip is free.
             .help(tab.title)
+            .accessibilityIdentifier("strip.icon.\(tab.rawValue)")
         }
     }
 }

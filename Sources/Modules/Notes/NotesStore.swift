@@ -24,7 +24,7 @@ final class NotesStore {
     private(set) var isActive = false
 
     @ObservationIgnored private let log = Logger(subsystem: "com.dk2la.pocket", category: "notes")
-    @ObservationIgnored private let defaults = UserDefaults.standard
+    @ObservationIgnored private let defaults = UserDefaults.app
     @ObservationIgnored private var saveTask: Task<Void, Never>?
     @ObservationIgnored private var watcher: NotesFolderWatcher?
     @ObservationIgnored private var openNoteLoadedMtime: Date?
@@ -39,7 +39,7 @@ final class NotesStore {
     @ObservationIgnored private static let conflictStamp = DateFormatter(format: "yyyy-MM-dd HH.mm")
 
     init() {
-        if let stored = UserDefaults.standard.string(forKey: Self.folderKey) {
+        if let stored = UserDefaults.app.string(forKey: Self.folderKey) {
             folderURL = URL(fileURLWithPath: stored, isDirectory: true)
         } else {
             folderURL = FileManager.default
@@ -71,8 +71,9 @@ final class NotesStore {
         startWatcher()
     }
 
-    /// Folder chooser. The widget is a non-activating panel, so it brings
-    /// the app forward first; the settings capsule does not need to.
+    /// Folder chooser. The widget is a non-activating panel; `activating`
+    /// brings the app forward first so the chooser is not hidden behind
+    /// other apps.
     func pickFolder(activating: Bool) {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true

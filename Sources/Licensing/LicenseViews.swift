@@ -226,7 +226,7 @@ struct LicenseSettingsView: View {
         }
     }
 
-    /// Two steps in place — a sheet would hang out of the capsule.
+    /// Two steps in place — a sheet would hang out of the panel.
     @ViewBuilder
     private var deactivateControl: some View {
         if confirmingDeactivation {
