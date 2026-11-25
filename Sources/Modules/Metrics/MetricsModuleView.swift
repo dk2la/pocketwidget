@@ -1,11 +1,8 @@
-import Charts
 import SwiftUI
 
-/// "System" module: a row of small devices on top — one per parameter,
-/// swipe or click to bring one into focus — and below, a Grafana-style
-/// panel for the focused one: current / average / peak and a live chart
-/// of the last two minutes. Screen text on the devices is hardware-style
-/// English, like the labels on a real device; everything else is localized.
+/// "System" module: a panel for the selected metric (current / average /
+/// peak and a live chart of the last two minutes) and a card with a small
+/// chart for each metric. Clicking a card selects it.
 struct MetricsModuleView: View {
     var stats: SystemStatsService
     var power: PowerSourceMonitor
@@ -15,21 +12,19 @@ struct MetricsModuleView: View {
     /// can fire appear/disappear repeatedly during transitions; the flag
     /// keeps the contribution to the service's count at exactly zero or one.
     @State private var isObservingStats = false
-    @State private var selected: Gauge? = .cpu
+    @State private var selected: Gauge = .cpu
     @State private var history: [MetricSample] = []
 
     /// Sampling step and window of the charts.
     static let step: Double = 2
     static let window = 60
 
-    private var focus: Gauge { selected ?? .cpu }
+    private var focus: Gauge { selected }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 14) {
-                    carousel
-                    picker
                     MetricPanel(
                         gauge: focus,
                         history: history,
@@ -64,89 +59,7 @@ struct MetricsModuleView: View {
         }
     }
 
-    // MARK: - Devices
-
-    private var carousel: some View {
-        GeometryReader { proxy in
-            let itemWidth = min(proxy.size.width * 0.62, 260)
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 10) {
-                    ForEach(Gauge.allCases) { gauge in
-                        IsoMeterView(
-                            name: gauge.deviceName,
-                            page: page(for: gauge),
-                            lamps: lamps(for: gauge),
-                            isLit: gauge == focus
-                        )
-                        .frame(width: itemWidth)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            withAnimation(.snappy) { selected = gauge }
-                        }
-                        .scrollTransition(.interactive) { content, phase in
-                            content
-                                .scaleEffect(phase.isIdentity ? 1 : 0.82)
-                                .opacity(phase.isIdentity ? 1 : 0.45)
-                        }
-                        .id(gauge)
-                    }
-                }
-                .scrollTargetLayout()
-            }
-            .scrollTargetBehavior(.viewAligned)
-            .scrollPosition(id: $selected, anchor: .center)
-            .safeAreaPadding(.horizontal, (proxy.size.width - itemWidth) / 2)
-            .overlay(alignment: .leading) { arrow(-1) }
-            .overlay(alignment: .trailing) { arrow(1) }
-        }
-        .frame(height: 170)
-    }
-
-    /// Round chevron at the carousel's edge: steps to the neighbour.
-    @ViewBuilder
-    private func arrow(_ direction: Int) -> some View {
-        let all = Gauge.allCases
-        let index = all.firstIndex(of: focus) ?? 0
-        let target = index + direction
-        if all.indices.contains(target) {
-            Button {
-                withAnimation(.snappy) { selected = all[target] }
-            } label: {
-                Image(systemName: direction < 0 ? "chevron.left" : "chevron.right")
-                    .font(Theme.iconSmallFont)
-                    .foregroundStyle(Theme.textPrimary)
-                    .frame(width: 28, height: 28)
-                    .background(Circle().fill(Theme.raisedFill))
-                    .overlay(Circle().stroke(Theme.hairlineSoft, lineWidth: 1))
-                    .contentShape(Circle())
-            }
-            .buttonStyle(PressableStyle())
-        }
-    }
-
-    /// The same choice as plain labelled chips — the obvious way to switch.
-    private var picker: some View {
-        HStack(spacing: 6) {
-            ForEach(Gauge.allCases) { gauge in
-                let isOn = gauge == focus
-                Button {
-                    withAnimation(.snappy) { selected = gauge }
-                } label: {
-                    Text(gauge.title)
-                        .font(Theme.captionFont)
-                        .fontWeight(.semibold)
-                        .lineLimit(1)
-                        .foregroundStyle(isOn ? Theme.inkOnAccent : Theme.textSecondary)
-                        .padding(.horizontal, 9)
-                        .frame(height: 24)
-                        .background(Capsule().fill(isOn ? Theme.lightFill : Theme.cardFill))
-                        .contentShape(Capsule())
-                }
-                .buttonStyle(PressableStyle())
-            }
-        }
-        .frame(maxWidth: .infinity)
-    }
+    // MARK: - Cards
 
     /// Every gauge as a small stat panel with a sparkline.
     private var overview: some View {
@@ -164,51 +77,6 @@ struct MetricsModuleView: View {
                     withAnimation(.snappy) { selected = gauge }
                 }
             }
-        }
-    }
-
-    // MARK: - Screens
-
-    private func page(for gauge: Gauge) -> MeterPage {
-        let recent = history.suffix(12)
-        switch gauge {
-        case .cpu:
-            return MeterPage(
-                caption: "load", value: Format.percentNumber(stats.cpuUsage), unit: "%",
-                chart: .bars(recent.map(\.cpu))
-            )
-        case .memory:
-            let s = currentSample
-            return MeterPage(
-                caption: "in use", value: Format.gigabytes(s.memoryUsed), unit: "GB",
-                chart: .level(s.memoryTotal > 0 ? s.memoryUsed / s.memoryTotal : 0)
-            )
-        case .network:
-            let parts = Format.rateParts(stats.downloadRate)
-            let top = recent.map(\.download).max() ?? 0
-            return MeterPage(
-                caption: "download", value: parts.value, unit: parts.unit,
-                chart: .bars(recent.map { top > 0 ? $0.download / top : 0 })
-            )
-        case .battery:
-            return MeterPage(
-                caption: "charge", value: "\(power.percent)", unit: "%",
-                chart: .level(Double(power.percent) / 100)
-            )
-        case .volume:
-            return MeterPage(
-                caption: audio.currentDeviceName?.lowercased() ?? "output",
-                value: "\(Int((audio.volume * 100).rounded()))", unit: "%",
-                chart: .level(audio.volume)
-            )
-        }
-    }
-
-    private func lamps(for gauge: Gauge) -> [(label: String, on: Bool)] {
-        switch gauge {
-        case .battery: [("LIVE", true), ("AC", power.isPlugged)]
-        case .volume: [("LIVE", true), ("MUTE", audio.volume == 0)]
-        default: [("LIVE", true)]
         }
     }
 
@@ -236,7 +104,7 @@ struct MetricsModuleView: View {
 
 // MARK: - Model
 
-/// The parameters, in carousel order.
+/// The parameters, in the order of their cards.
 enum Gauge: String, CaseIterable, Identifiable {
     case cpu, memory, network, battery, volume
 
@@ -249,17 +117,6 @@ enum Gauge: String, CaseIterable, Identifiable {
         case .network: L10n.t(.sysNetwork)
         case .battery: L10n.t(.sysBattery)
         case .volume: L10n.t(.sysVolume)
-        }
-    }
-
-    /// The tag printed on the device itself.
-    var deviceName: String {
-        switch self {
-        case .cpu: "cpu load"
-        case .memory: "memory"
-        case .network: "network"
-        case .battery: "battery"
-        case .volume: "output"
         }
     }
 
@@ -287,10 +144,6 @@ struct MetricSample {
 }
 
 enum Format {
-    static func percentNumber(_ fraction: Double) -> String {
-        "\(Int((fraction * 100).rounded()))"
-    }
-
     static func gigabytes(_ value: Double) -> String {
         String(format: "%.1f", value)
     }
