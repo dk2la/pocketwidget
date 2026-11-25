@@ -140,7 +140,11 @@ enum AssistantTerminalScript {
             program = name
             lines += [
                 "echo 'Pocket: installing \(name)'",
-                "\(install) || {",
+                install,
+                // A piped installer reports the last command only, so a
+                // failed download still looks like success. The program
+                // being there is the real answer.
+                "command -v \(name) >/dev/null 2>&1 || {",
                 "  echo",
                 "  echo 'Pocket: the install did not finish. Close this window and try again.'",
                 "  exit 1",
@@ -338,6 +342,8 @@ final class AssistantSetupFlow {
     @ObservationIgnored private var pollTask: Task<Void, Never>?
     /// Bumped whenever polling stops, so a loop that is mid-wait notices.
     @ObservationIgnored private var pollGeneration = 0
+    /// Tells a key test that is still running from the form's current one.
+    @ObservationIgnored private var keyAttempt = 0
     @ObservationIgnored private var polledProvider: AssistantProvider?
     private(set) var isPolling = false
 
@@ -469,6 +475,7 @@ final class AssistantSetupFlow {
             draft = AssistantKeyDraft(baseURL: config.baseURL, model: config.model, key: ports.storedKey())
         }
         keyFailure = nil
+        keyAttempt += 1
         phase = .ownKey
     }
 
@@ -482,10 +489,13 @@ final class AssistantSetupFlow {
         guard canConnectKey else { return }
         let config = draft.config
         let key = draft.key
+        keyAttempt += 1
+        let attempt = keyAttempt
         isTestingKey = true
         let result = await ports.probe(config, key)
         isTestingKey = false
-        guard phase == .ownKey else { return }
+        // The form was left, or left and opened again, in the meantime.
+        guard attempt == keyAttempt, phase == .ownKey else { return }
         switch result {
         case .success:
             if !finish(config, key: key) { keyFailure = .notSaved }
@@ -575,8 +585,17 @@ final class AssistantSetupFlow {
             let config = config(for: provider)
             let result = await ports.probe(config, "")
             guard generation == pollGeneration else { return }
-            if case .connected = AssistantProbeOutcome(result) {
+            switch AssistantProbeOutcome(result) {
+            case .connected:
                 finish(config, key: "")
+                return
+            case .signedOut:
+                continue
+            case .failed(let failure):
+                // Not a sign-in problem: asking again would not help, and
+                // every check is a real request.
+                failures[provider] = failure
+                phase = .chooser
                 return
             }
         }

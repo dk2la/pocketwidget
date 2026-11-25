@@ -422,6 +422,16 @@ final class AssistantSetupFlowTests: XCTestCase {
         XCTAssertFalse(flow.isPolling)
     }
 
+    func testScriptStopsWhenTheInstallLeftNoProgram() throws {
+        // `curl … | bash` succeeds as a pipeline even when curl failed.
+        let script = try XCTUnwrap(AssistantTerminalScript.make(for: .claudeCode, facts: AssistantSetupFacts(hasCurl: true)))
+        let install = try XCTUnwrap(script.range(of: "install.sh | bash"))
+        let check = try XCTUnwrap(script.range(of: "command -v claude >/dev/null 2>&1 || {"))
+        let signIn = try XCTUnwrap(script.range(of: "claude auth login"))
+        XCTAssertLessThan(install.lowerBound, check.lowerBound)
+        XCTAssertLessThan(check.lowerBound, signIn.lowerBound)
+    }
+
     func testNoInstallerMeansNoTerminal() async {
         facts = AssistantSetupFacts()
         let flow = await openedFlow()
@@ -444,6 +454,21 @@ final class AssistantSetupFlowTests: XCTestCase {
         XCTAssertEqual(saved.first?.0, AssistantConfig(provider: .claudeCode))
         XCTAssertEqual(flow.phase, .closed)
         XCTAssertFalse(flow.isPolling)
+    }
+
+    func testWaitingEndsWhenTheTestFailsForAnotherReason() async {
+        let broken = Result<Void, Error>.failure(CLIAssistantClient.CLIError.failed("env: node: No such file or directory"))
+        probeResults = [signedOut, signedOut, broken]
+        let flow = await openedFlow()
+        await flow.connect(.claudeCode)
+        flow.startSignIn(.claudeCode)
+        await flow.pollingEnded()
+        // Signed in or not, asking again every two seconds would not help.
+        XCTAssertEqual(probed.count, 3)
+        XCTAssertEqual(flow.phase, .chooser)
+        XCTAssertEqual(flow.card(for: .claudeCode).failure, .other)
+        XCTAssertFalse(flow.isPolling)
+        XCTAssertTrue(saved.isEmpty)
     }
 
     func testWaitingDoesNotTestBeforeTheProgramIsInstalled() async {
@@ -549,6 +574,22 @@ final class AssistantSetupFlowTests: XCTestCase {
         XCTAssertEqual(saved.first?.0, expected)
         XCTAssertEqual(saved.first?.1, "sk-2")
         XCTAssertEqual(flow.phase, .closed)
+    }
+
+    func testAnAbandonedKeyTestIsNotSaved() async {
+        let flow = await openedFlow()
+        flow.openKeyForm()
+        flow.draft = AssistantKeyDraft(baseURL: "https://a.example/v1", model: "a", key: "sk-a")
+        // The person leaves the form and comes back while the test runs.
+        duringProbe = {
+            flow.back()
+            flow.openKeyForm()
+            flow.draft = AssistantKeyDraft(baseURL: "https://b.example/v1", model: "b", key: "sk-b")
+        }
+        await flow.connectKey()
+        XCTAssertTrue(saved.isEmpty)
+        XCTAssertEqual(flow.phase, .ownKey)
+        XCTAssertEqual(flow.draft.model, "b")
     }
 
     func testKeyFormKeepsWhatWasTypedOnFailure() async {

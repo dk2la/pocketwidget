@@ -1,5 +1,6 @@
 import Foundation
 import OSLog
+import os
 
 /// The CLI backends speak plain text, not the tool-call wire format, so tool
 /// use rides on a marker the model is asked to emit verbatim. A model that
@@ -93,15 +94,18 @@ struct CLIAssistantClient: Sendable {
         // Looked up before the hop to the worker thread; the shell behind it
         // is asked at most once per launch.
         let path = commandLine.path(for: executable)
+        let safeMode = !Self.withoutSafeMode.withLock { $0.contains(executable) }
         var result = try await Self.run(
             executable: executable,
-            arguments: try arguments(system: system, prompt: prompt, safeMode: true),
+            arguments: try arguments(system: system, prompt: prompt, safeMode: safeMode),
             path: path
         )
         // `claude` before 2.1.169 does not know `--safe-mode` and refuses to
         // start. An older program still answers, just without that guard.
-        if provider == .claudeCode, result.exitCode != 0, Self.rejectsSafeMode(stderr: result.stderr) {
+        if safeMode, provider == .claudeCode, result.exitCode != 0, Self.rejectsSafeMode(stderr: result.stderr) {
             Self.log.info("claude does not know --safe-mode, running without it")
+            // Remembered until relaunch, so later turns start once, not twice.
+            Self.withoutSafeMode.withLock { _ = $0.insert(executable) }
             result = try await Self.run(
                 executable: executable,
                 arguments: try arguments(system: system, prompt: prompt, safeMode: false),
@@ -145,6 +149,9 @@ struct CLIAssistantClient: Sendable {
         if !model.isEmpty { flags += ["--model", model] }
         return flags
     }
+
+    /// Programs found too old for `--safe-mode` since launch.
+    private static let withoutSafeMode = OSAllocatedUnfairLock(initialState: Set<URL>())
 
     /// What a `claude` too old for `--safe-mode` prints before exiting.
     static func rejectsSafeMode(stderr: String) -> Bool {

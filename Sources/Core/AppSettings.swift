@@ -222,6 +222,8 @@ final class AppSettings {
     @ObservationIgnored private static let widgetEdgeKey = "settings.widgetEdge"
     @ObservationIgnored private static let widgetOffsetKey = "settings.widgetOffset"
     @ObservationIgnored private static let widgetDisplayKey = "settings.widgetDisplay"
+    @ObservationIgnored private static let displayGoneGrace: Duration = .seconds(10)
+    @ObservationIgnored private var displayGoneTask: Task<Void, Never>?
     @ObservationIgnored private static let outsideClickKey = "settings.closeOnOutsideClick"
     @ObservationIgnored private static let widgetMinimizedKey = "settings.widgetMinimized"
     @ObservationIgnored private static let onboardingAtLaunchKey = "settings.showOnboardingAtLaunch"
@@ -238,7 +240,10 @@ final class AppSettings {
         let display = StripScreen.resolve(savedID: storedDisplay)
         let screen = display?.screen
         stripScreen = screen
-        widgetDisplayID = display.map(\.savedID) ?? storedDisplay
+        // A saved display that is missing is given a moment to appear
+        // before it is given up (see `forgetGoneDisplayAfterGrace`).
+        widgetDisplayID = storedDisplay
+        let displayIsGone = display.map { $0.savedID != storedDisplay } ?? false
         let storedWidth = defaults.double(forKey: Self.panelWidthKey)
         let storedHeight = defaults.double(forKey: Self.panelHeightKey)
         expandedPanelSize = Self.clampPanelSize(
@@ -304,10 +309,8 @@ final class AppSettings {
         tabOrder = order
         launchAtLogin = SMAppService.mainApp.status == .enabled
         L10n.shared.language = language
-        // didSet does not run inside init: write a replaced display here.
-        if let widgetDisplayID, widgetDisplayID != storedDisplay {
-            defaults.set(widgetDisplayID, forKey: Self.widgetDisplayKey)
-            log.info("widget display gone, now \(widgetDisplayID, privacy: .public)")
+        if displayIsGone {
+            forgetGoneDisplayAfterGrace()
         }
         log.info("""
         loaded theme=\(self.theme.rawValue, privacy: .public) \
@@ -339,8 +342,9 @@ final class AppSettings {
         }
     }
 
-    /// Call on every screen change. A saved display that is gone is
-    /// replaced by the one the strip falls back to, so the strip stays
+    /// Call on every screen change. When the saved display is gone the
+    /// strip moves to the display it falls back to at once, and after a
+    /// grace period that display becomes the saved one, so the strip stays
     /// there when the old display returns; the panel sizes are re-clamped
     /// to the display the strip is on now. Idempotent — both window
     /// controllers call it, in whichever order the notification arrives.
@@ -348,10 +352,30 @@ final class AppSettings {
         let resolved = StripScreen.resolve(savedID: widgetDisplayID)
         stripScreen = resolved?.screen
         if let resolved, resolved.savedID != widgetDisplayID {
-            log.info("widget display gone")
-            widgetDisplayID = resolved.savedID
+            forgetGoneDisplayAfterGrace()
+        } else {
+            displayGoneTask?.cancel()
+            displayGoneTask = nil
         }
         revalidatePanelSize()
+    }
+
+    /// macOS can report an external display as missing for a moment on
+    /// wake or at login. Giving the saved display up at once would move the
+    /// strip to the built-in screen for good, so the choice is rewritten
+    /// only if the display is still gone after the grace period.
+    private func forgetGoneDisplayAfterGrace() {
+        guard displayGoneTask == nil else { return }
+        displayGoneTask = Task { [weak self] in
+            try? await Task.sleep(for: Self.displayGoneGrace)
+            guard let self, !Task.isCancelled else { return }
+            displayGoneTask = nil
+            let resolved = StripScreen.resolve(savedID: widgetDisplayID)
+            if let resolved, resolved.savedID != widgetDisplayID {
+                log.info("widget display gone")
+                widgetDisplayID = resolved.savedID
+            }
+        }
     }
 
     func setWidgetPanelWidth(_ raw: CGFloat) {

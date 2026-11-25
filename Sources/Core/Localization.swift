@@ -124,7 +124,7 @@ enum L10nKey {
 
     // Email
     case setAccounts
-    case mailSetupTitle, mailSetupSub, mailSetupAction
+    case mailSetupTitle, mailSetupSub
     case mailInboxEmpty, mailOpenInApp, mailNoBody, mailNoSubject
     case mailProvider, mailAddress, mailPassword, mailPasswordHint, mailOutlookWarning
     case mailImapHost, mailSmtpHost
@@ -323,7 +323,6 @@ enum L10nKey {
         case .setAccounts: return ["Accounts", "Аккаунты", "Comptes", "Cuentas", "账户", "Contas", "Konten", "Account", "アカウント", "계정"]
         case .mailSetupTitle: return ["no account", "нет аккаунта", "aucun compte", "sin cuenta", "未设置账户", "sem conta", "kein Konto", "nessun account", "アカウントなし", "계정 없음"]
         case .mailSetupSub: return ["Connect your mailbox — it stays between your Mac and your provider", "Подключите ящик — данные ходят только между Mac и вашим провайдером", "Connectez votre boîte — tout reste entre votre Mac et votre fournisseur", "Conecta tu buzón — todo queda entre tu Mac y tu proveedor", "连接邮箱 — 数据仅在您的 Mac 与邮件服务商之间传输", "Ligue a sua caixa — tudo fica entre o Mac e o fornecedor", "Postfach verbinden — alles bleibt zwischen Mac und Anbieter", "Collega la casella — resta tra il tuo Mac e il provider", "メールボックスを接続 — データはMacとプロバイダ間のみ", "메일함 연결 — 데이터는 Mac과 제공업체 사이에만"]
-        case .mailSetupAction: return ["Set up account", "Настроить аккаунт", "Configurer le compte", "Configurar cuenta", "设置账户", "Configurar conta", "Konto einrichten", "Configura account", "アカウントを設定", "계정 설정"]
         case .mailAddAction: return ["Add mail", "Добавить почту", "Ajouter une boîte mail", "Añadir correo", "添加邮箱", "Adicionar e-mail", "Mail hinzufügen", "Aggiungi posta", "メールを追加", "메일 추가"]
         case .mailGetAppPassword: return ["Get app password", "Получить пароль приложения", "Obtenir un mot de passe d'application", "Obtener contraseña de aplicación", "获取应用专用密码", "Obter palavra-passe de aplicação", "App-Passwort holen", "Ottieni password per le app", "アプリパスワードを取得", "앱 암호 받기"]
         case .mailAppPasswordStep: return ["Create a password for Pocket there and copy it — it appears here by itself", "Создайте там пароль для Pocket и скопируйте — он появится здесь сам", "Créez-y un mot de passe pour Pocket et copiez-le — il apparaîtra ici tout seul", "Crea allí una contraseña para Pocket y cópiala — aparecerá aquí sola", "在那里为 Pocket 创建密码并复制 — 它会自动出现在这里", "Crie lá uma palavra-passe para o Pocket e copie-a — ela aparece aqui sozinha", "Dort ein Passwort für Pocket erstellen und kopieren — es erscheint hier von selbst", "Crea lì una password per Pocket e copiala — comparirà qui da sola", "そこでPocket用のパスワードを作成してコピー — ここに自動で入ります", "거기서 Pocket용 암호를 만들어 복사하세요 — 여기에 자동으로 입력됩니다"]
