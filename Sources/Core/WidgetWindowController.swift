@@ -33,6 +33,7 @@ final class WidgetWindowController: NSObject {
     /// The lock screen was opened by itself for the current lock.
     private var didPresentLockScreen = false
     private let log = Logger(subsystem: "com.dk2la.pocket", category: "widget")
+    private lazy var eventPill = LiveEventPillController(settings: settings)
 
     init(settings: AppSettings, services: ModuleServices) {
         self.settings = settings
@@ -66,6 +67,7 @@ final class WidgetWindowController: NSObject {
 
         attach()
         observeAccess()
+        setUpLiveEvents()
     }
 
     // MARK: - Lock (Trial ended, License invalid…)
@@ -346,6 +348,7 @@ final class WidgetWindowController: NSObject {
         guard currentScreen != nil, !viewModel.isMinimized else { return }
         collapseTask?.cancel()
         collapseTask = nil
+        eventPill.dismiss()
         // Module panels host text input — let the panel take key status
         // without activating the app.
         panel.allowsKeyFocus = true
@@ -392,6 +395,7 @@ final class WidgetWindowController: NSObject {
             collapseTask?.cancel()
             collapseTask = nil
             stopAutoClose()
+            eventPill.dismiss()
             withInstantTransaction {
                 viewModel.setSelectedTab(nil)
             }
@@ -542,5 +546,48 @@ final class WidgetWindowController: NSObject {
         var transaction = Transaction()
         transaction.disablesAnimations = true
         withTransaction(transaction, body)
+    }
+}
+
+// MARK: - Live events
+
+/// The widget owns the event subscriptions; the pill shows them beside the
+/// strip.
+extension WidgetWindowController {
+    fileprivate func setUpLiveEvents() {
+        let handler: (LiveEvent) -> Void = { [weak self] event in self?.presentEvent(event) }
+        services.powerMonitor.onEvent = handler
+        services.audioMonitor.onEvent = handler
+        services.timerService.onFinished = { [weak self] in self?.presentEvent(.timerFinished) }
+        services.playbookRunner.onFinished = { [weak self] playbook, _ in
+            self?.presentEvent(.playbookRan(name: playbook.name))
+        }
+    }
+
+    /// Slides the event pill out of the strip, unless the gate says skip.
+    /// `closingPanel` (demo sample buttons, which sit in a panel) shuts an
+    /// open panel first and shows the event once it is gone.
+    func presentEvent(_ event: LiveEvent, closingPanel: Bool = false) {
+        if closingPanel, viewModel.selectedTab != nil {
+            closePanel()
+            Task { [weak self] in
+                try? await Task.sleep(for: .milliseconds(CapsuleMetrics.windowCollapseDelayMilliseconds))
+                self?.presentEvent(event)
+            }
+            return
+        }
+        guard LiveEventGate.shouldShow(
+            event,
+            panelOpen: viewModel.selectedTab != nil,
+            locked: viewModel.isLocked,
+            minimized: viewModel.isMinimized
+        ), !isDragging, let screen = currentScreen else { return }
+        log.info("event \(String(describing: event), privacy: .public)")
+        eventPill.present(
+            event,
+            strip: stripFrame(minimized: viewModel.isMinimized, on: screen),
+            edge: settings.widgetEdge,
+            visibleFrame: screen.visibleFrame
+        )
     }
 }

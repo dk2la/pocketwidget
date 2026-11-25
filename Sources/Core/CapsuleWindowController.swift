@@ -43,10 +43,6 @@ final class CapsuleWindowController: NSObject {
         self.services = services
         super.init()
 
-        services.playbookRunner.onFinished = { [weak self] playbook, _ in
-            self?.present(.playbookRan(name: playbook.name))
-        }
-
         settings.addChangeHandler { [weak self] in
             guard let self else { return }
             // The strip was dragged to another display, or its display went
@@ -218,20 +214,14 @@ final class CapsuleWindowController: NSObject {
         }
     }
 
+    /// Live events moved to the widget's event pill; the capsule only
+    /// follows playback and the timer for its compact idle state.
     private func setUpLiveEvents() {
-        let handler: (LiveEvent) -> Void = { [weak self] event in
-            self?.present(event)
-        }
-        services.powerMonitor.onEvent = handler
-        services.audioMonitor.onEvent = handler
         services.mediaCenter.onPlaybackChanged = { [weak self] in
             self?.refreshIdleState()
         }
         services.timerService.onRunningChanged = { [weak self] in
             self?.refreshIdleState()
-        }
-        services.timerService.onFinished = { [weak self] in
-            self?.present(.timerFinished)
         }
     }
 

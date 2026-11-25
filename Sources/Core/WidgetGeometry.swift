@@ -186,6 +186,25 @@ enum WidgetGeometry {
         )
     }
 
+    /// Live event pill beside the strip, on the side facing the screen
+    /// centre (the same side a panel opens on), centred on the strip along
+    /// its axis and clamped to the visible frame. The strip never moves.
+    static func eventPillFrame(strip: NSRect, edge: WidgetEdge, pillSize size: CGSize, visibleFrame vf: NSRect) -> NSRect {
+        let gap = WidgetMetrics.panelGap
+        let origin: CGPoint = switch edge {
+        case .left: CGPoint(x: strip.maxX + gap, y: strip.midY - size.height / 2)
+        case .right: CGPoint(x: strip.minX - gap - size.width, y: strip.midY - size.height / 2)
+        case .bottom: CGPoint(x: strip.midX - size.width / 2, y: strip.maxY + gap)
+        case .top: CGPoint(x: strip.midX - size.width / 2, y: strip.minY - gap - size.height)
+        }
+        return NSRect(
+            x: min(max(origin.x, vf.minX), max(vf.maxX - size.width, vf.minX)),
+            y: min(max(origin.y, vf.minY), max(vf.maxY - size.height, vf.minY)),
+            width: size.width,
+            height: size.height
+        )
+    }
+
     /// Nearest edge + normalized offset for a dropped strip frame.
     static func nearestPlacement(for frame: NSRect, in visibleFrame: CGRect) -> (edge: WidgetEdge, offset: Double) {
         let vf = visibleFrame
