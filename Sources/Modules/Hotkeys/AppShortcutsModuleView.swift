@@ -72,8 +72,6 @@ struct AppShortcutsModuleView: View {
             query: service.query,
             isSettled: service.snapshot != nil || service.supportsPresetImport
         )
-        // The keyboard is the empty module only: with shortcuts to show,
-        // the list starts at the app card.
         return VStack(alignment: .leading, spacing: 10) {
             if let target = service.target {
                 ScrollView(.vertical, showsIndicators: false) {
@@ -88,9 +86,7 @@ struct AppShortcutsModuleView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         VStack(alignment: .leading, spacing: 18) {
                             hero(target)
-                            ModuleEmptyScreen(label: L10n.t(.keysNone), sublabel: L10n.t(.keysNoneSub)) {
-                                IsoKeyboardView()
-                            }
+                            ModuleEmptyScreen(label: L10n.t(.keysNone), sublabel: L10n.t(.keysNoneSub))
                         }
                         EmptyActionBar(label: L10n.t(.keysAddOwn)) {
                             editing = .new
@@ -101,9 +97,7 @@ struct AppShortcutsModuleView: View {
             }
         }
         .emptyScreen(when: state == .noApp) {
-            ModuleEmptyScreen(label: L10n.t(.keysNoApp), sublabel: L10n.t(.keysNoAppSub)) {
-                IsoKeyboardView()
-            }
+            ModuleEmptyScreen(label: L10n.t(.keysNoApp), sublabel: L10n.t(.keysNoAppSub))
         }
     }
 
@@ -244,7 +238,7 @@ struct AppShortcutsModuleView: View {
                 }
             }
         case .noSearchResults:
-            // A search that finds nothing is not an empty module: no device.
+            // A search that finds nothing is not an empty module.
             EmptyStateZone(label: L10n.t(.mailNoResults))
                 .frame(height: 80)
         case .noApp, .noShortcuts, .pending:

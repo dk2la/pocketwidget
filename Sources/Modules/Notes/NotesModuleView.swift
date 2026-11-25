@@ -25,9 +25,7 @@ struct NotesModuleView: View {
                 ModuleEmptyScreen(
                     label: L10n.t(.notesEmptyTitle),
                     sublabel: L10n.t(.notesEmptySub)
-                ) {
-                    IsoNotebookView(count: 0, isRecording: speech.isRecording)
-                }
+                )
             }
             SpeechStatusRow(speech: speech)
             captureBar
