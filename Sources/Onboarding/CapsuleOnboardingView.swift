@@ -248,7 +248,12 @@ private struct OnboardingAction: View {
                 StatusChip(text: config.provider.title)
             } else {
                 PillButton(L10n.t(.obConnect), systemName: "sparkles", size: .small) {
-                    requestSettings(page: .accounts)
+                    // Setup lives in the module: open it on the chooser.
+                    NotificationCenter.default.post(
+                        name: .pocketShowModule,
+                        object: nil,
+                        userInfo: ["tab": ModuleTab.assistant.rawValue]
+                    )
                 }
             }
         case .welcome, .ready:

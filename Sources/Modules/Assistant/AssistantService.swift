@@ -35,6 +35,23 @@ final class AssistantService {
     }
     @ObservationIgnored private var parked: ParkedState?
 
+    /// Choosing and connecting a provider, inside the module. Lives here so
+    /// a half-done setup survives the panel closing while the person signs
+    /// in. Built on first use: its ports need the finished service.
+    @ObservationIgnored private(set) lazy var setup = makeSetup()
+
+    private func makeSetup() -> AssistantSetupFlow {
+        AssistantSetupFlow(ports: AssistantSetupFlow.Ports(
+            detect: { await AssistantSetupSystem.detect() },
+            probe: { config, key in await AssistantService.testConnection(config, key: key) },
+            openTerminal: { AssistantSetupSystem.openTerminal(script: $0) },
+            sleep: { try? await Task.sleep(for: $0) },
+            currentConfig: { [weak self] in self?.config },
+            storedKey: { [weak self] in self?.storedKey() ?? "" },
+            save: { [weak self] config, key in self?.saveConfig(config, key: key) ?? false }
+        ))
+    }
+
     @ObservationIgnored private let log = Logger(subsystem: "com.dk2la.pocket", category: "assistant")
     @ObservationIgnored private let defaults = UserDefaults.standard
     @ObservationIgnored private let vault = SecretVault(service: AssistantConfig.keychainService)
@@ -95,6 +112,26 @@ final class AssistantService {
         log.error("assistant turn failed: \(message, privacy: .public)")
     }
 
+    /// A failed turn of `claude` or `codex`. The program's own words go to
+    /// the log; the chat gets one plain sentence, and a signed-out program
+    /// gets its sign-in step in the chooser.
+    private func appendCLIFailure(_ error: Error, provider: AssistantProvider) {
+        log.error("cli turn failed: \(error.localizedDescription, privacy: .public)")
+        let text: String
+        switch AssistantProbeOutcome(.failure(error)) {
+        case .signedOut:
+            setup.noteSignedOut(provider)
+            text = L10n.f(.asstChatSignedOut, provider.title)
+        case .failed(.notInstalled):
+            text = L10n.f(.asstChatMissing, provider.title)
+        case .failed(.timedOut):
+            text = L10n.t(.asstTimedOut)
+        case .connected, .failed:
+            text = L10n.t(.asstChatFailed)
+        }
+        transcript.append(AssistantMessage(role: .assistant, text: text, isError: true))
+    }
+
     /// Runs one tool call, records it in the transcript, and returns the
     /// outcome for the backend to feed back to the model.
     private func performToolCall(name: String, argumentsJSON: String) -> ToolOutcome {
@@ -148,8 +185,11 @@ final class AssistantService {
         vault.secret(account: Self.keyAccount) ?? ""
     }
 
-    func saveConfig(_ newConfig: AssistantConfig, key: String) {
-        guard !isDemo else { return }
+    /// Stores a provider. The conversation stays as it is: changing who
+    /// answers does not clear the chat. False when the key was not stored.
+    @discardableResult
+    func saveConfig(_ newConfig: AssistantConfig, key: String) -> Bool {
+        guard !isDemo else { return false }
         // CLI providers carry their own auth, and an unchanged key must not
         // be rewritten — a fresh Keychain add is a fresh access prompt.
         if !newConfig.provider.isCLI, key != storedKey() {
@@ -157,14 +197,32 @@ final class AssistantService {
                 try vault.set(key, account: Self.keyAccount)
             } catch {
                 log.error("keychain save failed: \(error.localizedDescription, privacy: .public)")
-                return
+                return false
             }
+        }
+        if config?.provider != newConfig.provider {
+            rebuildAPIHistory()
         }
         config = newConfig
         if let data = try? JSONEncoder().encode(newConfig) {
             defaults.set(data, forKey: AssistantConfig.defaultsKey)
         }
         log.info("assistant saved model=\(newConfig.model, privacy: .public)")
+        return true
+    }
+
+    /// The wire history as the visible conversation tells it. The two
+    /// command-line providers keep no wire history, so after a change of
+    /// provider this is what the next one is given to read.
+    private func rebuildAPIHistory() {
+        apiHistory = transcript.compactMap { message in
+            switch message.role {
+            case .user: ["role": "user", "content": message.text]
+            case .assistant: message.isError ? nil : ["role": "assistant", "content": message.text]
+            case .tool: nil
+            }
+        }
+        trimHistory()
     }
 
     func removeConfig() {
@@ -173,6 +231,7 @@ final class AssistantService {
         config = nil
         defaults.removeObject(forKey: AssistantConfig.defaultsKey)
         clearTranscript()
+        setup.providerRemoved()
         log.info("assistant removed")
     }
 
@@ -205,10 +264,23 @@ final class AssistantService {
 
     // MARK: - Chat
 
+    /// Sends what is in the text box.
     func send() {
-        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, !isThinking, let config else { return }
+        guard canSend(draft) else { return }
+        let text = draft
         draft = ""
+        send(text)
+    }
+
+    private func canSend(_ text: String) -> Bool {
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isThinking && config != nil
+    }
+
+    /// Sends `text` as the person's message, leaving the text box alone —
+    /// the suggestions in an empty chat go out this way.
+    func send(_ message: String) {
+        let text = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard canSend(text), let config else { return }
         // Typing on instead of confirming is a "no".
         pendingPlaybook = nil
         transcript.append(AssistantMessage(role: .user, text: text))
@@ -238,7 +310,7 @@ final class AssistantService {
             do {
                 answer = try await client.send(system: cliSystemPrompt(), prompt: cliPrompt())
             } catch {
-                appendFailure(error.localizedDescription)
+                appendCLIFailure(error, provider: client.provider)
                 return
             }
 
@@ -269,7 +341,9 @@ final class AssistantService {
         """
         You are the assistant inside Pocket, a macOS desktop widget with modules: \
         timer, playbooks (app workspaces), music, calendar, notes and email. \
-        Be brief — answers render in a small panel. Reply in \(L10n.shared.language.title).
+        Be brief — answers render in a small panel. Reply in \(L10n.shared.language.title). \
+        When a tool says that something is not set up or that access is not granted, \
+        ask the user to connect it in that module of Pocket.
         """
     }
 
