@@ -43,12 +43,15 @@ struct NotesModuleView: View {
                     hero(latest)
                     let rest = Array(store.notes.dropFirst())
                     if !rest.isEmpty {
-                        GroupedCard {
-                            ForEach(Array(rest.enumerated()), id: \.element.id) { index, note in
-                                NoteRow(note: note, age: Self.age(of: note), isLast: index == rest.count - 1) {
-                                    store.open(note)
-                                } onDelete: {
-                                    store.delete(note)
+                        VStack(alignment: .leading, spacing: 8) {
+                            SectionHeader(title: L10n.t(.mailSectionEarlier), trailing: "\(rest.count)")
+                            GroupedCard {
+                                ForEach(Array(rest.enumerated()), id: \.element.id) { index, note in
+                                    NoteRow(note: note, age: Self.age(of: note), isLast: index == rest.count - 1) {
+                                        store.open(note)
+                                    } onDelete: {
+                                        store.delete(note)
+                                    }
                                 }
                             }
                         }
