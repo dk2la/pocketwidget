@@ -60,7 +60,7 @@ final class CalendarService {
 
     @ObservationIgnored private let store = EKEventStore()
     @ObservationIgnored private let log = Logger(subsystem: "com.dk2la.pocket", category: "calendar")
-    @ObservationIgnored private let defaults = UserDefaults.standard
+    @ObservationIgnored private let defaults = UserDefaults.app
     @ObservationIgnored private static let enabledKey = "calendar.enabledIDs"
     @ObservationIgnored private static let modeKey = "calendar.displayMode"
 
@@ -106,6 +106,10 @@ final class CalendarService {
     }
 
     func requestAccess() async {
+        // Only an unanswered question puts up the consent dialog.
+        let asks = EKEventStore.authorizationStatus(for: .event) == .notDetermined
+        let yield = asks ? PanelHold.shared.beginYield() : nil
+        defer { yield.map(PanelHold.shared.end) }
         do {
             let granted = try await store.requestFullAccessToEvents()
             realAccess = granted ? .granted : .denied

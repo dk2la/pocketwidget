@@ -1,9 +1,10 @@
 import CoreServices
 import Foundation
 
-/// Checks Apple Events (Automation) permission towards a target app without
-/// triggering the consent dialog — the dialog appears naturally on the first
-/// real AppleScript call.
+/// Checks Apple Events (Automation) permission towards a target app. `status`
+/// never triggers the consent dialog (it appears on the first real
+/// AppleScript call); `request` asks when the user picked a player. Both
+/// round-trip to the target and may block — call them off the main thread.
 enum AutomationPermission {
     enum Status {
         case granted
@@ -13,6 +14,15 @@ enum AutomationPermission {
     }
 
     static func status(towardsBundleID bundleID: String) -> Status {
+        determine(towardsBundleID: bundleID, askUserIfNeeded: false)
+    }
+
+    /// Shows the consent dialog if the user has not answered yet.
+    static func request(towardsBundleID bundleID: String) -> Status {
+        determine(towardsBundleID: bundleID, askUserIfNeeded: true)
+    }
+
+    private static func determine(towardsBundleID bundleID: String, askUserIfNeeded: Bool) -> Status {
         var address = AEAddressDesc()
         guard let data = bundleID.data(using: .utf8) else { return .undetermined }
         let createStatus = data.withUnsafeBytes { bytes in
@@ -21,7 +31,7 @@ enum AutomationPermission {
         guard createStatus == noErr else { return .undetermined }
         defer { AEDisposeDesc(&address) }
 
-        switch AEDeterminePermissionToAutomateTarget(&address, typeWildCard, typeWildCard, false) {
+        switch AEDeterminePermissionToAutomateTarget(&address, typeWildCard, typeWildCard, askUserIfNeeded) {
         case noErr:
             return .granted
         case -1743: // errAEEventNotPermitted — the user declined automation

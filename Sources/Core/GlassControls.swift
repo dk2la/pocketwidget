@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// Widget material appearance. The capsule is always dark glass — this only
-/// affects the edge widget; `.auto` follows the system appearance.
+/// Widget material appearance; `.auto` follows the system appearance.
 enum GlassAppearance: String {
     case light
     case dark

@@ -8,7 +8,7 @@ import SwiftUI
 /// the widget closes it.
 @MainActor
 final class WidgetWindowController: NSObject {
-    private let panel = CapsulePanel()
+    private let panel = FloatingPanel()
     private let viewModel = WidgetViewModel()
     private let settings: AppSettings
     private let services: ModuleServices
@@ -33,6 +33,10 @@ final class WidgetWindowController: NSObject {
     /// The lock screen was opened by itself for the current lock.
     private var didPresentLockScreen = false
     private let log = Logger(subsystem: "com.dk2la.pocket", category: "widget")
+    private lazy var eventPill = LiveEventPillController(settings: settings)
+    /// Fired once when the welcome tour ends — closed, or left for a module
+    /// (a settings detour does not count until that panel closes too).
+    var onTourClosed: (() -> Void)?
 
     init(settings: AppSettings, services: ModuleServices) {
         self.settings = settings
@@ -42,6 +46,7 @@ final class WidgetWindowController: NSObject {
         viewModel.onTabTapped = { [weak self] tab in self?.toggleTab(tab) }
         viewModel.onClose = { [weak self] in self?.closePanel() }
         viewModel.onRestore = { [weak self] in self?.setMinimized(false) }
+        viewModel.onResumeOnboarding = { [weak self] in self?.openOnboarding(resume: true) }
         viewModel.onDragChanged = { [weak self] in self?.dragChanged() }
         viewModel.onDragEnded = { [weak self] in self?.dragEnded() }
         viewModel.onResizeChanged = { [weak self] in self?.resizeChanged() }
@@ -66,6 +71,7 @@ final class WidgetWindowController: NSObject {
 
         attach()
         observeAccess()
+        setUpLiveEvents()
     }
 
     // MARK: - Lock (Trial ended, License invalid…)
@@ -121,13 +127,25 @@ final class WidgetWindowController: NSObject {
         guard let raw = notification.userInfo?["tab"] as? String,
               let tab = ModuleTab(rawValue: raw), settings.isEnabled(tab),
               !viewModel.isLocked else { return }
+        if tab == .settings {
+            openSettings()
+            return
+        }
+        // The tour's own buttons hand over to a module: the tour is done.
+        endTour()
+        showPanel(tab)
+    }
+
+    /// Restores a minimized widget, then opens `tab` or switches the open
+    /// panel to it in place.
+    private func showPanel(_ tab: ModuleTab) {
         if viewModel.isMinimized {
             setMinimized(false)
         }
         if viewModel.selectedTab == nil {
             openPanel(tab)
         } else if viewModel.selectedTab != tab {
-            viewModel.setSelectedTab(tab)
+            switchPanel(to: tab)
         }
     }
 
@@ -149,6 +167,9 @@ final class WidgetWindowController: NSObject {
         collapseTask = nil
         stopAutoClose()
         panel.allowsKeyFocus = false
+        // The pill sits beside the full strip; a rolled-up strip would
+        // leave it floating off its end.
+        eventPill.dismiss()
 
         let full = stripFrame(minimized: false, on: screen)
         let target = stripFrame(minimized: minimized, on: screen)
@@ -161,9 +182,10 @@ final class WidgetWindowController: NSObject {
             viewModel.stripFrame = CGRect(origin: .zero, size: target.size)
             viewModel.panelFrame = .zero
         }
+        endTour()
         if minimized {
             collapseTask = Task { [weak self] in
-                try? await Task.sleep(for: .milliseconds(CapsuleMetrics.windowCollapseDelayMilliseconds))
+                try? await Task.sleep(for: .milliseconds(WidgetMetrics.windowCollapseDelayMilliseconds))
                 guard !Task.isCancelled, let self else { return }
                 self.collapseTask = nil
                 self.panel.setFrame(target, display: true)
@@ -185,9 +207,15 @@ final class WidgetWindowController: NSObject {
 
     // MARK: - Outside click (close-on-click-away)
 
-    private func installOutsideClickMonitors() {
+    /// `opening` is the tab of a panel that is selected a tick later.
+    private func installOutsideClickMonitors(opening tab: ModuleTab? = nil) {
         stopAutoClose()
-        guard settings.closeOnOutsideClick else { return }
+        let content = WidgetPanelContent.resolve(
+            selectedTab: tab ?? viewModel.selectedTab,
+            showsTour: viewModel.showsTour,
+            locked: viewModel.isLocked
+        )
+        guard content?.autoCloses(closeOnOutsideClick: settings.closeOnOutsideClick) ?? false else { return }
         outsideClickMonitors.install(
             isOutside: { [weak self] event in self.map { event.window !== $0.panel } ?? false },
             onClick: { [weak self] in
@@ -261,7 +289,7 @@ final class WidgetWindowController: NSObject {
         NSEvent.pressedMouseButtons == 0 && panel.attachedSheet == nil && !panel.hasOwnPopupWindow
     }
 
-    /// Settings changed (tabs, panel size, placement, theme) — re-derive the
+    /// Settings changed (tabs, panel size, placement, material) — re-derive the
     /// layout. Frames are idempotent, so over-calling is harmless.
     func settingsDidChange() {
         // Our own minimize writes land here; the animation owns the frames.
@@ -273,8 +301,9 @@ final class WidgetWindowController: NSObject {
         }
         // The open tab may have been disabled — fall back to the first
         // enabled one (there is always at least one).
-        if let tab = viewModel.selectedTab, !settings.isEnabled(tab) {
-            viewModel.setSelectedTab(settings.orderedEnabledTabs.first)
+        if let tab = viewModel.selectedTab, !settings.isEnabled(tab),
+           let first = settings.orderedEnabledTabs.first {
+            switchPanel(to: first)
         }
         // The pin toggle can change while a panel is open.
         if viewModel.selectedTab != nil {
@@ -299,7 +328,7 @@ final class WidgetWindowController: NSObject {
             services: services,
             settings: settings
         )
-        let hostingView = CapsuleHostingView(rootView: rootView)
+        let hostingView = PanelHostingView(rootView: rootView)
         hostingView.wantsLayer = true
         hostingView.layer?.backgroundColor = .clear
         panel.contentView = hostingView.makeWindowContentView()
@@ -313,19 +342,43 @@ final class WidgetWindowController: NSObject {
         // The strip stays on its saved display; if that one is gone it
         // moves to the built-in screen, same edge and offset.
         settings.refreshStripDisplay()
+        eventPill.dismiss()
         openTask?.cancel()
         collapseTask?.cancel()
         collapseTask = nil
+        stopAutoClose()
         withInstantTransaction {
             viewModel.setSelectedTab(nil)
         }
         applyDockedFrame()
+        // The tour was opened deliberately and is read: it comes back on
+        // the new layout. A settings detour does not.
+        if viewModel.showsTour, currentScreen != nil {
+            viewModel.cameFromOnboarding = false
+            openPanel(.settings)
+        } else {
+            endTour()
+        }
     }
 
     // MARK: - Panel open/close
 
     private func toggleTab(_ tab: ModuleTab) {
         log.info("tab -> \(tab.rawValue, privacy: .public)")
+        if viewModel.showsTour {
+            // A strip icon while the tour is up ends it: Settings shows in
+            // place, any other module switches in.
+            endTour()
+            if viewModel.selectedTab == tab {
+                installOutsideClickMonitors()
+            } else {
+                switchPanel(to: tab)
+            }
+            return
+        }
+        if viewModel.selectedTab != tab {
+            endTour()
+        }
         if viewModel.isMinimized {
             // The lone visible button unfolds the widget and opens itself.
             setMinimized(false)
@@ -335,8 +388,7 @@ final class WidgetWindowController: NSObject {
         if viewModel.selectedTab == tab {
             closePanel()
         } else if viewModel.selectedTab != nil {
-            // Window is already sized for the panel — switch in place.
-            viewModel.setSelectedTab(tab)
+            switchPanel(to: tab)
         } else {
             openPanel(tab)
         }
@@ -346,18 +398,27 @@ final class WidgetWindowController: NSObject {
         guard currentScreen != nil, !viewModel.isMinimized else { return }
         collapseTask?.cancel()
         collapseTask = nil
+        eventPill.dismiss()
         // Module panels host text input — let the panel take key status
         // without activating the app.
         panel.allowsKeyFocus = true
-        // Two-phase, same as the capsule: grow the window silently first (the
+        // Two-phase: grow the window silently first (the
         // strip's local frame shifts in the same tick, so it does not move
         // on screen), animate the panel in on the next tick once the
         // window's coordinate space is stable.
-        applyExpandedFrame()
+        applyExpandedFrame(for: tab)
         openTask = Task { [weak self] in
             guard !Task.isCancelled else { return }
             self?.viewModel.setSelectedTab(tab)
         }
+        installOutsideClickMonitors(opening: tab)
+    }
+
+    /// Another panel while one is open: switched in place. The window is
+    /// re-laid out first, as Settings has a size of its own.
+    private func switchPanel(to tab: ModuleTab) {
+        applyExpandedFrame(for: tab)
+        viewModel.setSelectedTab(tab)
         installOutsideClickMonitors()
     }
 
@@ -370,10 +431,11 @@ final class WidgetWindowController: NSObject {
             panel.resignKey()
         }
         viewModel.setSelectedTab(nil)
+        endTour()
         // Shrink the window only after the close animation has finished,
         // otherwise it would clip the panel mid-flight.
         collapseTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(CapsuleMetrics.windowCollapseDelayMilliseconds))
+            try? await Task.sleep(for: .milliseconds(WidgetMetrics.windowCollapseDelayMilliseconds))
             guard !Task.isCancelled, let self else { return }
             self.collapseTask = nil
             self.applyDockedFrame()
@@ -392,9 +454,11 @@ final class WidgetWindowController: NSObject {
             collapseTask?.cancel()
             collapseTask = nil
             stopAutoClose()
+            eventPill.dismiss()
             withInstantTransaction {
                 viewModel.setSelectedTab(nil)
             }
+            endTour()
             applyDockedFrame()
             dragStartMouse = now
             dragStartOrigin = panel.frame.origin
@@ -420,8 +484,8 @@ final class WidgetWindowController: NSObject {
         let placement = WidgetGeometry.nearestPlacement(for: panel.frame, in: dropScreen.visibleFrame)
         log.info("snap edge=\(placement.edge.rawValue, privacy: .public) offset=\(placement.offset, privacy: .public)")
         viewModel.edge = placement.edge
-        // The drop display is saved with the edge and offset; the capsule
-        // and the panel size limits follow it from here.
+        // The drop display is saved with the edge and offset; the panel
+        // size limits follow it from here.
         settings.setWidgetPlacement(
             screen: dropScreen,
             edge: placement.edge,
@@ -457,26 +521,21 @@ final class WidgetWindowController: NSObject {
         }
     }
 
-    private func applyExpandedFrame() {
+    /// Lays the window out for `tab`'s panel — the open one by default; an
+    /// opening panel passes its tab, as it is selected a tick later.
+    private func applyExpandedFrame(for tab: ModuleTab? = nil) {
         guard let screen = currentScreen else { return }
+        let size = settings.panelSize(for: tab ?? viewModel.selectedTab)
         applyLayout(WidgetGeometry.expandedLayout(
             edge: settings.widgetEdge,
             offset: settings.widgetOffset,
             iconCount: iconCount,
-            panelSize: widgetPanelSize(on: screen),
+            panelSize: CGSize(
+                width: size.width,
+                height: min(size.height, screen.visibleFrame.height - 2 * WidgetMetrics.edgeInset)
+            ),
             in: screen.visibleFrame
         ))
-    }
-
-    /// User-sized in both axes, clamped to the screen.
-    private func widgetPanelSize(on screen: NSScreen) -> CGSize {
-        CGSize(
-            width: settings.widgetPanelWidth,
-            height: min(
-                settings.widgetPanelHeight,
-                screen.visibleFrame.height - 2 * WidgetMetrics.edgeInset
-            )
-        )
     }
 
     // MARK: - Panel resize
@@ -485,26 +544,27 @@ final class WidgetWindowController: NSObject {
         let mouseX = NSEvent.mouseLocation.x
         guard let startX = resizeStartMouseX, let startWidth = resizeStartWidth else {
             resizeStartMouseX = mouseX
-            resizeStartWidth = settings.widgetPanelWidth
+            resizeStartWidth = settings.panelSize(for: viewModel.selectedTab).width
             return
         }
-        // The grip sits on the panel's outer edge; on a right-docked widget
+        // The grips resize whichever size the open panel uses. The grip
+        // sits on the panel's outer edge; on a right-docked widget
         // the panel grows leftwards, so the axis flips.
         let sign: CGFloat = settings.widgetEdge == .right ? -1 : 1
-        settings.setWidgetPanelWidth(startWidth + sign * (mouseX - startX))
+        settings.setPanelWidth(startWidth + sign * (mouseX - startX), for: viewModel.selectedTab)
     }
 
     private func resizeEnded() {
         resizeStartMouseX = nil
         resizeStartWidth = nil
-        log.info("panel width -> \(Int(self.settings.widgetPanelWidth), privacy: .public)")
+        log.info("panel width -> \(Int(self.settings.panelSize(for: self.viewModel.selectedTab).width), privacy: .public)")
     }
 
     private func heightResizeChanged() {
         let mouseY = NSEvent.mouseLocation.y
         guard let startY = resizeStartMouseY, let startHeight = resizeStartHeight else {
             resizeStartMouseY = mouseY
-            resizeStartHeight = settings.widgetPanelHeight
+            resizeStartHeight = settings.panelSize(for: viewModel.selectedTab).height
             return
         }
         // Side docks keep the panel centered on the strip, so both ends move
@@ -515,13 +575,13 @@ final class WidgetWindowController: NSObject {
         case .top: startY - mouseY // grip on the bottom edge, grows downward
         case .left, .right: (startY - mouseY) * 2
         }
-        settings.setWidgetPanelHeight(startHeight + delta)
+        settings.setPanelHeight(startHeight + delta, for: viewModel.selectedTab)
     }
 
     private func heightResizeEnded() {
         resizeStartMouseY = nil
         resizeStartHeight = nil
-        log.info("panel height -> \(Int(self.settings.widgetPanelHeight), privacy: .public)")
+        log.info("panel height -> \(Int(self.settings.panelSize(for: self.viewModel.selectedTab).height), privacy: .public)")
     }
 
     private func applyLayout(_ layout: WidgetGeometry.ExpandedLayout) {
@@ -542,5 +602,122 @@ final class WidgetWindowController: NSObject {
         var transaction = Transaction()
         transaction.disablesAnimations = true
         withTransaction(transaction, body)
+    }
+}
+
+// MARK: - Live events
+
+/// The widget owns the event subscriptions; the pill shows them beside the
+/// strip.
+extension WidgetWindowController {
+    fileprivate func setUpLiveEvents() {
+        let handler: (LiveEvent) -> Void = { [weak self] event in self?.presentEvent(event) }
+        services.powerMonitor.onEvent = handler
+        services.audioMonitor.onEvent = handler
+        services.timerService.onFinished = { [weak self] in self?.presentEvent(.timerFinished) }
+        services.playbookRunner.onFinished = { [weak self] playbook, _ in
+            self?.presentEvent(.playbookRan(name: playbook.name))
+        }
+    }
+
+    /// Slides the event pill out of the strip, unless the gate says skip.
+    /// `closingPanel` (demo sample buttons, which sit in a panel) shuts an
+    /// open panel first and shows the event once it is gone.
+    func presentEvent(_ event: LiveEvent, closingPanel: Bool = false) {
+        if closingPanel, viewModel.selectedTab != nil {
+            closePanel()
+            Task { [weak self] in
+                try? await Task.sleep(for: .milliseconds(WidgetMetrics.windowCollapseDelayMilliseconds))
+                self?.presentEvent(event)
+            }
+            return
+        }
+        guard LiveEventGate.shouldShow(
+            event,
+            panelOpen: viewModel.selectedTab != nil,
+            locked: viewModel.isLocked,
+            minimized: viewModel.isMinimized
+        ), !isDragging, let screen = currentScreen else { return }
+        log.info("event \(String(describing: event), privacy: .public)")
+        eventPill.present(
+            event,
+            strip: stripFrame(minimized: viewModel.isMinimized, on: screen),
+            edge: settings.widgetEdge,
+            visibleFrame: screen.visibleFrame
+        )
+    }
+}
+
+// MARK: - Settings and the welcome tour
+
+extension WidgetWindowController {
+    /// The one way into Settings: ⌃⌥M, the menu bar menu, deep links from
+    /// modules (`requestSettings(page:)`), `--settings`. Locked, it opens
+    /// the lock screen in the lock button's slot instead — Settings is no
+    /// way around the lock; the lock screen takes the License key.
+    func openSettings(page: SettingsView.Page? = nil) {
+        if let page {
+            viewModel.settingsPage.page = page
+        }
+        if viewModel.panelContent == .tour {
+            // Leaving the tour for a settings page is a detour: Settings
+            // leads with "‹ Back" to the same tour page.
+            viewModel.showsTour = false
+            viewModel.cameFromOnboarding = true
+            installOutsideClickMonitors()
+            return
+        }
+        // A detour going on to another page stays one; any other way in
+        // starts Settings afresh.
+        if !(viewModel.panelContent == .settings && viewModel.cameFromOnboarding) {
+            endTour()
+        }
+        showPanel(WidgetPanelContent.settingsSlot(
+            locked: viewModel.isLocked,
+            firstTab: settings.orderedEnabledTabs.first
+        ))
+    }
+
+    /// ⌃⌥M: closes Settings (or the tour, or the lock screen) like a second
+    /// click on its icon; over a module or a closed widget, opens Settings.
+    func toggleSettings() {
+        if WidgetPanelContent.hotkeyCloses(viewModel.panelContent) {
+            closePanel()
+        } else {
+            openSettings()
+        }
+    }
+
+    /// The welcome tour, in the Settings slot. `resume` comes back to the
+    /// page a settings detour left; otherwise it starts at the first page.
+    func openOnboarding(resume: Bool = false) {
+        // Locked, the tour is no way around the lock either: the lock
+        // screen opens in the lock button's slot, as for Settings.
+        guard !viewModel.isLocked else {
+            openSettings()
+            return
+        }
+        if !resume {
+            viewModel.onboardingStep = .welcome
+        }
+        viewModel.cameFromOnboarding = false
+        viewModel.showsTour = true
+        if viewModel.selectedTab == .settings {
+            // Tour ⇄ Settings swap in place; the tour must not close on a
+            // click away.
+            installOutsideClickMonitors()
+        } else {
+            showPanel(.settings)
+        }
+    }
+
+    /// The tour (or its settings detour) is over: clear it and tell the
+    /// app once.
+    private func endTour() {
+        guard viewModel.showsTour || viewModel.cameFromOnboarding else { return }
+        viewModel.showsTour = false
+        viewModel.cameFromOnboarding = false
+        log.info("tour closed")
+        onTourClosed?()
     }
 }

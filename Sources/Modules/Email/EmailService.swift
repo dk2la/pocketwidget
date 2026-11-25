@@ -127,7 +127,7 @@ final class EmailService {
     @ObservationIgnored private var parked: ParkedState?
 
     @ObservationIgnored private let log = Logger(subsystem: "com.dk2la.pocket", category: "email")
-    @ObservationIgnored private let defaults = UserDefaults.standard
+    @ObservationIgnored private let defaults = UserDefaults.app
     @ObservationIgnored private let vault = SecretVault(service: EmailAccountConfig.keychainService)
     @ObservationIgnored private var pollTask: Task<Void, Never>?
     @ObservationIgnored private var refreshTask: Task<Void, Never>?

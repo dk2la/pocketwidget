@@ -52,8 +52,11 @@ private enum WindowTile: String {
 
 extension NSWorkspace {
     /// System Settings ▸ Privacy & Security ▸ `pane` ("Calendars", "Automation"…).
+    /// The widget drops below Settings while the user is there.
+    @MainActor
     func openPrivacyPane(_ pane: String) {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_\(pane)") else { return }
+        SettingsVisitWatch.shared.start()
         open(url)
     }
 }

@@ -85,6 +85,10 @@ struct PlaybookEditorView: View {
             // that shut by itself; the close button and the tabs still work.
             if isPanel { PanelHold.shared.begin() }
         }
+        // Settings switches the layout live as its panel is resized.
+        .onChange(of: isPanel) { _, nowPanel in
+            if nowPanel { PanelHold.shared.begin() } else { PanelHold.shared.end() }
+        }
         .onDisappear {
             if isPanel { PanelHold.shared.end() }
             confirmTask?.cancel()

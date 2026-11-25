@@ -41,7 +41,7 @@ final class PermissionGuide {
 
     static let shared = PermissionGuide()
 
-    private var panel: CapsulePanel?
+    private var panel: FloatingPanel?
     private var followTask: Task<Void, Never>?
 
     private static let settingsBundleID = "com.apple.systempreferences"
@@ -61,14 +61,16 @@ final class PermissionGuide {
         dismiss()
         NSWorkspace.shared.openPrivacyPane(permission.pane)
 
-        let panel = CapsulePanel()
-        // Above System Settings, below menus and the capsule.
+        let panel = FloatingPanel()
+        // Above System Settings, below menus and the widget — also while
+        // the widget yields to Settings (see `PanelHold`).
+        panel.yieldsToSystemWindows = false
         panel.level = .floating
         panel.hasShadow = true
         let view = PermissionGuideView(permission: permission) { [weak self] in
             self?.dismiss()
         }
-        let hostingView = CapsuleHostingView(rootView: view)
+        let hostingView = PanelHostingView(rootView: view)
         panel.contentView = hostingView.makeWindowContentView()
         self.panel = panel
 

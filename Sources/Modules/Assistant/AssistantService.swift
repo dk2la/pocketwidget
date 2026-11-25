@@ -53,7 +53,7 @@ final class AssistantService {
     }
 
     @ObservationIgnored private let log = Logger(subsystem: "com.dk2la.pocket", category: "assistant")
-    @ObservationIgnored private let defaults = UserDefaults.standard
+    @ObservationIgnored private let defaults = UserDefaults.app
     @ObservationIgnored private let vault = SecretVault(service: AssistantConfig.keychainService)
     @ObservationIgnored private var toolbox: AssistantToolbox?
     /// Wire-shaped history (role/content/tool_calls dicts) sent to the API.

@@ -3,8 +3,8 @@ import Observation
 
 /// State of the edge widget that SwiftUI animates on. Frames are set by the
 /// controller in window-local SwiftUI coordinates, in the same runloop tick
-/// as the window frame — the two must never disagree (see the capsule's
-/// two-phase dance in CapsuleWindowController.requestState).
+/// as the window frame — the two must never disagree (see the two-phase
+/// open in WidgetWindowController.openPanel).
 @MainActor
 @Observable
 final class WidgetViewModel {
@@ -18,6 +18,23 @@ final class WidgetViewModel {
     /// lock screen.
     var isLocked = false
 
+    /// Page shown by the Settings module; deep links set it before opening.
+    let settingsPage = SettingsPageSelection()
+    /// Settings was opened from the welcome tour: its page list then leads
+    /// with "‹ Back" to the tour page it left (`onResumeOnboarding`).
+    var cameFromOnboarding = false
+    /// The Settings slot shows the welcome tour instead of Settings (see
+    /// WidgetPanelContent).
+    var showsTour = false
+    /// The tour's page. Kept here rather than in the view so a detour into
+    /// Settings (connecting an account) comes back to the same page.
+    var onboardingStep: OnboardingStep = .welcome
+
+    /// What the open panel shows; nil while collapsed.
+    var panelContent: WidgetPanelContent? {
+        WidgetPanelContent.resolve(selectedTab: selectedTab, showsTour: showsTour, locked: isLocked)
+    }
+
     var edge: WidgetEdge = .right
     var stripFrame: CGRect = .zero
     var panelFrame: CGRect = .zero
@@ -25,6 +42,8 @@ final class WidgetViewModel {
     @ObservationIgnored var onTabTapped: ((ModuleTab) -> Void)?
     @ObservationIgnored var onClose: (() -> Void)?
     @ObservationIgnored var onRestore: (() -> Void)?
+    /// Back from a settings detour to the tour (see `cameFromOnboarding`).
+    @ObservationIgnored var onResumeOnboarding: (() -> Void)?
     /// Drag reads the global cursor itself (NSEvent.mouseLocation) — the
     /// window moves mid-drag, so gesture-local coordinates would feed back.
     @ObservationIgnored var onDragChanged: (() -> Void)?

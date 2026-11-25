@@ -8,15 +8,16 @@ enum ShelfFilePicker {
     typealias Choose = @MainActor () async -> [URL]
 
     /// Shows the picker and puts what was chosen on the shelf, the same
-    /// way dropped files land. The panel is held open meanwhile. Returns
-    /// false when nothing was chosen.
+    /// way dropped files land. The panel is held open meanwhile and drops
+    /// below the picker (see `PanelHold`). Returns false when nothing was
+    /// chosen.
     @discardableResult
     static func addFiles(
         to shelf: ShelfStore,
         hold: PanelHold = .shared,
         choose: Choose = chooseWithOpenPanel
     ) async -> Bool {
-        let urls = await hold.during(choose)
+        let urls = await hold.yielding(choose)
         guard !urls.isEmpty else { return false }
         shelf.add(urls)
         return true

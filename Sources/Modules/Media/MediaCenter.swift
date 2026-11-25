@@ -24,7 +24,7 @@ final class MediaCenter {
     /// title/artwork views are not invalidated by timing updates.
     private(set) var track: MediaTrack?
     private(set) var artwork: NSImage?
-    /// Average artwork color — feeds the Glow theme's accent ring.
+    /// Average artwork color — tints the player card.
     private(set) var artworkAccent: Color?
     private(set) var availableSources: [MediaSourceKind] = []
     private(set) var activeSource: MediaSourceKind?
@@ -32,10 +32,6 @@ final class MediaCenter {
     /// Demo mode: one scripted player stands in for every real source.
     private(set) var isDemo = false
     @ObservationIgnored private var demoSource: DemoMediaSource?
-
-    /// Fired when playback starts/stops — the window controller uses it to
-    /// flip the capsule between closed and compact.
-    @ObservationIgnored var onPlaybackChanged: (() -> Void)?
 
     /// Songs heard on this Mac — "recently played" and "on repeat".
     @ObservationIgnored let history = PlayHistory()
@@ -52,7 +48,6 @@ final class MediaCenter {
     @ObservationIgnored private var pendingRefresh: Task<Void, Never>?
     @ObservationIgnored private var artworkTask: Task<Void, Never>?
     @ObservationIgnored private var lastArtworkKey: String?
-    @ObservationIgnored private var wasPlaying = false
     /// Explicit user choice — auto-follow never overrides it while the
     /// source stays available.
     @ObservationIgnored private var pinnedSource: MediaSourceKind?
@@ -62,12 +57,14 @@ final class MediaCenter {
     /// artwork bytes to a dedicated player that is the now-playing app.
     @ObservationIgnored private var systemTrack: MediaTrack?
     /// Dedicated players currently running, kept current by NSWorkspace
-    /// launch/quit notifications instead of a scan per refresh.
-    @ObservationIgnored private var runningPlayers: Set<String> = []
+    /// launch/quit notifications instead of a scan per refresh. Observed:
+    /// the provider chooser shows it, and it changes rarely.
+    private var runningPlayers: Set<String> = []
     @ObservationIgnored private let log = Logger(subsystem: "com.dk2la.pocket", category: "media")
     @ObservationIgnored private var lastLoggedSources: [String] = []
     /// Last known automation-permission statuses, refreshed off-thread.
-    @ObservationIgnored private var permissionCache: [String: AutomationPermission.Status] = [:]
+    /// Observed for the provider chooser; written only on real changes.
+    private var permissionCache: [String: AutomationPermission.Status] = [:]
     /// Per player: when its latest probe started. Drives the 60 s "stop
     /// waiting on a hung probe" rule; cleared when the player quits so a
     /// relaunch is probed at once.
@@ -211,32 +208,40 @@ final class MediaCenter {
     func previous() { command { await $0.previous() } }
     func like() { command { await $0.like() } }
 
-    /// Whether a remembered song can be started again from Pocket.
-    func canReplay(_ entry: PlayHistoryEntry) -> Bool {
-        if isDemo { return true }
-        guard entry.playID != nil else { return false }
-        switch entry.source {
-        case .spotify, .appleMusic: return true
-        case .client: return false
-        }
-    }
-
-    /// Starts a remembered song in the player it was heard in.
+    /// Starts a remembered song in the player it was heard in, launching
+    /// the player in the background first when it is not running.
     func replay(_ entry: PlayHistoryEntry) {
         if let demoSource {
             demoSource.play(title: entry.title)
             scheduleRefresh()
             return
         }
-        guard let playID = entry.playID else { return }
+        guard let playID = entry.playID, let provider = MusicProvider(bundleID: entry.sourceID) else { return }
         let kind = entry.source
         Task {
-            switch kind {
-            case .spotify: await spotify.play(uri: playID)
-            case .appleMusic: await music.play(persistentID: playID)
-            case .client: return
+            let wasRunning = runningPlayers.contains(provider.bundleID)
+            guard await launch(provider) else { return }
+            // A player that has just started takes a moment before it
+            // accepts Apple Events — retry for a few seconds.
+            for attempt in 0..<(wasRunning ? 1 : 5) {
+                if attempt > 0 { try? await Task.sleep(for: .seconds(1)) }
+                if await play(playID, in: kind) { break }
             }
             select(kind)
+        }
+    }
+
+    /// Whether the play command reached the player.
+    private func play(_ playID: String, in kind: MediaSourceKind) async -> Bool {
+        switch kind {
+        case .spotify:
+            await spotify.play(uri: playID)
+            return !spotify.lastCommandFailed
+        case .appleMusic:
+            await music.play(persistentID: playID)
+            return !music.lastCommandFailed
+        case .client:
+            return true
         }
     }
 
@@ -489,10 +494,6 @@ final class MediaCenter {
     }
 
     private func apply(_ newTrack: MediaTrack?) {
-        let isPlaying = newTrack?.isPlaying ?? false
-        let playbackChanged = isPlaying != wasPlaying
-        wasPlaying = isPlaying
-
         let now = Date()
         if let newTrack, let current = track, current.isSameItem(as: newTrack),
            abs(current.position(at: now) - newTrack.position(at: now)) < Self.positionDriftTolerance {
@@ -541,10 +542,6 @@ final class MediaCenter {
             if artworkAccent != nil { artworkAccent = nil }
             lastArtworkKey = nil
         }
-
-        if playbackChanged {
-            onPlaybackChanged?()
-        }
     }
 
     /// The system item carries the artwork bytes whenever the player is the
@@ -560,6 +557,94 @@ final class MediaCenter {
         }
         guard mayScript(track.source) else { return nil }
         return await source(for: track.source).fetchArtwork(for: track)
+    }
+}
+
+// MARK: - Providers
+
+/// The provider chooser: which music apps exist, launching one and asking
+/// for Automation on the user's behalf.
+extension MediaCenter {
+    /// A dedicated music app is among the sources — something the buttons
+    /// can drive even while it is silent.
+    var hasProviderSource: Bool {
+        availableSources.contains { MusicProvider(bundleID: $0.id) != nil }
+    }
+
+    func status(of provider: MusicProvider) -> MusicProviderStatus {
+        .of(
+            installed: NSWorkspace.shared.urlForApplication(withBundleIdentifier: provider.bundleID) != nil,
+            running: runningPlayers.contains(provider.bundleID),
+            automationDenied: permissionCache[provider.bundleID] == .denied
+        )
+    }
+
+    /// Players a history entry may be replayed in: installed and not
+    /// refused. Running is not required — replay launches the player.
+    var replayableSourceIDs: Set<String> {
+        let providers = MusicProvider.allCases.filter { provider in
+            if isDemo { return true }
+            let status = status(of: provider)
+            return status != .notInstalled && status != .needsPermission
+        }
+        return Set(providers.map(\.bundleID))
+    }
+
+    /// The provider chooser's action: get a missing app, send a refused one
+    /// to System Settings, otherwise start it in the background, make it
+    /// the controlled source and ask for Automation if not asked yet.
+    func connect(_ provider: MusicProvider) {
+        switch status(of: provider) {
+        case .notInstalled:
+            if let url = provider.downloadURL { NSWorkspace.shared.open(url) }
+        case .needsPermission:
+            NSWorkspace.shared.openPrivacyPane("Automation")
+        case .notRunning, .ready:
+            Task {
+                guard await launch(provider) else { return }
+                select(MediaSourceKind(bundleID: provider.bundleID))
+                requestPermission(for: provider)
+            }
+        }
+    }
+
+    /// Opens the player without taking focus. True once it is running.
+    private func launch(_ provider: MusicProvider) async -> Bool {
+        let bundleID = provider.bundleID
+        if runningPlayers.contains(bundleID) { return true }
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return false }
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.activates = false
+        configuration.addsToRecentItems = false
+        do {
+            _ = try await NSWorkspace.shared.openApplication(at: url, configuration: configuration)
+        } catch {
+            log.error("launch \(bundleID, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+        // The launch notification may land later; the source is listed now.
+        if !runningPlayers.contains(bundleID) { playerDidLaunch(bundleID) }
+        return true
+    }
+
+    /// Raises the Automation consent dialog once the user picked the
+    /// provider. Off the main thread: the check round-trips to the player
+    /// and can hang (see `probePermission`).
+    private func requestPermission(for provider: MusicProvider) {
+        let bundleID = provider.bundleID
+        guard permissionCache[bundleID] != .granted else { return }
+        Task { [weak self] in
+            // The consent dialog belongs above the widget. The call may hang
+            // (see `probePermission`); the yield's timeout covers that.
+            let status = await PanelHold.shared.yielding {
+                await Task.detached {
+                    AutomationPermission.request(towardsBundleID: bundleID)
+                }.value
+            }
+            guard let self, self.permissionCache[bundleID] != status else { return }
+            self.permissionCache[bundleID] = status
+            self.scheduleRefresh()
+        }
     }
 }
 

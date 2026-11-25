@@ -3,8 +3,8 @@
 import Foundation
 import Observation
 
-/// Interface languages. The chosen language translates the whole widget,
-/// capsule and settings UI at once.
+/// Interface languages. The chosen language translates the whole widget
+/// and settings UI at once.
 enum AppLanguage: String, CaseIterable, Identifiable {
     case en, ru, fr, es, zh, pt, de, it, ja, ko
 
@@ -99,7 +99,9 @@ enum L10nKey {
     // Media
     case mediaIdle, mediaSilent, mediaNoSignal
     case mediaPlay, mediaPlaying, mediaPaused, mediaPlayers, mediaControlNote
-    case mediaRecent, mediaOnRepeat, mediaPlays, mediaHistoryHint
+    case mediaRecent, mediaOnRepeat, mediaPlays
+    case mediaProviders, mediaProvidersHint, mediaProviderOpen, mediaProviderConnect
+    case mediaProviderPermission, mediaProviderGet, mediaProviderMissing
 
     // Clipboard
     case clipCopied, clipClear, clipEmptyTitle, clipEmptySub, clipMemoryNote, clipLatest, clipCopy
@@ -165,17 +167,17 @@ enum L10nKey {
     // Metrics
     case sysMemory, sysNetwork, sysBattery, sysCharging, sysVolume, sysNow, sysLiveNote
     case sysAverage, sysPeak, sysLowest, sysLastMinutes, sysDownload, sysUpload, sysMetricsSection
+    case sysProcessesSection, sysProcessesLoading
 
     // Settings
     case setTitle, setGeneral, setAppearance, setModules, setHotkeys
     case setCheckUpdates
     case setBehavior, setLaunch, setLaunchSub
-    case setIdle, setIdleSub, setIdleInvisible, setIdleCompact
     case setLanguage, setLanguageSub
-    case setShellTheme, setCapsule, setCapsuleSub, setWidgetMaterial, setWidgetMaterialSub
+    case setWidgetMaterial, setWidgetMaterialSub
     case setLight, setDark, setAuto
     case setModulesHint, setDefaultTag, setSoonTag
-    case setOpenSettings, setExpandCapsule, setExpandCapsuleSub
+    case setOpenSettings
     case setOutsideClick, setOutsideClickSub
     case setHideWidget, setHideWidgetSub, setPinPanel, setPinPanelSub
     case setModeToggle, setModeToggleSub
@@ -259,7 +261,13 @@ enum L10nKey {
         case .mediaRecent: return ["Recently played", "Недавно играли", "Écoutés récemment", "Escuchado recientemente", "最近播放", "Ouvidas recentemente", "Zuletzt gespielt", "Ascoltati di recente", "最近再生した曲", "최근 재생"]
         case .mediaOnRepeat: return ["On repeat", "На повторе", "En boucle", "En bucle", "单曲循环", "Em repetição", "Auf Dauerschleife", "In loop", "リピート中", "반복 재생 중"]
         case .mediaPlays: return ["Plays: %@", "Прослушиваний: %@", "Écoutes : %@", "Reproducciones: %@", "播放次数：%@", "Reproduções: %@", "Wiedergaben: %@", "Ascolti: %@", "再生回数：%@", "재생 횟수: %@"]
-        case .mediaHistoryHint: return ["Songs you play will show up here", "Здесь появятся песни, которые ты слушаешь", "Les titres écoutés apparaîtront ici", "Aquí aparecerán las canciones que escuches", "你播放的歌曲会显示在这里", "As músicas que ouvires aparecem aqui", "Gespielte Songs erscheinen hier", "Qui compariranno i brani che ascolti", "再生した曲がここに表示されます", "재생한 곡이 여기에 표시됩니다"]
+        case .mediaProviders: return ["Choose a music app", "Выбери музыкальное приложение", "Choisis une app de musique", "Elige una app de música", "选择音乐应用", "Escolhe uma app de música", "Wähle eine Musik-App", "Scegli un'app musicale", "音楽アプリを選択", "음악 앱 선택"]
+        case .mediaProvidersHint: return ["Pocket plays and controls music in these apps", "Pocket включает музыку и управляет ей в этих приложениях", "Pocket lance et contrôle la musique dans ces apps", "Pocket reproduce y controla la música en estas apps", "Pocket 可在这些应用中播放和控制音乐", "O Pocket toca e controla música nestas apps", "Pocket spielt und steuert Musik in diesen Apps", "Pocket riproduce e controlla la musica in queste app", "Pocket はこれらのアプリで音楽を再生・操作できます", "Pocket은 이 앱에서 음악을 재생하고 제어합니다"]
+        case .mediaProviderOpen: return ["Open and connect", "Открыть и подключить", "Ouvrir et connecter", "Abrir y conectar", "打开并连接", "Abrir e ligar", "Öffnen und verbinden", "Apri e collega", "開いて接続", "열고 연결"]
+        case .mediaProviderConnect: return ["Running · connect", "Запущено · подключить", "Ouvert · connecter", "Abierto · conectar", "已运行 · 连接", "Aberto · ligar", "Läuft · verbinden", "Aperto · collega", "起動中 · 接続", "실행 중 · 연결"]
+        case .mediaProviderPermission: return ["Allow control in System Settings", "Разреши управление в Системных настройках", "Autorise le contrôle dans Réglages Système", "Permite el control en Ajustes del Sistema", "在系统设置中允许控制", "Permite o controlo nas Definições do Sistema", "Steuerung in den Systemeinstellungen erlauben", "Consenti il controllo in Impostazioni di Sistema", "システム設定で操作を許可", "시스템 설정에서 제어 허용"]
+        case .mediaProviderGet: return ["Not installed · get it", "Не установлено · скачать", "Non installée · l'obtenir", "No instalada · obtener", "未安装 · 获取", "Não instalada · obter", "Nicht installiert · laden", "Non installata · scaricala", "未インストール · 入手", "설치되지 않음 · 받기"]
+        case .mediaProviderMissing: return ["Not installed", "Не установлено", "Non installée", "No instalada", "未安装", "Não instalada", "Nicht installiert", "Non installata", "未インストール", "설치되지 않음"]
 
         case .clipCopied: return ["Copied", "Готово", "Copié", "Copiado", "已复制", "Copiado", "Kopiert", "Copiato", "コピー済み", "복사됨"]
         case .clipLatest: return ["Latest", "Последнее", "Dernier", "Lo último", "最新", "Mais recente", "Neueste", "Ultimo", "最新", "최근"]
@@ -474,6 +482,8 @@ enum L10nKey {
         case .sysDownload: return ["Download", "Загрузка", "Réception", "Descarga", "下载", "Download", "Empfang", "Download", "ダウンロード", "다운로드"]
         case .sysUpload: return ["Upload", "Отдача", "Envoi", "Subida", "上传", "Upload", "Senden", "Upload", "アップロード", "업로드"]
         case .sysMetricsSection: return ["Metrics", "Метрики", "Métriques", "Métricas", "指标", "Métricas", "Metriken", "Metriche", "メトリクス", "지표"]
+        case .sysProcessesSection: return ["Top processes", "Самые активные процессы", "Processus les plus actifs", "Procesos más activos", "占用最高的进程", "Processos mais ativos", "Aktivste Prozesse", "Processi più attivi", "負荷の高いプロセス", "부하가 큰 프로세스"]
+        case .sysProcessesLoading: return ["Reading processes…", "Читаем процессы…", "Lecture des processus…", "Leyendo procesos…", "正在读取进程…", "A ler processos…", "Prozesse werden gelesen…", "Lettura dei processi…", "プロセスを読み込み中…", "프로세스 읽는 중…"]
 
         case .setCheckUpdates: return ["Check for Updates", "Проверить обновления", "Rechercher des mises à jour", "Buscar actualizaciones", "检查更新", "Buscar atualizações", "Nach Updates suchen", "Verifica aggiornamenti", "アップデートを確認", "업데이트 확인"]
         case .setTitle: return ["Settings", "Настройки", "Réglages", "Ajustes", "设置", "Ajustes", "Einstellungen", "Impostazioni", "設定", "설정"]
@@ -484,17 +494,10 @@ enum L10nKey {
         case .setBehavior: return ["Behavior", "Поведение", "Comportement", "Comportamiento", "行为", "Comportamento", "Verhalten", "Comportamento", "動作", "동작"]
         case .setLaunch: return ["Launch at login", "Запускать при входе", "Lancer à l'ouverture de session", "Abrir al iniciar sesión", "登录时启动", "Abrir ao iniciar sessão", "Beim Anmelden starten", "Avvia all'accesso", "ログイン時に起動", "로그인 시 실행"]
         case .setLaunchSub: return ["Menu-bar agent, no Dock icon", "Агент меню-бара, без иконки в доке", "Agent de barre de menus, sans icône Dock", "Agente de barra de menús, sin icono en el Dock", "菜单栏代理，无 Dock 图标", "Agente da barra de menus, sem ícone na Dock", "Menüleisten-Agent, ohne Dock-Symbol", "Agente della barra dei menu, senza icona nel Dock", "メニューバー常駐、Dockアイコンなし", "메뉴 막대 에이전트, Dock 아이콘 없음"]
-        case .setIdle: return ["Idle mode", "Режим покоя", "Mode veille", "Modo inactivo", "空闲状态", "Modo inativo", "Ruhemodus", "Modalità inattiva", "アイドル時", "대기 모드"]
-        case .setIdleSub: return ["What is visible when nothing happens", "Что видно, когда ничего не происходит", "Ce qui est visible quand rien ne se passe", "Qué se ve cuando no pasa nada", "无事件时显示的内容", "O que aparece quando nada acontece", "Was sichtbar ist, wenn nichts passiert", "Cosa si vede quando non succede nulla", "何もないときの表示", "아무 일도 없을 때 표시"]
-        case .setIdleInvisible: return ["Invisible", "Невидим", "Invisible", "Invisible", "隐藏", "Invisível", "Unsichtbar", "Invisibile", "非表示", "숨김"]
-        case .setIdleCompact: return ["Indicators", "Индикаторы", "Indicateurs", "Indicadores", "指示器", "Indicadores", "Indikatoren", "Indicatori", "インジケーター", "표시기"]
         case .setLanguage: return ["Language", "Язык", "Langue", "Idioma", "语言", "Idioma", "Sprache", "Lingua", "言語", "언어"]
-        case .setLanguageSub: return ["Translates the widget, capsule and settings", "Переводит виджет, капсулу и настройки", "Traduit le widget, la capsule et les réglages", "Traduce el widget, la cápsula y los ajustes", "翻译小组件、胶囊和设置", "Traduz o widget, a cápsula e os ajustes", "Übersetzt Widget, Kapsel und Einstellungen", "Traduce widget, capsula e impostazioni", "ウィジェット・カプセル・設定を翻訳", "위젯·캡슐·설정을 번역"]
-        case .setShellTheme: return ["Shell theme", "Тема оболочки", "Thème de coque", "Tema del armazón", "外壳主题", "Tema da carcaça", "Gehäuse-Thema", "Tema della shell", "シェルテーマ", "셸 테마"]
-        case .setCapsule: return ["Capsule", "Капсула", "Capsule", "Cápsula", "胶囊", "Cápsula", "Kapsel", "Capsula", "カプセル", "캡슐"]
-        case .setCapsuleSub: return ["Affects only the capsule", "Влияет только на капсулу", "N'affecte que la capsule", "Solo afecta a la cápsula", "仅影响胶囊", "Afeta apenas a cápsula", "Betrifft nur die Kapsel", "Riguarda solo la capsula", "カプセルのみに適用", "캡슐에만 적용"]
+        case .setLanguageSub: return ["Translates the widget and settings", "Переводит виджет и настройки", "Traduit le widget et les réglages", "Traduce el widget y los ajustes", "翻译小组件和设置", "Traduz o widget e os ajustes", "Übersetzt Widget und Einstellungen", "Traduce widget e impostazioni", "ウィジェットと設定を翻訳", "위젯과 설정을 번역"]
         case .setWidgetMaterial: return ["Widget material", "Материал виджета", "Matériau du widget", "Material del widget", "小组件材质", "Material do widget", "Widget-Material", "Materiale del widget", "ウィジェットの素材", "위젯 재질"]
-        case .setWidgetMaterialSub: return ["Glass at the screen edge — the capsule is always dark", "Стекло у края экрана — капсула всегда тёмная", "Verre au bord de l'écran — la capsule reste sombre", "Vidrio en el borde — la cápsula siempre es oscura", "屏幕边缘的玻璃 — 胶囊始终为深色", "Vidro na borda — a cápsula é sempre escura", "Glas am Bildschirmrand — die Kapsel bleibt dunkel", "Vetro sul bordo — la capsula resta scura", "画面端のガラス — カプセルは常にダーク", "가장자리 유리 — 캡슐은 항상 어두움"]
+        case .setWidgetMaterialSub: return ["Glass of the strip and its panels", "Стекло рейки и её панелей", "Verre de la barre et de ses panneaux", "Vidrio de la barra y sus paneles", "工具条及其面板的玻璃", "Vidro da barra e dos seus painéis", "Glas der Leiste und ihrer Panels", "Vetro della barra e dei suoi pannelli", "ストリップとパネルのガラス", "스트립과 패널의 유리"]
         case .setLight: return ["Light", "Светлый", "Clair", "Claro", "浅色", "Claro", "Hell", "Chiaro", "ライト", "라이트"]
         case .setDark: return ["Dark", "Тёмный", "Sombre", "Oscuro", "深色", "Escuro", "Dunkel", "Scuro", "ダーク", "다크"]
         case .setAuto: return ["Auto", "Авто", "Auto", "Auto", "自动", "Auto", "Auto", "Auto", "自動", "자동"]
@@ -502,21 +505,19 @@ enum L10nKey {
         case .setDefaultTag: return ["default", "по умолчанию", "par défaut", "predeterminado", "默认", "padrão", "Standard", "predefinito", "デフォルト", "기본"]
         case .setSoonTag: return ["soon", "скоро", "bientôt", "pronto", "即将", "em breve", "bald", "presto", "近日", "곧"]
         case .setOpenSettings: return ["Open settings", "Открыть настройки", "Ouvrir les réglages", "Abrir ajustes", "打开设置", "Abrir ajustes", "Einstellungen öffnen", "Apri impostazioni", "設定を開く", "설정 열기"]
-        case .setExpandCapsule: return ["Open settings in the capsule", "Открыть настройки в капсуле", "Ouvrir les réglages dans la capsule", "Abrir ajustes en la cápsula", "在胶囊中打开设置", "Abrir ajustes na cápsula", "Einstellungen in der Kapsel öffnen", "Apri le impostazioni nella capsula", "カプセルで設定を開く", "캡슐에서 설정 열기"]
-        case .setExpandCapsuleSub: return ["Click the capsule; click outside or ✕ to close", "Клик по капсуле; закрыть — клик снаружи или ✕", "Cliquez sur la capsule ; cliquez à côté ou ✕ pour fermer", "Haz clic en la cápsula; clic fuera o ✕ para cerrar", "点击胶囊；点击外部或 ✕ 关闭", "Clique na cápsula; clique fora ou ✕ para fechar", "Kapsel anklicken; außerhalb klicken oder ✕ zum Schließen", "Fai clic sulla capsula; clic fuori o ✕ per chiudere", "カプセルをクリック。外側クリックか ✕ で閉じる", "캡슐을 클릭; 바깥 클릭 또는 ✕로 닫기"]
         case .setOutsideClick: return ["Close panel on outside click", "Закрывать панель по клику вне виджета", "Fermer le panneau en cliquant à l'extérieur", "Cerrar el panel al hacer clic fuera", "点击外部时关闭面板", "Fechar o painel ao clicar fora", "Panel bei Klick außerhalb schließen", "Chiudi il pannello cliccando fuori", "外側をクリックでパネルを閉じる", "밖을 클릭하면 패널 닫기"]
         case .setOutsideClickSub: return ["Or when the cursor leaves it. Off = the panel stays pinned. ⌃⌥P toggles this anywhere.", "Или когда курсор уходит с него. Выкл = панель закреплена. ⌃⌥P переключает откуда угодно.", "Ou quand le curseur le quitte. Désactivé = panneau épinglé. ⌃⌥P bascule partout.", "O cuando el cursor sale de él. Desactivado = panel fijado. ⌃⌥P lo alterna en cualquier lugar.", "或光标离开时。关闭 = 面板固定。⌃⌥P 随处切换。", "Ou quando o cursor sai dele. Desligado = painel fixado. ⌃⌥P alterna em qualquer lugar.", "Oder wenn der Zeiger es verlässt. Aus = Panel bleibt angeheftet. ⌃⌥P schaltet überall um.", "O quando il cursore lo lascia. Off = pannello fissato. ⌃⌥P lo commuta ovunque.", "またはカーソルが離れたとき。オフ = パネルを固定。⌃⌥P でどこでも切替。", "또는 커서가 벗어나면. 끄면 패널 고정. ⌃⌥P로 어디서든 전환."]
         case .setHideWidget: return ["Hide / show the widget", "Скрыть / показать виджет", "Masquer / afficher le widget", "Ocultar / mostrar el widget", "隐藏 / 显示小组件", "Ocultar / mostrar o widget", "Widget aus- / einblenden", "Nascondi / mostra il widget", "ウィジェットを隠す / 表示", "위젯 숨기기 / 표시"]
         case .setHideWidgetSub: return ["Collapses the strip into a small square when it is in the way", "Сворачивает рейку в маленький квадрат, когда она мешает", "Réduit la barre en petit carré quand elle gêne", "Colapsa la barra en un cuadrito cuando estorba", "碍事时把工具条折叠成小方块", "Recolhe a barra num quadradinho quando atrapalha", "Faltet die Leiste zu einem kleinen Quadrat, wenn sie stört", "Riduce la barra a un quadratino quando è d'intralcio", "邪魔なときにストリップを小さな四角に畳みます", "방해될 때 스트립을 작은 사각형으로 접기"]
-        case .setModeToggle: return ["Settings capsule", "Капсула настроек", "Capsule des réglages", "Cápsula de ajustes", "设置胶囊", "Cápsula de ajustes", "Einstellungs-Kapsel", "Capsula delle impostazioni", "設定カプセル", "설정 캡슐"]
-        case .setModeToggleSub: return ["Opens or closes the settings in the capsule", "Открывает или закрывает настройки в капсуле", "Ouvre ou ferme les réglages dans la capsule", "Abre o cierra los ajustes en la cápsula", "打开或关闭胶囊中的设置", "Abre ou fecha os ajustes na cápsula", "Öffnet oder schließt die Einstellungen in der Kapsel", "Apre o chiude le impostazioni nella capsula", "カプセルの設定を開閉します", "캡슐의 설정을 열거나 닫습니다"]
+        case .setModeToggle: return ["Open / close Settings", "Открыть / закрыть настройки", "Ouvrir / fermer les réglages", "Abrir / cerrar ajustes", "打开 / 关闭设置", "Abrir / fechar ajustes", "Einstellungen öffnen / schließen", "Apri / chiudi impostazioni", "設定を開く / 閉じる", "설정 열기 / 닫기"]
+        case .setModeToggleSub: return ["Opens Settings in the widget, even when it is minimized", "Открывает настройки в виджете, даже свёрнутом", "Ouvre les réglages dans le widget, même réduit", "Abre los ajustes en el widget, aunque esté minimizado", "在小组件中打开设置，即使已最小化", "Abre os ajustes no widget, mesmo minimizado", "Öffnet die Einstellungen im Widget, auch wenn es minimiert ist", "Apre le impostazioni nel widget, anche se ridotto", "最小化中でもウィジェットで設定を開きます", "최소화된 상태에서도 위젯에서 설정을 엽니다"]
         case .setPinPanel: return ["Pin the panel", "Закрепить панель", "Épingler le panneau", "Fijar el panel", "固定面板", "Fixar o painel", "Panel anheften", "Fissa il pannello", "パネルを固定", "패널 고정"]
         case .setPinPanelSub: return ["Toggles \"close on outside click\"", "Переключает «закрывать по клику вне виджета»", "Bascule « fermer au clic extérieur »", "Alterna «cerrar al hacer clic fuera»", "切换「点击外部关闭」", "Alterna «fechar ao clicar fora»", "Schaltet \"bei Klick außerhalb schließen\" um", "Commuta «chiudi al clic esterno»", "「外側クリックで閉じる」を切替", "\"밖 클릭 시 닫기\" 전환"]
         case .setDemoSection: return ["Demo", "Демо", "Démo", "Demo", "演示", "Demo", "Demo", "Demo", "デモ", "데모"]
         case .setDemo: return ["Demo mode", "Демо-режим", "Mode démo", "Modo demo", "演示模式", "Modo demo", "Demo-Modus", "Modalità demo", "デモモード", "데모 모드"]
         case .setDemoSub: return ["Sample data in every module for screenshots and videos. Nothing is saved; off again on restart.", "Пример данных во всех модулях для скриншотов и видео. Ничего не сохраняется; после перезапуска выключен.", "Données d'exemple dans chaque module pour captures et vidéos. Rien n'est enregistré ; désactivé au redémarrage.", "Datos de ejemplo en cada módulo para capturas y vídeos. No se guarda nada; se apaga al reiniciar.", "每个模块显示示例数据，用于截图和视频。不保存任何内容；重启后关闭。", "Dados de exemplo em cada módulo para capturas e vídeos. Nada é guardado; desliga ao reiniciar.", "Beispieldaten in jedem Modul für Screenshots und Videos. Nichts wird gespeichert; nach Neustart wieder aus.", "Dati di esempio in ogni modulo per screenshot e video. Nulla viene salvato; disattivo al riavvio.", "スクリーンショットや動画用にすべてのモジュールへサンプルデータを表示。何も保存されず、再起動でオフ。", "스크린샷과 영상용으로 모든 모듈에 샘플 데이터를 표시. 아무것도 저장되지 않으며 재시작 시 꺼짐."]
-        case .setDemoEvents: return ["Capsule events", "События капсулы", "Événements de la capsule", "Eventos de la cápsula", "胶囊事件", "Eventos da cápsula", "Kapsel-Ereignisse", "Eventi della capsula", "カプセルのイベント", "캡슐 이벤트"]
-        case .setDemoEventsSub: return ["Closes the settings and flashes a sample event in the capsule", "Закрывает настройки и показывает пример события в капсуле", "Ferme les réglages et affiche un événement d'exemple dans la capsule", "Cierra los ajustes y muestra un evento de ejemplo en la cápsula", "关闭设置并在胶囊中闪现示例事件", "Fecha os ajustes e mostra um evento de exemplo na cápsula", "Schließt die Einstellungen und zeigt ein Beispiel-Ereignis in der Kapsel", "Chiude le impostazioni e mostra un evento di esempio nella capsula", "設定を閉じてカプセルにサンプルイベントを表示", "설정을 닫고 캡슐에 샘플 이벤트를 표시"]
+        case .setDemoEvents: return ["Sample events", "Примеры событий", "Événements d'exemple", "Eventos de ejemplo", "示例事件", "Eventos de exemplo", "Beispiel-Ereignisse", "Eventi di esempio", "サンプルイベント", "샘플 이벤트"]
+        case .setDemoEventsSub: return ["Closes the settings and shows a sample event beside the strip", "Закрывает настройки и показывает пример события у рейки", "Ferme les réglages et affiche un événement d'exemple près de la barre", "Cierra los ajustes y muestra un evento de ejemplo junto a la barra", "关闭设置并在工具条旁显示示例事件", "Fecha os ajustes e mostra um evento de exemplo junto à barra", "Schließt die Einstellungen und zeigt ein Beispiel-Ereignis neben der Leiste", "Chiude le impostazioni e mostra un evento di esempio accanto alla barra", "設定を閉じてストリップの横にサンプルイベントを表示", "설정을 닫고 스트립 옆에 샘플 이벤트를 표시"]
         case .hkBuiltIn: return ["Built in", "Встроенные", "Intégrés", "Integrados", "内置", "Integrados", "Eingebaut", "Integrate", "組み込み", "기본 제공"]
         case .hkGlobal: return ["Global shortcuts", "Глобальные сочетания", "Raccourcis globaux", "Atajos globales", "全局快捷键", "Atalhos globais", "Globale Kurzbefehle", "Scorciatoie globali", "グローバルショートカット", "전역 단축키"]
         case .hkRecord: return ["Type shortcut…", "Нажмите сочетание…", "Tapez le raccourci…", "Pulsa el atajo…", "按下快捷键…", "Prima o atalho…", "Kurzbefehl drücken…", "Premi la scorciatoia…", "ショートカットを入力…", "단축키 입력…"]

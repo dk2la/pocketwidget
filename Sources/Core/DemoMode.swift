@@ -13,15 +13,15 @@ import OSLog
 final class DemoMode {
     private(set) var isActive = false
 
-    /// Shows a live event on the capsule — wired by the AppDelegate, which
-    /// owns the capsule controller.
+    /// Shows a live event as the widget's event pill — wired by the
+    /// AppDelegate, which owns the widget controller.
     @ObservationIgnored var presentEvent: ((LiveEvent) -> Void)?
 
     @ObservationIgnored private weak var services: ModuleServices?
     @ObservationIgnored private var scratchFolder: URL?
     @ObservationIgnored private let log = Logger(subsystem: "com.dk2la.pocket", category: "demo")
 
-    /// Sample events for the "capsule events" buttons in settings, in the
+    /// Sample events for the "sample events" buttons in settings, in the
     /// order they are shown.
     static let sampleEvents: [(label: String, event: LiveEvent)] = [
         ("pwr", .charging(percent: 82, plugged: true)),
@@ -91,7 +91,7 @@ final class DemoMode {
         log.info("demo mode off")
     }
 
-    /// Flashes a sample event on the capsule.
+    /// Flashes a sample event as the event pill.
     func fire(_ event: LiveEvent) {
         presentEvent?(event)
     }

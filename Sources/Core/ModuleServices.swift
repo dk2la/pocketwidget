@@ -1,6 +1,6 @@
-/// Single shared instances of every module service. Both the capsule
-/// and the edge widget render from these — separate copies would diverge
-/// (two clipboard histories) or double the work (two media pollers).
+/// Single shared instances of every module service. Every surface (the
+/// widget, Settings, the tour) renders from these — separate copies would
+/// diverge (two clipboard histories) or double the work (two media pollers).
 @MainActor
 final class ModuleServices {
     /// Persisted preferences, for modules that remember a choice.
@@ -13,7 +13,8 @@ final class ModuleServices {
     let mediaCenter = MediaCenter()
     let calendarService = CalendarService()
     let statsService = SystemStatsService()
-    let shelfStore = ShelfStore()
+    let processMonitor = ProcessMonitor()
+    let shelfStore = ShelfStore(defaults: .app)
     let clipboardStore = ClipboardStore()
     let timerService = TimerService()
     let notesStore = NotesStore()
@@ -57,6 +58,8 @@ final class ModuleServices {
     /// music players. On first launch the welcome tour calls it once it is
     /// closed — its pages ask for the calendar and the notes folder first.
     func beginProtectedAccess() {
+        // UI tests: a system access prompt would block the run.
+        guard !UITestMode.isActive else { return }
         notesStore.activate()
         clipboardStore.startWatching()
         mediaCenter.allowPlayerScripts()

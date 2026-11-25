@@ -13,8 +13,8 @@ struct DisplayInfo: Equatable, Sendable {
     let hasCameraHousing: Bool
 }
 
-/// Which display the strip is on. The capsule and the panel size limits
-/// follow the same display, so this is the one place that decides it.
+/// Which display the strip is on. The panel size limits follow the same
+/// display, so this is the one place that decides it.
 enum StripDisplay {
     struct Choice: Equatable {
         let display: DisplayInfo
@@ -41,16 +41,5 @@ enum StripDisplay {
         }
         return (displays.first(where: \.isBuiltIn) ?? main)
             .map { Choice(display: $0, savedID: $0.id) }
-    }
-
-    /// `size` hanging from the top centre of a display's `frame` — where the
-    /// capsule sits.
-    static func topCentered(_ size: CGSize, in frame: CGRect) -> CGRect {
-        CGRect(
-            x: frame.midX - size.width / 2,
-            y: frame.maxY - size.height,
-            width: size.width,
-            height: size.height
-        )
     }
 }
