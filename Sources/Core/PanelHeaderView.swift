@@ -4,8 +4,6 @@ import SwiftUI
 /// Modules draw no chrome of their own — their navigation state lives in the
 /// services and this view reads it, so every tab speaks the same grammar:
 /// chevron to go up, module title, the module's few actions on the right.
-/// The capsule's expanded panel embeds the same back/actions pieces next to
-/// its tab row.
 struct PanelHeaderView: View {
     let tab: ModuleTab
     var services: ModuleServices
@@ -134,8 +132,7 @@ struct ModuleBackButton: View {
     }
 }
 
-/// The module's few header actions — the same set on the widget panel and
-/// the capsule.
+/// The module's few header actions on the widget panel.
 struct ModuleAccessoriesView: View {
     let tab: ModuleTab
     var services: ModuleServices

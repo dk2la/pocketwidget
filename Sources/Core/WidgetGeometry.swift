@@ -37,6 +37,8 @@ enum WidgetMetrics {
     /// The Settings module's panel: sized on its own, so a roomy Settings
     /// does not make every module large. Same limits as the module panel.
     static let settingsPanelDefaultSize = CGSize(width: 720, height: 520)
+    /// Delay before shrinking the window after the close animation (ms).
+    static let windowCollapseDelayMilliseconds = 450
 }
 
 /// Pure frame math for the edge-docked widget. All rects are in Cocoa screen

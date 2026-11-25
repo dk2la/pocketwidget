@@ -71,8 +71,9 @@ final class NotesStore {
         startWatcher()
     }
 
-    /// Folder chooser. The widget is a non-activating panel, so it brings
-    /// the app forward first; the settings capsule does not need to.
+    /// Folder chooser. The widget is a non-activating panel; `activating`
+    /// brings the app forward first so the chooser is not hidden behind
+    /// other apps.
     func pickFolder(activating: Bool) {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true

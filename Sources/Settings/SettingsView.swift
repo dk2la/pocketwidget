@@ -1,9 +1,9 @@
 import AppKit
 import SwiftUI
 
-/// Settings UI, hosted inside the expanded capsule (see CapsuleSettingsView).
-/// Drawn on the capsule's glass — the widget's material — with nothing
-/// opaque in between: a lighter sidebar of pages on the left, the page on
+/// Settings UI, hosted in the widget's Settings panel (see
+/// WidgetPanelContent). Drawn on the widget's glass with nothing opaque in
+/// between: a lighter sidebar of pages on the left, the page on
 /// the right as a titled stack of grouped cards. A panel narrower than
 /// `SettingsLayout.sidebarMinWidth` moves the pages to a scrolling strip on
 /// top. Fully localized; sized by its host, not itself.
@@ -158,16 +158,6 @@ struct SettingsView: View {
                 SettingRow(title: L10n.t(.setOutsideClick), subtitle: L10n.t(.setOutsideClickSub)) {
                     InstrumentToggle(isOn: $settings.closeOnOutsideClick)
                 }
-                Hairline(color: Palette.hairline)
-                SettingRow(title: L10n.t(.setIdle), subtitle: L10n.t(.setIdleSub)) {
-                    WindowSegmented(
-                        options: [
-                            (IdleMode.invisible, L10n.t(.setIdleInvisible)),
-                            (IdleMode.compact, L10n.t(.setIdleCompact)),
-                        ],
-                        selection: $settings.idleMode
-                    )
-                }
             }
             // The welcome tour: replay it now, or have it greet every launch.
             section(L10n.t(.obTour)) {
@@ -195,7 +185,7 @@ struct SettingsView: View {
         }
     }
 
-    /// Demo mode toggle and, while it is on, one button per sample capsule
+    /// Demo mode toggle and, while it is on, one button per sample live
     /// event — everything a promo recording needs from one page.
     private var demoSection: some View {
         let demo = services.demo
@@ -216,6 +206,7 @@ struct SettingsView: View {
                             PillButton(sample.label, size: .small) {
                                 demo.fire(sample.event)
                             }
+                            .accessibilityIdentifier("settings.demo.event.\(sample.label)")
                         }
                     }
                 }
@@ -268,18 +259,7 @@ struct SettingsView: View {
 
     private var appearancePage: some View {
         sections {
-            section(L10n.t(.setShellTheme)) {
-                SettingRow(title: L10n.t(.setCapsule), subtitle: L10n.t(.setCapsuleSub)) {
-                    WindowSegmented(
-                        options: [
-                            (CapsuleTheme.stealth, "Stealth"),
-                            (CapsuleTheme.glass, "Glass"),
-                            (CapsuleTheme.glow, "Glow"),
-                        ],
-                        selection: $settings.theme
-                    )
-                }
-                Hairline(color: Palette.hairline)
+            section(L10n.t(.setAppearance)) {
                 SettingRow(title: L10n.t(.setWidgetMaterial), subtitle: L10n.t(.setWidgetMaterialSub)) {
                     WindowSegmented(
                         options: [
@@ -345,7 +325,7 @@ struct SettingsView: View {
     // MARK: Playbooks
 
     /// The editor replaces the page in place: a sheet would hang out of the
-    /// capsule and fight its hover tracking.
+    /// panel and close it as a click outside.
     @ViewBuilder
     private var playbooksPage: some View {
         if creatingPlaybook {
@@ -413,10 +393,6 @@ struct SettingsView: View {
             section(L10n.t(.hkBuiltIn)) {
                 SettingRow(title: L10n.t(.setOpenSettings)) {
                     keyCaps(["⌘", ","])
-                }
-                Hairline(color: Palette.hairline)
-                SettingRow(title: L10n.t(.setExpandCapsule), subtitle: L10n.t(.setExpandCapsuleSub)) {
-                    KeyCap(symbol: "click")
                 }
             }
             // The global ones are the user's to rebind.
@@ -649,6 +625,7 @@ struct ModulesOrderList: View {
                             )
                         )
                         .disabled(!settings.canToggle(tab))
+                        .accessibilityIdentifier("settings.modules.toggle.\(tab.rawValue)")
                     }
                 }
                 .padding(.vertical, 3)

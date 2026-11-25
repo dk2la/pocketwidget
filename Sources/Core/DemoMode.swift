@@ -21,7 +21,7 @@ final class DemoMode {
     @ObservationIgnored private var scratchFolder: URL?
     @ObservationIgnored private let log = Logger(subsystem: "com.dk2la.pocket", category: "demo")
 
-    /// Sample events for the "capsule events" buttons in settings, in the
+    /// Sample events for the "sample events" buttons in settings, in the
     /// order they are shown.
     static let sampleEvents: [(label: String, event: LiveEvent)] = [
         ("pwr", .charging(percent: 82, plugged: true)),

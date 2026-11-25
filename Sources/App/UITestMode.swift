@@ -8,6 +8,9 @@ import Foundation
 enum UITestMode {
     static let argument = "--ui-testing"
     static let isActive = CommandLine.arguments.contains(argument)
+    /// `--minimized` with `--ui-testing`: the widget starts rolled up. The
+    /// defaults suite is wiped at every launch, so a test cannot store it.
+    static let startsMinimized = isActive && CommandLine.arguments.contains("--minimized")
     /// Not the bundle ID: UserDefaults refuses a suite named after the app.
     static let defaultsSuite = "com.dk2la.pocket.ui-testing"
 }

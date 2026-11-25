@@ -14,8 +14,7 @@ final class TimerService {
     /// When the alarm rings; `nil` while none is set.
     private(set) var alarmDate: Date?
 
-    /// The capsule flips between closed and compact on these.
-    @ObservationIgnored var onRunningChanged: (() -> Void)?
+    /// The widget shows a "timer finished" event on this.
     @ObservationIgnored var onFinished: (() -> Void)?
 
     @ObservationIgnored private var endDate: Date?
@@ -85,7 +84,6 @@ final class TimerService {
             }
         }
         log.info("started, \(Int(self.remaining), privacy: .public)s")
-        onRunningChanged?()
     }
 
     func pause() {
@@ -93,7 +91,6 @@ final class TimerService {
         isRunning = false
         tickTask?.cancel()
         endDate = nil
-        onRunningChanged?()
     }
 
     func reset() {
@@ -116,6 +113,5 @@ final class TimerService {
         remaining = duration
         NSSound(named: "Glass")?.play()
         onFinished?()
-        onRunningChanged?()
     }
 }

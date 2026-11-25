@@ -11,8 +11,8 @@ import SwiftUI
 enum Theme {
     // MARK: - Colors
 
-    /// shell/void — the camera housing itself stays hardware black.
-    static let capsuleFill = Color.black
+    /// Hardware black — ink on accent-coloured cells.
+    static let voidFill = Color.black
     /// Inner cells and cards: raised glass on top of the window material.
     static let cardFill = Color.white.opacity(0.06)
     /// Opaque surface for forms that sit over content (the reply sheet):
@@ -60,9 +60,6 @@ enum Theme {
     static let glassTintDark = Color.black.opacity(0.52)
     static let glassStrokeLight = Color.white.opacity(0.20)
     static let glassStrokeDark = Color.white.opacity(0.14)
-    /// The expanded capsule is the widget's dark glass, a touch denser:
-    /// it carries whole pages of text.
-    static let capsuleGlassTint = Color.black.opacity(0.6)
 
     // MARK: - Severity
 
@@ -96,8 +93,8 @@ enum Theme {
 
     // MARK: - Typography
     // Module views stay in the system face throughout and use
-    // `.monospacedDigit()` for anything that ticks. Monospace is left to the
-    // capsule's live readouts and onboarding.
+    // `.monospacedDigit()` for anything that ticks. Monospace is left to live
+    // readouts and onboarding.
 
     static func mono(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
         .system(size: size, weight: weight, design: .monospaced)
@@ -142,7 +139,7 @@ enum Theme {
         NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
     }
 
-    /// Capsule open/close, panel open/close.
+    /// Panel open/close, strip minimize.
     static var stateSpring: Animation {
         reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.30, dampingFraction: 0.82)
     }

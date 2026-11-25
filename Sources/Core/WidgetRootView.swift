@@ -290,6 +290,8 @@ struct WidgetRootView: View {
                     .onChanged { _ in changed() }
                     .onEnded { _ in ended() }
             )
+            .accessibilityElement()
+            .accessibilityIdentifier(vertical ? "panel.grip.width" : "panel.grip.height")
             .onHover { inside in
                 if inside {
                     (vertical ? NSCursor.resizeLeftRight : NSCursor.resizeUpDown).push()

@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// One module's content, shared by the expanded capsule panel and the edge
-/// widget — the single place a tab maps to its view.
+/// One module's content in the widget panel — the single place a tab
+/// maps to its view.
 struct ModuleContentView: View {
     let tab: ModuleTab
     var services: ModuleServices

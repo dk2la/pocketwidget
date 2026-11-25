@@ -5,7 +5,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let settings: AppSettings
     private let services: ModuleServices
     private var statusItem: NSStatusItem?
-    private var capsuleController: CapsuleWindowController?
     private var widgetController: WidgetWindowController?
     private var licensingTask: Task<Void, Never>?
 
@@ -18,7 +17,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         setUpStatusItem()
         registerHotkeys()
-        capsuleController = CapsuleWindowController(settings: settings, services: services)
+        if UITestMode.startsMinimized {
+            settings.widgetMinimized = true
+        }
 
         // Modules, Settings and the welcome tour live in the edge widget.
         widgetController = WidgetWindowController(settings: settings, services: services)

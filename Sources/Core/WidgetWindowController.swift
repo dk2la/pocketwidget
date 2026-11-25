@@ -8,7 +8,7 @@ import SwiftUI
 /// the widget closes it.
 @MainActor
 final class WidgetWindowController: NSObject {
-    private let panel = CapsulePanel()
+    private let panel = FloatingPanel()
     private let viewModel = WidgetViewModel()
     private let settings: AppSettings
     private let services: ModuleServices
@@ -167,6 +167,9 @@ final class WidgetWindowController: NSObject {
         collapseTask = nil
         stopAutoClose()
         panel.allowsKeyFocus = false
+        // The pill sits beside the full strip; a rolled-up strip would
+        // leave it floating off its end.
+        eventPill.dismiss()
 
         let full = stripFrame(minimized: false, on: screen)
         let target = stripFrame(minimized: minimized, on: screen)
@@ -182,7 +185,7 @@ final class WidgetWindowController: NSObject {
         endTour()
         if minimized {
             collapseTask = Task { [weak self] in
-                try? await Task.sleep(for: .milliseconds(CapsuleMetrics.windowCollapseDelayMilliseconds))
+                try? await Task.sleep(for: .milliseconds(WidgetMetrics.windowCollapseDelayMilliseconds))
                 guard !Task.isCancelled, let self else { return }
                 self.collapseTask = nil
                 self.panel.setFrame(target, display: true)
@@ -286,7 +289,7 @@ final class WidgetWindowController: NSObject {
         NSEvent.pressedMouseButtons == 0 && panel.attachedSheet == nil && !panel.hasOwnPopupWindow
     }
 
-    /// Settings changed (tabs, panel size, placement, theme) — re-derive the
+    /// Settings changed (tabs, panel size, placement, material) — re-derive the
     /// layout. Frames are idempotent, so over-calling is harmless.
     func settingsDidChange() {
         // Our own minimize writes land here; the animation owns the frames.
@@ -325,7 +328,7 @@ final class WidgetWindowController: NSObject {
             services: services,
             settings: settings
         )
-        let hostingView = CapsuleHostingView(rootView: rootView)
+        let hostingView = PanelHostingView(rootView: rootView)
         hostingView.wantsLayer = true
         hostingView.layer?.backgroundColor = .clear
         panel.contentView = hostingView.makeWindowContentView()
@@ -339,6 +342,7 @@ final class WidgetWindowController: NSObject {
         // The strip stays on its saved display; if that one is gone it
         // moves to the built-in screen, same edge and offset.
         settings.refreshStripDisplay()
+        eventPill.dismiss()
         openTask?.cancel()
         collapseTask?.cancel()
         collapseTask = nil
@@ -398,7 +402,7 @@ final class WidgetWindowController: NSObject {
         // Module panels host text input — let the panel take key status
         // without activating the app.
         panel.allowsKeyFocus = true
-        // Two-phase, same as the capsule: grow the window silently first (the
+        // Two-phase: grow the window silently first (the
         // strip's local frame shifts in the same tick, so it does not move
         // on screen), animate the panel in on the next tick once the
         // window's coordinate space is stable.
@@ -431,7 +435,7 @@ final class WidgetWindowController: NSObject {
         // Shrink the window only after the close animation has finished,
         // otherwise it would clip the panel mid-flight.
         collapseTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(CapsuleMetrics.windowCollapseDelayMilliseconds))
+            try? await Task.sleep(for: .milliseconds(WidgetMetrics.windowCollapseDelayMilliseconds))
             guard !Task.isCancelled, let self else { return }
             self.collapseTask = nil
             self.applyDockedFrame()
@@ -480,8 +484,8 @@ final class WidgetWindowController: NSObject {
         let placement = WidgetGeometry.nearestPlacement(for: panel.frame, in: dropScreen.visibleFrame)
         log.info("snap edge=\(placement.edge.rawValue, privacy: .public) offset=\(placement.offset, privacy: .public)")
         viewModel.edge = placement.edge
-        // The drop display is saved with the edge and offset; the capsule
-        // and the panel size limits follow it from here.
+        // The drop display is saved with the edge and offset; the panel
+        // size limits follow it from here.
         settings.setWidgetPlacement(
             screen: dropScreen,
             edge: placement.edge,
@@ -623,7 +627,7 @@ extension WidgetWindowController {
         if closingPanel, viewModel.selectedTab != nil {
             closePanel()
             Task { [weak self] in
-                try? await Task.sleep(for: .milliseconds(CapsuleMetrics.windowCollapseDelayMilliseconds))
+                try? await Task.sleep(for: .milliseconds(WidgetMetrics.windowCollapseDelayMilliseconds))
                 self?.presentEvent(event)
             }
             return
