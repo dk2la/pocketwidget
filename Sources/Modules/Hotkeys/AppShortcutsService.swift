@@ -250,6 +250,8 @@ final class AppShortcutsService {
         panel.canChooseDirectories = false
         panel.allowedContentTypes = [.plainText]
         NSApp.activate(ignoringOtherApps: true)
+        let yield = PanelHold.shared.beginYield()
+        defer { PanelHold.shared.end(yield) }
         guard panel.runModal() == .OK, let url = panel.url else { return true }
         guard let text = try? String(contentsOf: url, encoding: .utf8),
               let shortcuts = preset.parse(text) else {

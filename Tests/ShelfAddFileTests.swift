@@ -86,12 +86,16 @@ final class ShelfAddFileTests: XCTestCase {
         let shelf = ShelfStore(defaults: defaults)
         let hold = PanelHold()
         var heldDuringPick = false
+        var yieldedDuringPick = false
         await ShelfFilePicker.addFiles(to: shelf, hold: hold) {
             heldDuringPick = hold.isHeld
+            yieldedDuringPick = hold.isYielding
             return []
         }
         XCTAssertTrue(heldDuringPick)
+        XCTAssertTrue(yieldedDuringPick, "the picker must show above the widget")
         XCTAssertFalse(hold.isHeld)
+        XCTAssertFalse(hold.isYielding)
     }
 
     // MARK: - Hold

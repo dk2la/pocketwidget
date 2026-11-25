@@ -106,6 +106,10 @@ final class CalendarService {
     }
 
     func requestAccess() async {
+        // Only an unanswered question puts up the consent dialog.
+        let asks = EKEventStore.authorizationStatus(for: .event) == .notDetermined
+        let yield = asks ? PanelHold.shared.beginYield() : nil
+        defer { yield.map(PanelHold.shared.end) }
         do {
             let granted = try await store.requestFullAccessToEvents()
             realAccess = granted ? .granted : .denied

@@ -81,6 +81,8 @@ final class NotesStore {
         panel.canCreateDirectories = true
         panel.directoryURL = folderURL
         if activating { NSApp.activate(ignoringOtherApps: true) }
+        let yield = PanelHold.shared.beginYield()
+        defer { PanelHold.shared.end(yield) }
         if panel.runModal() == .OK, let url = panel.url {
             setFolder(url)
         }

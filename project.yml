@@ -90,6 +90,7 @@ targets:
       - path: Sources/Modules/LiveEvents/LiveEventGate.swift
       - path: Sources/Core/StripLineup.swift
       - path: Sources/Core/PanelHold.swift
+      - path: Sources/Core/SettingsVisit.swift
       - path: Sources/Core/IconBadge.swift
       - path: Sources/Core/ModuleTab.swift
       - path: Sources/Core/WidgetPanelContent.swift
