@@ -94,7 +94,7 @@ enum L10nKey {
 
     // Timer
     case focusReady, focusRunning, timerStart, timerPause, timerReset, timerDoneNote
-    case timerLeftOf, timerLength, timerRingAt, timerSet, timerEndsAt
+    case timerLeftOf, timerAlarm, timerSet, timerEndsAt
 
     // Media
     case mediaIdle, mediaSilent, mediaNoSignal
@@ -114,7 +114,6 @@ enum L10nKey {
     case calNewEvent, calEditEvent, calTitleField, calStarts, calEnds
     case calLocationField, calURLField, calNotesField, calAttendees, calOrganizer
     case calOpenInCalendar, calInviteesHint, calDelete, calConfirmDelete, calSave, calEdit
-    case timerCustomPlaceholder
 
     // Notes
     case notesEmptyTitle, notesEmptySub, notesQuickPlaceholder, notesNew
@@ -148,7 +147,7 @@ enum L10nKey {
 
     // Playbooks
     case playNew, playEmpty, playDone, playClosed, playOpened, playErrors, playAdd
-    case playNoneTitle, playBack
+    case playNoneTitle, playNoneSub, playBack
     case playApps, playCloseRest, playFocus
     case playStepOpenApps, playStepCloseOthers, playStepShortcut, playStepFocus, playStepTimer, playStepURLs
     case playAddStep, playLayout, playGrantAccess, playLayoutHint
@@ -238,8 +237,7 @@ enum L10nKey {
         case .timerReset: return ["Reset", "Сброс", "Réinitialiser", "Reiniciar", "重置", "Repor", "Zurücksetzen", "Azzera", "リセット", "재설정"]
         case .timerDoneNote: return ["Sound and a notice when it ends", "Звук и уведомление по окончании", "Son et notification à la fin", "Sonido y aviso al terminar", "结束时播放声音并提示", "Som e aviso no fim", "Ton und Hinweis am Ende", "Suono e avviso alla fine", "終了時に音と通知", "끝나면 소리와 알림"]
         case .timerLeftOf: return ["left of %d min", "осталось из %d мин", "restant sur %d min", "restan de %d min", "剩余 · 共 %d 分钟", "restam de %d min", "übrig von %d Min", "rimasti su %d min", "残り · 全 %d 分", "남음 · 총 %d분"]
-        case .timerLength: return ["Length", "Длительность", "Durée", "Duración", "时长", "Duração", "Dauer", "Durata", "長さ", "길이"]
-        case .timerRingAt: return ["Ring at", "Позвонить в", "Sonner à", "Sonar a las", "响铃时间", "Tocar às", "Klingeln um", "Suona alle", "鳴らす時刻", "울릴 시각"]
+        case .timerAlarm: return ["Alarm", "Будильник", "Alarme", "Alarma", "闹钟", "Alarme", "Wecker", "Sveglia", "アラーム", "알람"]
         case .timerSet: return ["Set", "Завести", "Régler", "Fijar", "设定", "Definir", "Stellen", "Imposta", "セット", "설정"]
         case .timerEndsAt: return ["Ends at %@", "Закончится в %@", "Fin à %@", "Termina a las %@", "%@ 结束", "Termina às %@", "Endet um %@", "Finisce alle %@", "%@ に終了", "%@에 종료"]
 
@@ -302,7 +300,6 @@ enum L10nKey {
         case .calConfirmDelete: return ["Confirm delete", "Подтвердить удаление", "Confirmer la suppression", "Confirmar eliminación", "确认删除", "Confirmar exclusão", "Löschen bestätigen", "Conferma eliminazione", "削除を確認", "삭제 확인"]
         case .calSave: return ["Save", "Сохранить", "Enregistrer", "Guardar", "保存", "Guardar", "Sichern", "Salva", "保存", "저장"]
         case .calEdit: return ["Edit", "Изменить", "Modifier", "Editar", "编辑", "Editar", "Bearbeiten", "Modifica", "編集", "편집"]
-        case .timerCustomPlaceholder: return ["min", "мин", "min", "min", "分", "min", "Min", "min", "分", "분"]
 
         case .notesEmptyTitle: return ["no notes", "нет заметок", "aucune note", "sin notas", "没有备忘录", "sem notas", "keine Notizen", "nessuna nota", "メモなし", "메모 없음"]
         case .notesContinue: return ["Continue", "Продолжить", "Reprendre", "Continuar", "继续", "Continuar", "Weiter", "Continua", "続ける", "이어서"]
@@ -431,6 +428,7 @@ enum L10nKey {
         case .playURLsHint: return ["One link per line", "По одной ссылке на строку", "Un lien par ligne", "Un enlace por línea", "每行一个链接", "Um link por linha", "Ein Link pro Zeile", "Un link per riga", "1行に1リンク", "한 줄에 링크 하나"]
         case .playLinks: return ["%d links", "%d ссыл.", "%d liens", "%d enlaces", "%d 个链接", "%d links", "%d Links", "%d link", "%d件のリンク", "링크 %d개"]
         case .playAdd: return ["Add playbook…", "Добавить плейбук…", "Ajouter un playbook…", "Añadir playbook…", "添加行动手册…", "Adicionar playbook…", "Playbook hinzufügen…", "Aggiungi playbook…", "プレイブックを追加…", "플레이북 추가…"]
+        case .playNoneSub: return ["Open your apps and windows in one click", "Откройте свои приложения и окна одним кликом", "Ouvrez vos apps et fenêtres en un clic", "Abre tus apps y ventanas con un clic", "一键打开你的应用和窗口", "Abra as suas apps e janelas com um clique", "Apps und Fenster mit einem Klick öffnen", "Apri app e finestre con un clic", "アプリとウインドウをワンクリックで開く", "앱과 창을 클릭 한 번으로 열기"]
         case .playNoneTitle: return ["no playbooks", "нет плейбуков", "aucun playbook", "sin playbooks", "没有行动手册", "sem playbooks", "keine Playbooks", "nessun playbook", "プレイブックなし", "플레이북 없음"]
         case .playBack: return ["Back", "Назад", "Retour", "Atrás", "返回", "Voltar", "Zurück", "Indietro", "戻る", "뒤로"]
 

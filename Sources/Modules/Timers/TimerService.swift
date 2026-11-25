@@ -2,16 +2,17 @@ import AppKit
 import Observation
 import OSLog
 
-/// Single countdown timer. Wall-clock based, so it stays correct through
-/// display sleep and timer-tick coalescing.
+/// One countdown timer and one alarm, independent of each other. Both are
+/// wall-clock based, so they stay correct through display sleep and
+/// timer-tick coalescing.
 @MainActor
 @Observable
 final class TimerService {
     private(set) var duration: TimeInterval = 25 * 60
     private(set) var remaining: TimeInterval = 25 * 60
     private(set) var isRunning = false
-    /// The running countdown was set as an alarm for a clock time.
-    private(set) var isAlarm = false
+    /// When the alarm rings; `nil` while none is set.
+    private(set) var alarmDate: Date?
 
     /// The capsule flips between closed and compact on these.
     @ObservationIgnored var onRunningChanged: (() -> Void)?
@@ -19,12 +20,13 @@ final class TimerService {
 
     @ObservationIgnored private var endDate: Date?
     @ObservationIgnored private var tickTask: Task<Void, Never>?
+    @ObservationIgnored private var alarmTask: Task<Void, Never>?
     @ObservationIgnored private let log = Logger(subsystem: "com.dk2la.pocket", category: "timer")
 
-    static let presets: [TimeInterval] = [5 * 60, 10 * 60, 25 * 60, 45 * 60]
+    static let presets: [TimeInterval] = [5 * 60, 10 * 60, 25 * 60, 45 * 60, 60 * 60]
 
-    /// Nothing to show yet: no countdown or alarm going, and none paused
-    /// partway. The module shows its empty screen exactly then.
+    /// The countdown has nothing to show yet: not going, and not paused
+    /// partway. The alarm is separate — see `alarmDate`.
     var isIdle: Bool {
         Self.isIdle(isRunning: isRunning, remaining: remaining, duration: duration)
     }
@@ -41,17 +43,35 @@ final class TimerService {
         remaining = newDuration
     }
 
-    /// Alarm: counts down to the next time the clock shows this hour and
-    /// minute, replacing whatever was running.
-    func ring(atHour hour: Int, minute: Int) {
+    /// Sets the alarm for the next time the clock shows this hour and
+    /// minute, replacing an earlier one. The countdown is left alone.
+    func setAlarm(hour: Int, minute: Int) {
         let components = DateComponents(hour: hour, minute: minute, second: 0)
         guard let target = Calendar.current.nextDate(
             after: Date(), matching: components, matchingPolicy: .nextTime
         ) else { return }
-        pause()
-        setDuration(target.timeIntervalSinceNow)
-        start()
-        isAlarm = true
+        alarmTask?.cancel()
+        alarmDate = target
+        alarmTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                self?.checkAlarm()
+            }
+        }
+        log.info("alarm set")
+    }
+
+    func cancelAlarm() {
+        alarmTask?.cancel()
+        alarmTask = nil
+        alarmDate = nil
+    }
+
+    private func checkAlarm() {
+        guard let alarmDate, alarmDate <= Date() else { return }
+        cancelAlarm()
+        NSSound(named: "Glass")?.play()
+        onFinished?()
     }
 
     func start() {
@@ -71,7 +91,6 @@ final class TimerService {
     func pause() {
         guard isRunning else { return }
         isRunning = false
-        isAlarm = false
         tickTask?.cancel()
         endDate = nil
         onRunningChanged?()
@@ -92,7 +111,6 @@ final class TimerService {
 
     private func finish() {
         isRunning = false
-        isAlarm = false
         tickTask?.cancel()
         endDate = nil
         remaining = duration

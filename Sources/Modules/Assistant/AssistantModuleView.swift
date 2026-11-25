@@ -24,15 +24,11 @@ struct AssistantModuleView: View {
 
     private var chat: some View {
         VStack(spacing: 10) {
-            // The robot is the empty chat only: once there is a turn, the
-            // transcript has the panel to itself.
             transcript.emptyScreen(when: assistant.transcript.isEmpty) {
                 ModuleEmptyScreen(
                     label: L10n.t(.asstEmptyTitle),
                     sublabel: assistant.isVoiceMode ? L10n.t(.asstVoiceHint) : L10n.t(.asstHint)
-                ) {
-                    IsoAssistantView(mode: robotMode)
-                }
+                )
             }
             // A playbook closes apps, so the model only gets to ask.
             if let playbook = assistant.pendingPlaybook {
@@ -53,12 +49,6 @@ struct AssistantModuleView: View {
             voice.speak(text, locale: L10n.shared.language.speechLocale)
         }
         .onDisappear { voice.stop() }
-    }
-
-    /// What the robot of the empty chat is doing.
-    private var robotMode: IsoAssistantView.Mode {
-        if speech.isRecording { return .listening }
-        return assistant.isThinking ? .thinking : .idle
     }
 
     private var transcript: some View {

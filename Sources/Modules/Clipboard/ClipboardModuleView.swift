@@ -11,9 +11,7 @@ struct ClipboardModuleView: View {
 
     var body: some View {
         history.emptyScreen(when: clipboard.entries.isEmpty) {
-            ModuleEmptyScreen(label: L10n.t(.clipEmptyTitle), sublabel: L10n.t(.clipEmptySub)) {
-                IsoClipboardView(count: 0, latestID: nil)
-            }
+            ModuleEmptyScreen(label: L10n.t(.clipEmptyTitle), sublabel: L10n.t(.clipEmptySub))
         }
     }
 
@@ -27,7 +25,7 @@ struct ClipboardModuleView: View {
                         let earlier = Array(clipboard.entries.dropFirst())
                         if !earlier.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
-                                SectionHeader(title: L10n.t(.mailSectionEarlier))
+                                SectionHeader(title: L10n.t(.mailSectionEarlier), trailing: "\(earlier.count)")
                                 GroupedCard {
                                     ForEach(Array(earlier.enumerated()), id: \.element.id) { index, entry in
                                         row(entry, isLast: index == earlier.count - 1)

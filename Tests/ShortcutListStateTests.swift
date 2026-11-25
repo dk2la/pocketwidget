@@ -1,6 +1,6 @@
 import XCTest
 
-/// Hotkeys shows its empty screen (the keyboard and a message) only when
+/// Hotkeys shows its empty screen only when
 /// there is nothing to list for the app in front; a search that finds
 /// nothing keeps its plain message, and a list still on its way shows
 /// neither.
@@ -8,7 +8,7 @@ final class ShortcutListStateTests: XCTestCase {
     func testNoAppInFrontIsTheEmptyScreen() {
         let state = ShortcutListState(hasApp: false, shownCount: 0, query: "", isSettled: false)
         XCTAssertEqual(state, .noApp)
-        XCTAssertTrue(state.showsDevice)
+        XCTAssertTrue(state.showsEmptyScreen)
     }
 
     func testNoAppWinsOverEverythingElse() {
@@ -18,19 +18,19 @@ final class ShortcutListStateTests: XCTestCase {
     func testAppWithoutShortcutsIsTheEmptyScreen() {
         let state = ShortcutListState(hasApp: true, shownCount: 0, query: "", isSettled: true)
         XCTAssertEqual(state, .noShortcuts)
-        XCTAssertTrue(state.showsDevice)
+        XCTAssertTrue(state.showsEmptyScreen)
     }
 
-    func testShortcutsAreTheListWithoutADevice() {
+    func testShortcutsAreTheListNotTheEmptyScreen() {
         let state = ShortcutListState(hasApp: true, shownCount: 12, query: "", isSettled: true)
         XCTAssertEqual(state, .shortcuts)
-        XCTAssertFalse(state.showsDevice)
+        XCTAssertFalse(state.showsEmptyScreen)
     }
 
-    func testSearchThatFindsNothingHasNoDevice() {
+    func testSearchThatFindsNothingIsNotTheEmptyScreen() {
         let state = ShortcutListState(hasApp: true, shownCount: 0, query: "zzz", isSettled: true)
         XCTAssertEqual(state, .noSearchResults)
-        XCTAssertFalse(state.showsDevice)
+        XCTAssertFalse(state.showsEmptyScreen)
     }
 
     func testSearchHitsAreTheList() {
@@ -41,12 +41,12 @@ final class ShortcutListStateTests: XCTestCase {
         XCTAssertEqual(ShortcutListState(hasApp: true, shownCount: 0, query: "   ", isSettled: true), .noShortcuts)
     }
 
-    func testListStillOnItsWayShowsNoDevice() {
+    func testListStillOnItsWayIsNotTheEmptyScreen() {
         // Menus not read yet, or no Accessibility access: the hero card
-        // says so, and the keyboard must not flash in meanwhile.
+        // says so, and the empty screen must not flash in meanwhile.
         let state = ShortcutListState(hasApp: true, shownCount: 0, query: "", isSettled: false)
         XCTAssertEqual(state, .pending)
-        XCTAssertFalse(state.showsDevice)
+        XCTAssertFalse(state.showsEmptyScreen)
     }
 
     func testSearchDecidesEvenBeforeTheListIsSettled() {

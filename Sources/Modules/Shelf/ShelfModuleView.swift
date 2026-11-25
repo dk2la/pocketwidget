@@ -3,10 +3,10 @@ import QuickLookThumbnailing
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// "Shelf" module. Empty, it is the empty screen: a small bookcase, and
-/// the "Add file" bar pinned to the bottom. With files there is no
-/// bookcase: the picked file sits on top as a card with a preview of what
-/// is inside, Open and Show in Finder, and under it the whole shelf as one
+/// "Shelf" module. Empty, it is the empty screen: the empty message, and
+/// the "Add file" bar pinned to the bottom. With files the picked file
+/// sits on top as a card with a preview of what is inside, Open and Show
+/// in Finder, and under it the whole shelf as one
 /// grouped list whose last row is "Add file". Tapping a row puts that
 /// file in the card. Files drop anywhere on the module in both states and
 /// drag back out of the card or a row. Clearing lives in the panel header.
@@ -25,9 +25,7 @@ struct ShelfModuleView: View {
         VStack(alignment: .leading, spacing: 10) {
             files.emptyScreen(when: shelf.items.isEmpty) {
                 VStack(spacing: 10) {
-                    ModuleEmptyScreen(label: L10n.t(.shelfEmpty), sublabel: L10n.t(.shelfEmptySub)) {
-                        IsoShelfView(isTargeted: isTargeted)
-                    }
+                    ModuleEmptyScreen(label: L10n.t(.shelfEmpty), sublabel: L10n.t(.shelfEmptySub))
                     ShelfAddFileRow(shelf: shelf, isBar: true) { showNewest() }
                 }
             }

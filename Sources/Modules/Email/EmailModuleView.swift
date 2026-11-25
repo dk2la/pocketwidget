@@ -85,14 +85,11 @@ struct EmailModuleView: View {
         .animation(Theme.stateSpring, value: service.isComposeOpen)
     }
 
-    /// No account yet: the mailbox, the message and the one thing to do
-    /// about it — setup starts right here, not in Settings.
+    /// No account yet: the message and the one thing to do about it —
+    /// setup starts right here, not in Settings.
     private var addMailScreen: some View {
-        VStack(spacing: 10) {
-            ModuleEmptyScreen(label: L10n.t(.mailSetupTitle), sublabel: L10n.t(.mailSetupSub)) {
-                IsoMailboxView(unread: 0)
-            }
-            EmptyActionBar(label: L10n.t(.mailAddAction)) {
+        ModuleEmptyScreen(label: L10n.t(.mailSetupTitle), sublabel: L10n.t(.mailSetupSub)) {
+            ModuleButton(label: L10n.t(.mailAddAction), kind: .light) {
                 service.beginSetup()
             }
         }
@@ -108,15 +105,9 @@ struct EmailModuleView: View {
             // The mailbox tiles, search and status stay in both states — an
             // empty section must still let the user switch to another one.
             list(state).emptyScreen(when: state.isEmpty) {
-                // The mailbox stands for an inbox with no mail in it; a
-                // search that found nothing only says so.
-                if state == .noSearchResults {
-                    EmptyStateZone(label: L10n.t(.mailNoResults))
-                } else {
-                    ModuleEmptyScreen(label: L10n.t(.mailInboxEmpty)) {
-                        IsoMailboxView(unread: service.unreadCount)
-                    }
-                }
+                ModuleEmptyScreen(
+                    label: L10n.t(state == .noSearchResults ? .mailNoResults : .mailInboxEmpty)
+                )
             }
             statusFooter
         }

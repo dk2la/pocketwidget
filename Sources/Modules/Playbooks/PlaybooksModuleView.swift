@@ -8,7 +8,7 @@ import SwiftUI
 /// button opens the playbook: a hero card with Run and
 /// its steps in order, so it is clear what running it will do, Delete, and
 /// Edit, which opens the same editor filled with it. With no playbook at all the
-/// computer device stands over the empty message. A quiet register
+/// module is the empty message over "Add playbook…". A quiet register
 /// underneath reports failures of the last run.
 struct PlaybooksModuleView: View {
     var store: PlaybookStore
@@ -104,14 +104,11 @@ struct PlaybooksModuleView: View {
 
     // MARK: - Empty
 
-    /// No playbook yet: the device over the empty message, centred in the
-    /// free space, and the bar that adds the first one.
+    /// No playbook yet: the empty message, centred in the free space, over
+    /// the button that adds the first one.
     private var emptyScreen: some View {
-        VStack(spacing: 10) {
-            ModuleEmptyScreen(label: L10n.t(.playNoneTitle)) {
-                IsoComputerView()
-            }
-            EmptyActionBar(label: L10n.t(.playAdd)) {
+        ModuleEmptyScreen(label: L10n.t(.playNoneTitle), sublabel: L10n.t(.playNoneSub)) {
+            ModuleButton(label: L10n.t(.playAdd), kind: .light) {
                 show(.editor(nil))
             }
         }
@@ -137,7 +134,12 @@ struct PlaybooksModuleView: View {
                         .contentShape(Rectangle())
                         .onTapGesture { show(.playbook(featured.id)) }
                 }
-                list(store.playbooks.filter { $0.id != featured?.id })
+                // Every playbook, the featured one too: the hero is a
+                // shortcut to one of them, the list is the whole set.
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionHeader(title: L10n.t(.modPlaybooks), trailing: "\(store.playbooks.count)")
+                    list(store.playbooks)
+                }
             }
         }
     }

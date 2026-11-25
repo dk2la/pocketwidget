@@ -33,15 +33,28 @@ final class TimerIdleTests: XCTestCase {
         XCTAssertTrue(timer.isIdle)
     }
 
-    func testAlarmIsNotIdleUntilReset() {
+    func testAlarmIsSetForTheNextSuchClockTime() throws {
         let timer = TimerService()
         // The next full hour that is not this one: always minutes away.
         let hour = (Calendar.current.component(.hour, from: Date()) + 2) % 24
-        timer.ring(atHour: hour, minute: 0)
-        XCTAssertTrue(timer.isAlarm)
-        XCTAssertFalse(timer.isIdle)
+        timer.setAlarm(hour: hour, minute: 0)
+        let date = try XCTUnwrap(timer.alarmDate)
+        XCTAssertGreaterThan(date, Date())
+        XCTAssertLessThanOrEqual(date.timeIntervalSinceNow, 24 * 60 * 60)
+        XCTAssertEqual(Calendar.current.component(.hour, from: date), hour)
+        timer.cancelAlarm()
+        XCTAssertNil(timer.alarmDate)
+    }
+
+    func testAlarmAndCountdownDoNotTouchEachOther() {
+        let timer = TimerService()
+        let hour = (Calendar.current.component(.hour, from: Date()) + 2) % 24
+        timer.setAlarm(hour: hour, minute: 0)
+        XCTAssertTrue(timer.isIdle, "an alarm does not start the countdown")
+        timer.start()
         timer.reset()
-        XCTAssertTrue(timer.isIdle)
+        XCTAssertNotNil(timer.alarmDate, "resetting the countdown keeps the alarm")
+        timer.cancelAlarm()
     }
 
     func testNewLengthIsIdle() {

@@ -47,6 +47,8 @@ struct CLIAssistantClient: Sendable {
     var provider: AssistantProvider
     /// Optional model override passed to the CLI.
     var model: String
+    /// Decides where the CLI is found and which `PATH` it is started with.
+    var commandLine: CommandLineEnvironment = .shared
 
     private static let log = Logger(subsystem: "com.dk2la.pocket", category: "assistant")
     private static let timeout: Duration = .seconds(180)
@@ -69,48 +71,20 @@ struct CLIAssistantClient: Sendable {
 
     // MARK: - Binary discovery
 
-    /// A GUI app launched from Finder inherits a minimal PATH, so the usual
-    /// install roots are searched explicitly before giving up.
-    /// `searchPath` overrides the process PATH (tests pass a temp dir);
-    /// the well-known install roots below are always appended.
-    static func locateExecutable(_ name: String, searchPath: String? = nil) -> URL? {
-        var roots: [String] = []
-        if let path = searchPath ?? ProcessInfo.processInfo.environment["PATH"] {
-            roots += path.split(separator: ":").map(String.init)
-        }
-        let home = FileManager.default.homeDirectoryForCurrentUser.path
-        roots += [
-            "\(home)/.local/bin",
-            "\(home)/.bun/bin",
-            "\(home)/.volta/bin",
-            "\(home)/.npm-global/bin",
-            "\(home)/.nvm/versions/node/current/bin",
-            "\(home)/.cargo/bin",
-            "/opt/homebrew/bin",
-            "/usr/local/bin",
-            "/usr/bin",
-        ]
-        let manager = FileManager.default
-        for root in roots {
-            let candidate = URL(fileURLWithPath: root).appendingPathComponent(name)
-            if manager.isExecutableFile(atPath: candidate.path) {
-                return candidate
-            }
-        }
-        return nil
-    }
-
     var isInstalled: Bool {
         guard let name = provider.executableName else { return false }
-        return Self.locateExecutable(name) != nil
+        return commandLine.locate(name) != nil
     }
 
     // MARK: - Chat
 
     /// Runs one turn. `prompt` already contains the flattened transcript.
     func send(system: String, prompt: String) async throws -> String {
+        // Off the cooperative pool: the first lookup after launch waits for
+        // the login shell, which can take seconds.
+        let commandLine = commandLine
         guard let name = provider.executableName,
-              let executable = Self.locateExecutable(name)
+              let executable = await Task.detached(operation: { commandLine.locate(name) }).value
         else { throw CLIError.notInstalled(provider.executableName ?? "CLI") }
 
         let arguments: [String]
@@ -137,7 +111,10 @@ struct CLIAssistantClient: Sendable {
             throw CLIError.notInstalled("CLI")
         }
 
-        let result = try await Self.run(executable: executable, arguments: arguments)
+        // Looked up before the hop to the worker thread; the shell behind it
+        // is asked at most once per launch.
+        let path = commandLine.path(for: executable)
+        let result = try await Self.run(executable: executable, arguments: arguments, path: path)
         // Both CLIs write the conversation to disk under the user's home.
         // The widget is an ephemeral surface, so its own trace is removed
         // before the answer is even shown.
@@ -317,13 +294,13 @@ struct CLIAssistantClient: Sendable {
     /// Runs to completion off the main actor, with a hard timeout. No
     /// termination handler: a blocking wait on a detached thread keeps every
     /// Apple callback out of an isolated context.
-    private static func run(executable: URL, arguments: [String]) async throws -> ProcessResult {
+    private static func run(executable: URL, arguments: [String], path: String) async throws -> ProcessResult {
         let box = ProcessBox()
         return try await withThrowingTaskGroup(of: ProcessResult.self) { group in
             group.addTask {
                 try await withCheckedThrowingContinuation { continuation in
                     Thread.detachNewThread {
-                        continuation.resume(with: Result { try runBlocking(executable, arguments, box) })
+                        continuation.resume(with: Result { try runBlocking(executable, arguments, path, box) })
                     }
                 }
             }
@@ -348,6 +325,7 @@ struct CLIAssistantClient: Sendable {
     private static func runBlocking(
         _ executable: URL,
         _ arguments: [String],
+        _ path: String,
         _ box: ProcessBox
     ) throws -> ProcessResult {
         let process = Process()
@@ -357,6 +335,9 @@ struct CLIAssistantClient: Sendable {
         process.currentDirectoryURL = FileManager.default.temporaryDirectory
         var environment = ProcessInfo.processInfo.environment
         environment["CLAUDE_CODE_ENTRYPOINT"] = "pocket"
+        // The person's real PATH, not the short one Finder gives an app:
+        // an npm-installed CLI needs it to find `node`.
+        environment["PATH"] = path
         process.environment = environment
 
         let out = Pipe()
