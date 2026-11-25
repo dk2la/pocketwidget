@@ -62,7 +62,9 @@ final class PermissionGuide {
         NSWorkspace.shared.openPrivacyPane(permission.pane)
 
         let panel = FloatingPanel()
-        // Above System Settings, below menus and the widget.
+        // Above System Settings, below menus and the widget — also while
+        // the widget yields to Settings (see `PanelHold`).
+        panel.yieldsToSystemWindows = false
         panel.level = .floating
         panel.hasShadow = true
         let view = PermissionGuideView(permission: permission) { [weak self] in

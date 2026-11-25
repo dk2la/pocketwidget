@@ -346,7 +346,7 @@ struct SpeechStatusRow: View {
                     .foregroundStyle(Theme.textTertiary)
                 Spacer(minLength: 0)
                 GlassCapsuleButton(label: L10n.t(.speechOpenSettings)) {
-                    SpeechCaptureService.openPrivacySettings()
+                    NSWorkspace.shared.openPrivacyPane("Microphone")
                 }
             }
             .transition(.opacity)
