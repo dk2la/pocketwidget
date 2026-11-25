@@ -8,6 +8,24 @@ struct AssistantSetupView: View {
     var flow: AssistantSetupFlow
     /// Removes the saved provider.
     let onDisconnect: () -> Void
+    /// Sign-in happens in Terminal and the browser. The panel stays open
+    /// meanwhile, so the waiting card is still there to connect and open
+    /// the chat when the person comes back.
+    @State private var holdsPanel = false
+
+    private var isWaiting: Bool {
+        if case .waiting = flow.phase { true } else { false }
+    }
+
+    private func holdPanel(_ hold: Bool) {
+        guard hold != holdsPanel else { return }
+        holdsPanel = hold
+        if hold {
+            PanelHold.shared.begin()
+        } else {
+            PanelHold.shared.end()
+        }
+    }
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
@@ -21,9 +39,14 @@ struct AssistantSetupView: View {
         .animation(Theme.stateSpring, value: flow.facts)
         .onAppear {
             flow.setVisible(true)
+            holdPanel(isWaiting)
             Task { await flow.refresh() }
         }
-        .onDisappear { flow.setVisible(false) }
+        .onDisappear {
+            flow.setVisible(false)
+            holdPanel(false)
+        }
+        .onChange(of: isWaiting) { _, waiting in holdPanel(waiting) }
         // Back from Terminal or the browser: something may be installed now.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             Task { await flow.refresh() }
