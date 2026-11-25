@@ -99,7 +99,9 @@ enum L10nKey {
     // Media
     case mediaIdle, mediaSilent, mediaNoSignal
     case mediaPlay, mediaPlaying, mediaPaused, mediaPlayers, mediaControlNote
-    case mediaRecent, mediaOnRepeat, mediaPlays, mediaHistoryHint
+    case mediaRecent, mediaOnRepeat, mediaPlays
+    case mediaProviders, mediaProvidersHint, mediaProviderOpen, mediaProviderConnect
+    case mediaProviderPermission, mediaProviderGet, mediaProviderMissing
 
     // Clipboard
     case clipCopied, clipClear, clipEmptyTitle, clipEmptySub, clipMemoryNote, clipLatest, clipCopy
@@ -165,6 +167,7 @@ enum L10nKey {
     // Metrics
     case sysMemory, sysNetwork, sysBattery, sysCharging, sysVolume, sysNow, sysLiveNote
     case sysAverage, sysPeak, sysLowest, sysLastMinutes, sysDownload, sysUpload, sysMetricsSection
+    case sysProcessesSection, sysProcessesLoading
 
     // Settings
     case setTitle, setGeneral, setAppearance, setModules, setHotkeys
@@ -258,7 +261,13 @@ enum L10nKey {
         case .mediaRecent: return ["Recently played", "Недавно играли", "Écoutés récemment", "Escuchado recientemente", "最近播放", "Ouvidas recentemente", "Zuletzt gespielt", "Ascoltati di recente", "最近再生した曲", "최근 재생"]
         case .mediaOnRepeat: return ["On repeat", "На повторе", "En boucle", "En bucle", "单曲循环", "Em repetição", "Auf Dauerschleife", "In loop", "リピート中", "반복 재생 중"]
         case .mediaPlays: return ["Plays: %@", "Прослушиваний: %@", "Écoutes : %@", "Reproducciones: %@", "播放次数：%@", "Reproduções: %@", "Wiedergaben: %@", "Ascolti: %@", "再生回数：%@", "재생 횟수: %@"]
-        case .mediaHistoryHint: return ["Songs you play will show up here", "Здесь появятся песни, которые ты слушаешь", "Les titres écoutés apparaîtront ici", "Aquí aparecerán las canciones que escuches", "你播放的歌曲会显示在这里", "As músicas que ouvires aparecem aqui", "Gespielte Songs erscheinen hier", "Qui compariranno i brani che ascolti", "再生した曲がここに表示されます", "재생한 곡이 여기에 표시됩니다"]
+        case .mediaProviders: return ["Choose a music app", "Выбери музыкальное приложение", "Choisis une app de musique", "Elige una app de música", "选择音乐应用", "Escolhe uma app de música", "Wähle eine Musik-App", "Scegli un'app musicale", "音楽アプリを選択", "음악 앱 선택"]
+        case .mediaProvidersHint: return ["Pocket plays and controls music in these apps", "Pocket включает музыку и управляет ей в этих приложениях", "Pocket lance et contrôle la musique dans ces apps", "Pocket reproduce y controla la música en estas apps", "Pocket 可在这些应用中播放和控制音乐", "O Pocket toca e controla música nestas apps", "Pocket spielt und steuert Musik in diesen Apps", "Pocket riproduce e controlla la musica in queste app", "Pocket はこれらのアプリで音楽を再生・操作できます", "Pocket은 이 앱에서 음악을 재생하고 제어합니다"]
+        case .mediaProviderOpen: return ["Open and connect", "Открыть и подключить", "Ouvrir et connecter", "Abrir y conectar", "打开并连接", "Abrir e ligar", "Öffnen und verbinden", "Apri e collega", "開いて接続", "열고 연결"]
+        case .mediaProviderConnect: return ["Running · connect", "Запущено · подключить", "Ouvert · connecter", "Abierto · conectar", "已运行 · 连接", "Aberto · ligar", "Läuft · verbinden", "Aperto · collega", "起動中 · 接続", "실행 중 · 연결"]
+        case .mediaProviderPermission: return ["Allow control in System Settings", "Разреши управление в Системных настройках", "Autorise le contrôle dans Réglages Système", "Permite el control en Ajustes del Sistema", "在系统设置中允许控制", "Permite o controlo nas Definições do Sistema", "Steuerung in den Systemeinstellungen erlauben", "Consenti il controllo in Impostazioni di Sistema", "システム設定で操作を許可", "시스템 설정에서 제어 허용"]
+        case .mediaProviderGet: return ["Not installed · get it", "Не установлено · скачать", "Non installée · l'obtenir", "No instalada · obtener", "未安装 · 获取", "Não instalada · obter", "Nicht installiert · laden", "Non installata · scaricala", "未インストール · 入手", "설치되지 않음 · 받기"]
+        case .mediaProviderMissing: return ["Not installed", "Не установлено", "Non installée", "No instalada", "未安装", "Não instalada", "Nicht installiert", "Non installata", "未インストール", "설치되지 않음"]
 
         case .clipCopied: return ["Copied", "Готово", "Copié", "Copiado", "已复制", "Copiado", "Kopiert", "Copiato", "コピー済み", "복사됨"]
         case .clipLatest: return ["Latest", "Последнее", "Dernier", "Lo último", "最新", "Mais recente", "Neueste", "Ultimo", "最新", "최근"]
@@ -473,6 +482,8 @@ enum L10nKey {
         case .sysDownload: return ["Download", "Загрузка", "Réception", "Descarga", "下载", "Download", "Empfang", "Download", "ダウンロード", "다운로드"]
         case .sysUpload: return ["Upload", "Отдача", "Envoi", "Subida", "上传", "Upload", "Senden", "Upload", "アップロード", "업로드"]
         case .sysMetricsSection: return ["Metrics", "Метрики", "Métriques", "Métricas", "指标", "Métricas", "Metriken", "Metriche", "メトリクス", "지표"]
+        case .sysProcessesSection: return ["Top processes", "Самые активные процессы", "Processus les plus actifs", "Procesos más activos", "占用最高的进程", "Processos mais ativos", "Aktivste Prozesse", "Processi più attivi", "負荷の高いプロセス", "부하가 큰 프로세스"]
+        case .sysProcessesLoading: return ["Reading processes…", "Читаем процессы…", "Lecture des processus…", "Leyendo procesos…", "正在读取进程…", "A ler processos…", "Prozesse werden gelesen…", "Lettura dei processi…", "プロセスを読み込み中…", "프로세스 읽는 중…"]
 
         case .setCheckUpdates: return ["Check for Updates", "Проверить обновления", "Rechercher des mises à jour", "Buscar actualizaciones", "检查更新", "Buscar atualizações", "Nach Updates suchen", "Verifica aggiornamenti", "アップデートを確認", "업데이트 확인"]
         case .setTitle: return ["Settings", "Настройки", "Réglages", "Ajustes", "设置", "Ajustes", "Einstellungen", "Impostazioni", "設定", "설정"]
