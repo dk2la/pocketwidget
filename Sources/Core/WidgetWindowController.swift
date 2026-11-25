@@ -34,6 +34,9 @@ final class WidgetWindowController: NSObject {
     private var didPresentLockScreen = false
     private let log = Logger(subsystem: "com.dk2la.pocket", category: "widget")
     private lazy var eventPill = LiveEventPillController(settings: settings)
+    /// Fired once when the welcome tour ends — closed, or left for a module
+    /// (a settings detour does not count until that panel closes too).
+    var onTourClosed: (() -> Void)?
 
     init(settings: AppSettings, services: ModuleServices) {
         self.settings = settings
@@ -43,6 +46,7 @@ final class WidgetWindowController: NSObject {
         viewModel.onTabTapped = { [weak self] tab in self?.toggleTab(tab) }
         viewModel.onClose = { [weak self] in self?.closePanel() }
         viewModel.onRestore = { [weak self] in self?.setMinimized(false) }
+        viewModel.onResumeOnboarding = { [weak self] in self?.openOnboarding(resume: true) }
         viewModel.onDragChanged = { [weak self] in self?.dragChanged() }
         viewModel.onDragEnded = { [weak self] in self?.dragEnded() }
         viewModel.onResizeChanged = { [weak self] in self?.resizeChanged() }
@@ -123,6 +127,18 @@ final class WidgetWindowController: NSObject {
         guard let raw = notification.userInfo?["tab"] as? String,
               let tab = ModuleTab(rawValue: raw), settings.isEnabled(tab),
               !viewModel.isLocked else { return }
+        if tab == .settings {
+            openSettings()
+            return
+        }
+        // The tour's own buttons hand over to a module: the tour is done.
+        endTour()
+        showPanel(tab)
+    }
+
+    /// Restores a minimized widget, then opens `tab` or switches the open
+    /// panel to it in place.
+    private func showPanel(_ tab: ModuleTab) {
         if viewModel.isMinimized {
             setMinimized(false)
         }
@@ -163,6 +179,7 @@ final class WidgetWindowController: NSObject {
             viewModel.stripFrame = CGRect(origin: .zero, size: target.size)
             viewModel.panelFrame = .zero
         }
+        endTour()
         if minimized {
             collapseTask = Task { [weak self] in
                 try? await Task.sleep(for: .milliseconds(CapsuleMetrics.windowCollapseDelayMilliseconds))
@@ -187,9 +204,15 @@ final class WidgetWindowController: NSObject {
 
     // MARK: - Outside click (close-on-click-away)
 
-    private func installOutsideClickMonitors() {
+    /// `opening` is the tab of a panel that is selected a tick later.
+    private func installOutsideClickMonitors(opening tab: ModuleTab? = nil) {
         stopAutoClose()
-        guard settings.closeOnOutsideClick else { return }
+        let content = WidgetPanelContent.resolve(
+            selectedTab: tab ?? viewModel.selectedTab,
+            showsTour: viewModel.showsTour,
+            locked: viewModel.isLocked
+        )
+        guard content?.autoCloses(closeOnOutsideClick: settings.closeOnOutsideClick) ?? false else { return }
         outsideClickMonitors.install(
             isOutside: { [weak self] event in self.map { event.window !== $0.panel } ?? false },
             onClick: { [weak self] in
@@ -319,16 +342,39 @@ final class WidgetWindowController: NSObject {
         openTask?.cancel()
         collapseTask?.cancel()
         collapseTask = nil
+        stopAutoClose()
         withInstantTransaction {
             viewModel.setSelectedTab(nil)
         }
         applyDockedFrame()
+        // The tour was opened deliberately and is read: it comes back on
+        // the new layout. A settings detour does not.
+        if viewModel.showsTour, currentScreen != nil {
+            viewModel.cameFromOnboarding = false
+            openPanel(.settings)
+        } else {
+            endTour()
+        }
     }
 
     // MARK: - Panel open/close
 
     private func toggleTab(_ tab: ModuleTab) {
         log.info("tab -> \(tab.rawValue, privacy: .public)")
+        if viewModel.showsTour {
+            // A strip icon while the tour is up ends it: Settings shows in
+            // place, any other module switches in.
+            endTour()
+            if viewModel.selectedTab == tab {
+                installOutsideClickMonitors()
+            } else {
+                switchPanel(to: tab)
+            }
+            return
+        }
+        if viewModel.selectedTab != tab {
+            endTour()
+        }
         if viewModel.isMinimized {
             // The lone visible button unfolds the widget and opens itself.
             setMinimized(false)
@@ -361,7 +407,7 @@ final class WidgetWindowController: NSObject {
             guard !Task.isCancelled else { return }
             self?.viewModel.setSelectedTab(tab)
         }
-        installOutsideClickMonitors()
+        installOutsideClickMonitors(opening: tab)
     }
 
     /// Another panel while one is open: switched in place. The window is
@@ -369,6 +415,7 @@ final class WidgetWindowController: NSObject {
     private func switchPanel(to tab: ModuleTab) {
         applyExpandedFrame(for: tab)
         viewModel.setSelectedTab(tab)
+        installOutsideClickMonitors()
     }
 
     private func closePanel() {
@@ -380,6 +427,7 @@ final class WidgetWindowController: NSObject {
             panel.resignKey()
         }
         viewModel.setSelectedTab(nil)
+        endTour()
         // Shrink the window only after the close animation has finished,
         // otherwise it would clip the panel mid-flight.
         collapseTask = Task { [weak self] in
@@ -406,6 +454,7 @@ final class WidgetWindowController: NSObject {
             withInstantTransaction {
                 viewModel.setSelectedTab(nil)
             }
+            endTour()
             applyDockedFrame()
             dragStartMouse = now
             dragStartOrigin = panel.frame.origin
@@ -592,5 +641,73 @@ extension WidgetWindowController {
             edge: settings.widgetEdge,
             visibleFrame: screen.visibleFrame
         )
+    }
+}
+
+// MARK: - Settings and the welcome tour
+
+extension WidgetWindowController {
+    /// The one way into Settings: ⌃⌥M, the menu bar menu, deep links from
+    /// modules (`requestSettings(page:)`), `--settings`. Locked, it opens
+    /// the lock screen in the lock button's slot instead — Settings is no
+    /// way around the lock; the lock screen takes the License key.
+    func openSettings(page: SettingsView.Page? = nil) {
+        if let page {
+            viewModel.settingsPage.page = page
+        }
+        if viewModel.panelContent == .tour {
+            // Leaving the tour for a settings page is a detour: Settings
+            // leads with "‹ Back" to the same tour page.
+            viewModel.showsTour = false
+            viewModel.cameFromOnboarding = true
+            installOutsideClickMonitors()
+            return
+        }
+        // A detour going on to another page stays one; any other way in
+        // starts Settings afresh.
+        if !(viewModel.panelContent == .settings && viewModel.cameFromOnboarding) {
+            endTour()
+        }
+        showPanel(WidgetPanelContent.settingsSlot(
+            locked: viewModel.isLocked,
+            firstTab: settings.orderedEnabledTabs.first
+        ))
+    }
+
+    /// ⌃⌥M: closes Settings (or the tour, or the lock screen) like a second
+    /// click on its icon; over a module or a closed widget, opens Settings.
+    func toggleSettings() {
+        if WidgetPanelContent.hotkeyCloses(viewModel.panelContent) {
+            closePanel()
+        } else {
+            openSettings()
+        }
+    }
+
+    /// The welcome tour, in the Settings slot. `resume` comes back to the
+    /// page a settings detour left; otherwise it starts at the first page.
+    func openOnboarding(resume: Bool = false) {
+        if !resume {
+            viewModel.onboardingStep = .welcome
+        }
+        viewModel.cameFromOnboarding = false
+        viewModel.showsTour = true
+        if viewModel.selectedTab == .settings {
+            // Tour ⇄ Settings swap in place; the tour must not close on a
+            // click away.
+            installOutsideClickMonitors()
+        } else {
+            showPanel(.settings)
+        }
+    }
+
+    /// The tour (or its settings detour) is over: clear it and tell the
+    /// app once.
+    private func endTour() {
+        guard viewModel.showsTour || viewModel.cameFromOnboarding else { return }
+        viewModel.showsTour = false
+        viewModel.cameFromOnboarding = false
+        log.info("tour closed")
+        onTourClosed?()
     }
 }

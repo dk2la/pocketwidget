@@ -163,14 +163,6 @@ struct CapsuleRootView: View {
                 housingHeight: closedSize.height + Self.fillet
             )
             .transition(.opacity)
-        case .onboarding:
-            CapsuleOnboardingView(
-                viewModel: viewModel,
-                services: services,
-                settings: settings,
-                housingHeight: closedSize.height + Self.fillet
-            )
-            .transition(.opacity)
         }
     }
 }

@@ -1,70 +1,85 @@
 import AppKit
 import SwiftUI
 
-/// The welcome tour, hosted in the expanded capsule like the settings, on
-/// the same glass. One card per page: an illustration on top — the widget
+/// The welcome tour, hosted in the widget panel's Settings slot, on the
+/// panel's glass. One card per page: an illustration on top — the widget
 /// itself, alive, over a colourful wallpaper its glass picks up — then the
 /// words, then the way on.
-struct CapsuleOnboardingView: View {
-    var viewModel: CapsuleViewModel
+struct OnboardingView: View {
+    /// The page, owned by the widget so a settings detour can come back to it.
+    @Binding var step: OnboardingStep
     var services: ModuleServices
     @Bindable var settings: AppSettings
-    let housingHeight: CGFloat
+    /// ✕, Esc and Start on the last page.
+    let onClose: () -> Void
 
     /// Entry choreography: the card settles, the widget's strip pops in,
     /// its panel opens, then the words arrive.
     @State private var appeared = false
 
+    /// The illustration's designed height; a shorter panel scales it down.
     static let cardHeight: CGFloat = 330
-
-    private var step: OnboardingStep { viewModel.onboardingStep }
+    /// Room the words and the footer need below the card.
+    private static let textReserve: CGFloat = 236
+    private static let minCardHeight: CGFloat = 160
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Color.clear.frame(height: housingHeight)
-            illustration
-                .padding(.horizontal, 14)
-                .padding(.top, 14)
-            copy
-                .padding(.horizontal, 28)
-                .padding(.top, 22)
-            Spacer(minLength: 0)
-            footer
-                .padding(.horizontal, 24)
-                .padding(.bottom, 22)
+        GeometryReader { proxy in
+            VStack(alignment: .leading, spacing: 0) {
+                illustration(height: Self.cardHeight(forPanelHeight: proxy.size.height))
+                    .padding(.horizontal, 14)
+                    .padding(.top, 14)
+                copy
+                    .padding(.horizontal, 28)
+                    .padding(.top, 22)
+                Spacer(minLength: 0)
+                footer
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 22)
+            }
         }
         .onAppear {
             guard !appeared else { return }
             // One tick later, so the entry runs as its own transaction on
-            // top of the capsule's drop instead of merging into it.
+            // top of the panel's opening instead of merging into it.
             Task { appeared = true }
         }
+    }
+
+    /// The panel is user-sized (it shares the Settings size): the card
+    /// gives up height first, the words never do.
+    private static func cardHeight(forPanelHeight height: CGFloat) -> CGFloat {
+        max(minCardHeight, min(cardHeight, height - textReserve))
     }
 
     private func go(to target: OnboardingStep) {
         guard target != step else { return }
         withAnimation(Theme.stateSpring) {
-            viewModel.onboardingStep = target
+            step = target
         }
     }
 
     // MARK: - Illustration
 
-    private var illustration: some View {
+    private func illustration(height: CGFloat) -> some View {
         let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
         return ZStack {
             TourBackdrop()
+            // Laid out at the designed height, scaled to the card.
             TourScene(step: step, appeared: appeared, hotkeys: services.hotkeys)
+                .frame(height: Self.cardHeight)
+                .scaleEffect(height / Self.cardHeight)
+                .frame(height: height)
         }
         // A picture, not a control: only the close key takes clicks.
         .allowsHitTesting(false)
         .frame(maxWidth: .infinity)
-        .frame(height: Self.cardHeight)
+        .frame(height: height)
         .clipShape(shape)
         .overlay(shape.strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
         .overlay(alignment: .topTrailing) {
             GlassCloseButton {
-                viewModel.onClose?()
+                onClose()
             }
             .keyboardShortcut(.cancelAction)
             .padding(12)
@@ -127,7 +142,7 @@ struct CapsuleOnboardingView: View {
                 if let next = step.next {
                     go(to: next)
                 } else {
-                    viewModel.onClose?()
+                    onClose()
                 }
             }
             .keyboardShortcut(.defaultAction)

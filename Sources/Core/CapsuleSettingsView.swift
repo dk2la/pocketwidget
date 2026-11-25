@@ -19,9 +19,7 @@ struct CapsuleSettingsView: View {
                 settings: settings,
                 services: services,
                 pageSelection: viewModel.pageSelection,
-                // A detour out of the tour (connecting an account) keeps
-                // the way back to the page it left.
-                onBack: viewModel.cameFromOnboarding ? { viewModel.onResumeOnboarding?() } : nil
+                onBack: nil
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }

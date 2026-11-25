@@ -6,8 +6,8 @@ import SwiftUI
 /// display (on the camera housing, where there is one), resizes the window in
 /// step with the state machine, and survives display configuration changes.
 /// Resting, the capsule shows live events and compact indicators; expanded,
-/// it hosts the app's settings (click the capsule, ⌃⌥M, or the menu bar) or
-/// the welcome tour (at launch, or on demand).
+/// it hosts the app's settings (click the capsule). Everything else opens
+/// in the widget.
 @MainActor
 final class CapsuleWindowController: NSObject {
     private let panel = CapsulePanel()
@@ -81,9 +81,6 @@ final class CapsuleWindowController: NSObject {
         viewModel.onClose = { [weak self] in
             self?.closeSettings()
         }
-        viewModel.onResumeOnboarding = { [weak self] in
-            self?.openOnboarding(resume: true)
-        }
     }
 
     // MARK: - Settings capsule
@@ -94,59 +91,10 @@ final class CapsuleWindowController: NSObject {
         if let page {
             viewModel.pageSelection.page = page
         }
-        // Leaving the open tour for the settings is a detour; anything else
-        // starts the settings afresh.
-        if targetState == .expanded {
-            if viewModel.content == .onboarding { viewModel.cameFromOnboarding = true }
-        } else {
-            viewModel.cameFromOnboarding = false
-        }
         settingsPinned = pinned
-        show(.settings)
-    }
-
-    /// Expands the capsule onto the welcome tour, always pinned — it is read,
-    /// not glanced at. `resume` comes back to the page a detour left.
-    func openOnboarding(resume: Bool = false) {
-        if !resume {
-            viewModel.onboardingStep = .welcome
-        }
-        viewModel.cameFromOnboarding = false
-        settingsPinned = true
-        show(.onboarding)
-    }
-
-    /// Expands onto `content`, or morphs the open capsule into it.
-    private func show(_ content: CapsuleContent) {
-        guard targetState == .expanded else {
-            viewModel.content = content
+        viewModel.content = .settings
+        if targetState != .expanded {
             requestState(.expanded)
-            return
-        }
-        switchContent(to: content)
-    }
-
-    /// Settings ⇄ tour while expanded: the two bodies differ in size. The
-    /// window first takes the union of both — top-centered like every
-    /// capsule frame — so the morph is clipped in neither direction, then
-    /// settles on the new size once the spring is done.
-    private func switchContent(to content: CapsuleContent) {
-        guard viewModel.content != content, let screen = settings.stripScreen else { return }
-        collapseTask?.cancel()
-        expandTask?.cancel()
-        let target = frame(for: .expanded, content: content, on: screen)
-        let union = CGSize(
-            width: max(panel.frame.width, target.width),
-            height: max(panel.frame.height, target.height)
-        )
-        panel.setFrame(CapsuleGeometry.topCentered(union, on: screen), display: true)
-        expandTask = Task { [weak self] in
-            guard !Task.isCancelled, let self else { return }
-            self.viewModel.content = content
-            try? await Task.sleep(for: .milliseconds(CapsuleMetrics.windowCollapseDelayMilliseconds))
-            guard !Task.isCancelled, self.targetState == .expanded,
-                  let screen = settings.stripScreen else { return }
-            self.panel.setFrame(self.frame(for: .expanded, on: screen), display: true)
         }
     }
 
@@ -199,12 +147,9 @@ final class CapsuleWindowController: NSObject {
         return capsuleOwns(viewPoint: local, in: NSRect(origin: .zero, size: frame.size))
     }
 
-    /// The tour is read, not glanced at: it closes only on ✕, Start, Esc
-    /// or the hotkey — granting access means clicking in System Settings
-    /// and the consent dialogs, which must not end it. Neither the tour
-    /// nor the settings close while the permission guide is up.
+    /// The settings do not close while the permission guide is up.
     private func handleOutsideClick(at location: NSPoint) {
-        guard targetState == .expanded, viewModel.content != .onboarding,
+        guard targetState == .expanded,
               !PermissionGuide.shared.isShowing, !viewModel.isResizingPanel,
               !PanelHold.shared.isHeld,
               panel.attachedSheet == nil, !panel.hasOwnPopupWindow,
@@ -337,9 +282,7 @@ final class CapsuleWindowController: NSObject {
             guard !Task.isCancelled, let self else { return }
             self.hoverOpenTask = nil
             guard self.isCursorOverRestingCapsule else { return }
-            // Hover is a glance at the settings — never the tour.
             self.viewModel.content = .settings
-            self.viewModel.cameFromOnboarding = false
             self.requestState(.expanded)
         }
     }
