@@ -25,7 +25,7 @@ struct ClipboardModuleView: View {
                         let earlier = Array(clipboard.entries.dropFirst())
                         if !earlier.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
-                                SectionHeader(title: L10n.t(.mailSectionEarlier))
+                                SectionHeader(title: L10n.t(.mailSectionEarlier), trailing: "\(earlier.count)")
                                 GroupedCard {
                                     ForEach(Array(earlier.enumerated()), id: \.element.id) { index, entry in
                                         row(entry, isLast: index == earlier.count - 1)

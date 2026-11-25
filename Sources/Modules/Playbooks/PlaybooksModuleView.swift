@@ -134,7 +134,12 @@ struct PlaybooksModuleView: View {
                         .contentShape(Rectangle())
                         .onTapGesture { show(.playbook(featured.id)) }
                 }
-                list(store.playbooks.filter { $0.id != featured?.id })
+                // Every playbook, the featured one too: the hero is a
+                // shortcut to one of them, the list is the whole set.
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionHeader(title: L10n.t(.modPlaybooks), trailing: "\(store.playbooks.count)")
+                    list(store.playbooks)
+                }
             }
         }
     }
