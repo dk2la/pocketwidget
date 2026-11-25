@@ -204,8 +204,8 @@ private struct NotePreview: View {
 }
 
 /// Inline Markdown editor: editable title (rename on commit), body with
-/// debounced autosave, dictation. The way back to the list is the panel
-/// header's chevron — the editor carries no chrome of its own.
+/// debounced autosave, dictation, Delete. The way back to the list is the
+/// panel header's chevron.
 struct NoteEditorView: View {
     var store: NotesStore
     var speech: SpeechCaptureService
@@ -246,6 +246,18 @@ struct NoteEditorView: View {
                     appendDictation(text)
                 }
                 Spacer(minLength: 0)
+                // Labelled and in the note itself, like Shelf's: an icon
+                // in the panel header went unnoticed.
+                if let note = store.openNote {
+                    ModuleButton(
+                        label: L10n.t(.calDelete),
+                        systemName: "trash",
+                        height: Theme.inputHeight,
+                        tint: Theme.critical.opacity(0.9)
+                    ) {
+                        withAnimation(.snappy(duration: 0.3)) { store.delete(note) }
+                    }
+                }
             }
         }
         .animation(Theme.stateSpring, value: speech.isRecording)
