@@ -123,7 +123,7 @@ struct TimerModuleView: View {
     private var alarmMinute: Int { alarmStep * Self.minutesPerStep % 60 }
 
     /// The usual morning hours, as one-click cells under the dial.
-    private static let alarmPresetHours = [8, 9, 10, 12]
+    private static let alarmPresetHours = [6, 7, 8, 9]
 
     /// The picked time the way the system shows clock times.
     private var alarmLabel: String {
