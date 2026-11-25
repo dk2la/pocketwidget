@@ -122,10 +122,17 @@ struct TimerModuleView: View {
     private var alarmHour: Int { alarmStep * Self.minutesPerStep / 60 }
     private var alarmMinute: Int { alarmStep * Self.minutesPerStep % 60 }
 
+    /// The usual morning hours, as one-click cells under the dial.
+    private static let alarmPresetHours = [8, 9, 10, 12]
+
     /// The picked time the way the system shows clock times.
     private var alarmLabel: String {
+        Self.clockLabel(hour: alarmHour, minute: alarmMinute)
+    }
+
+    private static func clockLabel(hour: Int, minute: Int) -> String {
         let date = Calendar.current.date(
-            bySettingHour: alarmHour, minute: alarmMinute, second: 0, of: Date()
+            bySettingHour: hour, minute: minute, second: 0, of: Date()
         ) ?? Date()
         return date.formatted(date: .omitted, time: .shortened)
     }
@@ -238,7 +245,7 @@ struct TimerModuleView: View {
         .disabled(timer.isRunning)
     }
 
-    /// The day's ruler in five-minute steps, and Set. Setting again moves
+    /// The day's ruler in five-minute steps, the usual hours, and Set. Setting again moves
     /// the alarm.
     private var alarmPicker: some View {
         VStack(spacing: 4) {
@@ -249,6 +256,23 @@ struct TimerModuleView: View {
                 label: { "\($0 * Self.minutesPerStep / 60):00" },
                 onChange: { alarmStep = $0 }
             )
+            HStack(spacing: 4) {
+                ForEach(Self.alarmPresetHours, id: \.self) { hour in
+                    let step = hour * 60 / Self.minutesPerStep
+                    Button {
+                        withAnimation(.snappy(duration: 0.3)) {
+                            alarmStep = step
+                        }
+                    } label: {
+                        Text(Self.clockLabel(hour: hour, minute: 0))
+                            .monospacedDigit()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                            .lengthCell(isActive: alarmStep == step)
+                    }
+                    .buttonStyle(PressableStyle())
+                }
+            }
             actionRow(value: alarmLabel) {
                 ModuleButton(label: L10n.t(.timerSet), systemName: "alarm", kind: .light, height: 30) {
                     timer.setAlarm(hour: alarmHour, minute: alarmMinute)
