@@ -156,7 +156,7 @@ private struct WeekStrip: View {
                         }
                         Text("\(calendar.component(.day, from: day))")
                             .font(Theme.dayFont)
-                            .foregroundStyle(isToday ? Theme.capsuleFill : Theme.textSecondary)
+                            .foregroundStyle(isToday ? Theme.voidFill : Theme.textSecondary)
                     }
                     .frame(width: 22, height: 22)
                 }

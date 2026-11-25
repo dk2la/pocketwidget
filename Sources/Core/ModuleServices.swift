@@ -1,6 +1,6 @@
-/// Single shared instances of every module service. Both the capsule
-/// and the edge widget render from these — separate copies would diverge
-/// (two clipboard histories) or double the work (two media pollers).
+/// Single shared instances of every module service. Every surface (the
+/// widget, Settings, the tour) renders from these — separate copies would
+/// diverge (two clipboard histories) or double the work (two media pollers).
 @MainActor
 final class ModuleServices {
     /// Persisted preferences, for modules that remember a choice.

@@ -2,7 +2,7 @@ import Foundation
 
 /// A live indicator on a strip icon: the Timer icon carries the remaining
 /// time while the countdown runs, the Music icon a pulse while a track plays.
-/// They replace the capsule's compact idle mode. Time stays in seconds here;
+/// Time stays in seconds here;
 /// the view formats it like the Timer module does.
 enum IconBadge: Equatable {
     case timer(remaining: TimeInterval)

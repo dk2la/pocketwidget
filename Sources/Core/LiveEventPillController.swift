@@ -15,14 +15,14 @@ final class LiveEventPillController {
     fileprivate static let slideDistance: CGFloat = 14
     private static let hideDuration: Duration = .milliseconds(450)
 
-    private let panel = CapsulePanel()
+    private let panel = FloatingPanel()
     private let model = LiveEventPillModel()
     private var showTask: Task<Void, Never>?
     private var dismissTask: Task<Void, Never>?
 
     init(settings: AppSettings) {
         panel.ignoresMouseEvents = true
-        let hostingView = CapsuleHostingView(rootView: LiveEventPillView(model: model, settings: settings))
+        let hostingView = PanelHostingView(rootView: LiveEventPillView(model: model, settings: settings))
         hostingView.wantsLayer = true
         hostingView.layer?.backgroundColor = .clear
         panel.contentView = hostingView.makeWindowContentView()

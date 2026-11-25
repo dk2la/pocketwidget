@@ -22,8 +22,8 @@ final class PlaybookRunner {
     /// Latest completed run — shown as the amber "run" register in the tab.
     private(set) var lastRun: RunRecord?
 
-    /// Fired after a run completes — the window controller shows the
-    /// confirmation event on the capsule.
+    /// Fired after a run completes — the widget shows the confirmation
+    /// event in its event pill.
     @ObservationIgnored var onFinished: ((Playbook, PlaybookRunResult) -> Void)?
 
     @ObservationIgnored private let timer: TimerService

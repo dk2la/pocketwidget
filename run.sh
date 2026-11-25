@@ -17,7 +17,7 @@ Build
 
 Launch
   -d, --demo         sample data in every module
-  -s, --settings     open the settings capsule at launch
+  -s, --settings     open Settings in the widget at launch
   -o, --onboarding   show the first-launch onboarding again
   -L, --licensing    enforce Trial / License checks (debug builds skip them)
   -n, --no-run       build / test only, do not launch

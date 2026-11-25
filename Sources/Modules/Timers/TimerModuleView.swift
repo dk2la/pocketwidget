@@ -411,19 +411,3 @@ private extension View {
             .contentShape(shape)
     }
 }
-
-/// Closed-capsule indicator while the timer runs: blinking dot, countdown.
-struct CompactTimerView: View {
-    var timer: TimerService
-
-    var body: some View {
-        HStack {
-            BlinkingDot(size: 6)
-            Spacer(minLength: 0)
-            Text(TimeFormat.mmss(timer.remaining))
-                .font(Theme.smallValueFont)
-                .foregroundStyle(Theme.textSecondary)
-        }
-        .padding(.horizontal, 14)
-    }
-}

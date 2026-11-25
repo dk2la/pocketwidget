@@ -3,35 +3,20 @@ import Observation
 import OSLog
 import ServiceManagement
 
-/// Capsule shell appearance.
-enum CapsuleTheme: String {
-    case stealth
-    case glass
-    case glow
-}
-
-/// What the capsule does when nothing demands attention.
-enum IdleMode: String {
-    /// Always shrink to the bare housing.
-    case invisible
-    /// Show compact indicators (playing track, running timer).
-    case compact
-}
-
 extension Notification.Name {
-    /// Posted by widget UI that wants the settings capsule opened; the
+    /// Posted by UI that wants the Settings module opened; the
     /// AppDelegate observes it.
     static let pocketOpenSettings = Notification.Name("pocketOpenSettings")
     /// Posted with `userInfo["tab"]` (a ModuleTab raw value) to open that
     /// module in the widget — e.g. the assistant handing a form to the
     /// calendar.
     static let pocketShowModule = Notification.Name("pocketShowModule")
-    /// Posted by UI that wants the welcome tour on the capsule (settings,
+    /// Posted by UI that wants the welcome tour in the widget (settings,
     /// context menus); the AppDelegate observes it.
     static let pocketOpenOnboarding = Notification.Name("pocketOpenOnboarding")
 }
 
-/// Asks the AppDelegate for the settings capsule, optionally on a page.
+/// Asks the AppDelegate for the Settings module, optionally on a page.
 @MainActor
 func requestSettings(page: SettingsView.Page? = nil) {
     NotificationCenter.default.post(
@@ -51,20 +36,12 @@ func requestOnboarding() {
 @MainActor
 @Observable
 final class AppSettings {
-    var theme: CapsuleTheme {
-        didSet { persist(theme.rawValue, Self.themeKey, log: "theme") }
-    }
-
-    var idleMode: IdleMode {
-        didSet { persist(idleMode.rawValue, Self.idleKey, log: "idleMode") }
-    }
-
-    /// Widget glass appearance (the capsule is always dark glass).
+    /// Widget glass appearance.
     var glassAppearance: GlassAppearance {
         didSet { persist(glassAppearance.rawValue, Self.glassAppearanceKey, log: "glassAppearance") }
     }
 
-    /// Interface language — translates the widget, capsule and settings.
+    /// Interface language — translates the widget and settings.
     var language: AppLanguage {
         didSet {
             L10n.shared.language = language
@@ -87,9 +64,8 @@ final class AppSettings {
         }
     }
 
-    /// The display the strip is on — the one source of truth. The capsule
-    /// sits at its top centre and both panels take their size limits from
-    /// it. See `StripDisplay.choose` for the rule. Resolved at launch, on
+    /// The display the strip is on — the one source of truth. The panels
+    /// take their size limits from it. See `StripDisplay.choose` for the rule. Resolved at launch, on
     /// every screen change (`refreshStripDisplay`) and when a drag ends,
     /// rather than on each read: it is read on every mouse move.
     @ObservationIgnored private(set) var stripScreen: NSScreen?
@@ -117,7 +93,7 @@ final class AppSettings {
         didSet { persist(widgetMinimized, Self.widgetMinimizedKey, log: "widgetMinimized") }
     }
 
-    /// The welcome tour opens on the capsule at every launch until switched
+    /// The welcome tour opens in the widget at every launch until switched
     /// off — from the tour's own footer or Settings → General.
     var showOnboardingAtLaunch: Bool {
         didSet { persist(showOnboardingAtLaunch, Self.onboardingAtLaunchKey, log: "showOnboardingAtLaunch") }
@@ -135,9 +111,7 @@ final class AppSettings {
         didSet { MetricSelection.save(systemMetric, to: defaults) }
     }
 
-    /// Size of the widget-mode panel, each axis dragged by its own grip.
-    /// Separate from the capsule's `expandedPanelSize` — the two surfaces
-    /// have different geometry.
+    /// Size of the widget's module panel, each axis dragged by its own grip.
     private(set) var widgetPanelWidth: CGFloat {
         didSet { persist(Double(widgetPanelWidth), Self.widgetPanelWidthKey) }
     }
@@ -152,14 +126,6 @@ final class AppSettings {
         didSet {
             defaults.set(Double(settingsPanelSize.width), forKey: Self.settingsPanelWidthKey)
             persist(Double(settingsPanelSize.height), Self.settingsPanelHeightKey)
-        }
-    }
-
-    /// User-chosen size of the expanded panel (dragged by the corner grip).
-    private(set) var expandedPanelSize: CGSize {
-        didSet {
-            defaults.set(Double(expandedPanelSize.width), forKey: Self.panelWidthKey)
-            persist(Double(expandedPanelSize.height), Self.panelHeightKey)
         }
     }
 
@@ -180,8 +146,8 @@ final class AppSettings {
         StripLineup.visible(order: tabOrder, enabled: enabledTabs)
     }
 
-    /// Both window controllers react to changes — the capsule re-evaluates its
-    /// idle state, the widget re-derives its layout. Handlers are append-only.
+    /// Window controllers react to changes — the widget re-derives its
+    /// layout. Handlers are append-only.
     @ObservationIgnored private var changeHandlers: [() -> Void] = []
 
     func addChangeHandler(_ handler: @escaping () -> Void) {
@@ -210,8 +176,6 @@ final class AppSettings {
 
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let log = Logger(subsystem: "com.dk2la.pocket", category: "settings")
-    @ObservationIgnored private static let themeKey = "settings.theme"
-    @ObservationIgnored private static let idleKey = "settings.idleMode"
     // v6: bumped when the hotkeys tab shipped (v5 = assistant, v4 = email,
     // v3 = notes, v2 = playbooks) — a stored older set would silently hide
     // new tabs, since "missing" is indistinguishable from "disabled by the user".
@@ -223,8 +187,6 @@ final class AppSettings {
         ("settings.enabledTabs.v3", [.email, .assistant, .hotkeys]),
         ("settings.enabledTabs.v2", [.notes, .email, .assistant, .hotkeys]),
     ]
-    @ObservationIgnored private static let panelWidthKey = "settings.panelWidth"
-    @ObservationIgnored private static let panelHeightKey = "settings.panelHeight"
     @ObservationIgnored private static let tabOrderKey = "settings.tabOrder"
     @ObservationIgnored private static let glassAppearanceKey = "settings.glassAppearance"
     @ObservationIgnored private static let languageKey = "settings.language"
@@ -255,15 +217,6 @@ final class AppSettings {
         // before it is given up (see `forgetGoneDisplayAfterGrace`).
         widgetDisplayID = storedDisplay
         let displayIsGone = display.map { $0.savedID != storedDisplay } ?? false
-        let storedWidth = defaults.double(forKey: Self.panelWidthKey)
-        let storedHeight = defaults.double(forKey: Self.panelHeightKey)
-        expandedPanelSize = Self.clampPanelSize(
-            CGSize(
-                width: storedWidth > 0 ? storedWidth : CapsuleMetrics.expandedMinSize.width,
-                height: storedHeight > 0 ? storedHeight : CapsuleMetrics.expandedMinSize.height
-            ),
-            on: screen
-        )
         let storedPanelWidth = defaults.double(forKey: Self.widgetPanelWidthKey)
         widgetPanelWidth = WidgetGeometry.clampedPanelWidth(
             storedPanelWidth > 0 ? storedPanelWidth : WidgetMetrics.panelDefaultWidth,
@@ -284,10 +237,6 @@ final class AppSettings {
             screenFrame: screen?.frame,
             visibleFrame: screen?.visibleFrame
         )
-        theme = defaults.string(forKey: Self.themeKey)
-            .flatMap(CapsuleTheme.init(rawValue:)) ?? .stealth
-        idleMode = defaults.string(forKey: Self.idleKey)
-            .flatMap(IdleMode.init(rawValue:)) ?? .compact
         glassAppearance = defaults.string(forKey: Self.glassAppearanceKey)
             .flatMap(GlassAppearance.init(rawValue:)) ?? .dark
         language = defaults.string(forKey: Self.languageKey)
@@ -330,11 +279,7 @@ final class AppSettings {
         if displayIsGone {
             forgetGoneDisplayAfterGrace()
         }
-        log.info("""
-        loaded theme=\(self.theme.rawValue, privacy: .public) \
-        idle=\(self.idleMode.rawValue, privacy: .public) \
-        tabs=\(self.enabledTabs.count, privacy: .public)
-        """)
+        log.info("loaded tabs=\(self.enabledTabs.count, privacy: .public)")
     }
 
     /// Where a drag left the strip: the display it was dropped on, the
@@ -445,35 +390,10 @@ final class AppSettings {
         }
     }
 
-    func setPanelSize(_ raw: CGSize) {
-        let clamped = Self.clampPanelSize(raw, on: stripScreen)
-        guard clamped != expandedPanelSize else { return }
-        log.info("panel size -> \(Int(clamped.width), privacy: .public)x\(Int(clamped.height), privacy: .public)")
-        expandedPanelSize = clamped
-    }
-
-    /// The single authority on panel size limits. The screen bound lives
-    /// here too: if the window were clamped separately from the stored size,
-    /// SwiftUI would draw a capsule larger than its window and the bottom
-    /// strip — including the resize grip — would be clipped into
-    /// unreachability.
-    private static func clampPanelSize(_ size: CGSize, on screen: NSScreen?) -> CGSize {
-        var maxSize = CapsuleMetrics.expandedMaxSize
-        if let screen {
-            maxSize.width = min(maxSize.width, screen.frame.width - 40)
-            maxSize.height = min(maxSize.height, screen.frame.height * 2 / 3)
-        }
-        return CGSize(
-            width: min(max(size.width, CapsuleMetrics.expandedMinSize.width), maxSize.width),
-            height: min(max(size.height, CapsuleMetrics.expandedMinSize.height), maxSize.height)
-        )
-    }
-
     /// Re-clamp every panel size to the strip's display — after a display
     /// change, or once the strip moved to another display (a smaller
     /// screen may no longer fit the stored size).
     func revalidatePanelSize() {
-        setPanelSize(expandedPanelSize)
         setWidgetPanelWidth(widgetPanelWidth)
         setWidgetPanelHeight(widgetPanelHeight)
         setSettingsPanelWidth(settingsPanelSize.width)

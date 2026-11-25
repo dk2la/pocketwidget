@@ -63,7 +63,7 @@ gitignored `Support/Signing.local.xcconfig` with a stable identity — see
 | Path | What lives there |
 | --- | --- |
 | `Sources/App` | app entry point and `AppDelegate` |
-| `Sources/Core` | widget and capsule windows, view models, theme, localization, demo mode |
+| `Sources/Core` | widget window and event pill, view models, theme, localization, demo mode |
 | `Sources/Modules` | one folder per module (Calendar, Email, Notes, Assistant, …) |
 | `Sources/Services` | system integrations: hotkeys, keychain, speech, power, audio, windows |
 | `Sources/Onboarding` | the welcome tour |

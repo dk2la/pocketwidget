@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Surface palette of the capsule's settings and tour. They sit on the same
-/// dark glass as the widget, so every surface here is a translucent white
+/// Surface palette of Settings and the tour. They sit on the widget's
+/// glass, so every surface here is a translucent white
 /// layer over that glass — never an opaque fill that would hide it.
 enum Palette {
     /// Inset wells (editor step lists).
@@ -147,7 +147,7 @@ struct PillButton: View {
     }
 }
 
-/// Round ✕ on glass — the close key of the capsule's panels.
+/// Round ✕ on glass — the close key of the tour and Settings.
 struct GlassCloseButton: View {
     var size: CGFloat = 28
     let action: () -> Void

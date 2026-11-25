@@ -1,6 +1,6 @@
 import Foundation
 
-/// Transient system events surfaced by the capsule while it is closed.
+/// Transient system events, shown in the event pill beside the widget strip.
 enum LiveEvent: Equatable {
     case charging(percent: Int, plugged: Bool)
     case audioDevice(name: String)

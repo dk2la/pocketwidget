@@ -146,20 +146,6 @@ final class StripDisplayTests: XCTestCase {
         XCTAssertEqual(placement.offset, offset, accuracy: 0.001)
     }
 
-    // MARK: - Capsule position
-
-    func testCapsuleHangsFromTheTopCentreOfTheStripDisplay() {
-        let size = CGSize(width: 196, height: 32)
-        let onMonitor = StripDisplay.topCentered(size, in: monitor.frame)
-        XCTAssertEqual(onMonitor.midX, monitor.frame.midX)
-        XCTAssertEqual(onMonitor.maxY, monitor.frame.maxY)
-        XCTAssertEqual(onMonitor.size, size)
-
-        let onSecond = StripDisplay.topCentered(size, in: secondMonitor.frame)
-        XCTAssertEqual(onSecond.midX, secondMonitor.frame.midX)
-        XCTAssertEqual(onSecond.maxY, secondMonitor.frame.maxY)
-    }
-
     // MARK: - Panel size limits
 
     func testPanelLimitsComeFromTheStripDisplay() {

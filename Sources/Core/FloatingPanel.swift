@@ -1,8 +1,9 @@
 import AppKit
 
-/// Borderless non-activating panel over the camera housing: above the menu bar,
-/// on all Spaces, visible over fullscreen apps.
-final class CapsulePanel: NSPanel {
+/// Borderless non-activating panel shared by the widget, the event pill and
+/// the permission guide: above the menu bar, on all Spaces, visible over
+/// fullscreen apps.
+final class FloatingPanel: NSPanel {
     init() {
         super.init(
             contentRect: .zero,
@@ -20,7 +21,7 @@ final class CapsulePanel: NSPanel {
         isReleasedWhenClosed = false
         animationBehavior = .none
         // Must come after `isFloatingPanel`, which silently resets the level
-        // to `.floating` — otherwise the capsule ends up below menu bar icons.
+        // to `.floating` — otherwise the panel ends up below menu bar icons.
         level = .screenSaver
     }
 
@@ -53,8 +54,9 @@ final class CapsulePanel: NSPanel {
         return super.performKeyEquivalent(with: event)
     }
 
-    /// By default macOS keeps windows out of the menu bar territory —
-    /// a window living under the camera housing must opt out of that constraint.
+    /// By default macOS keeps windows out of the menu bar territory — the
+    /// controllers place the panel themselves (a strip docked to the top
+    /// edge sits right under the menu bar), so opt out of that constraint.
     override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
         frameRect
     }

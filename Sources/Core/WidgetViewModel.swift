@@ -3,8 +3,8 @@ import Observation
 
 /// State of the edge widget that SwiftUI animates on. Frames are set by the
 /// controller in window-local SwiftUI coordinates, in the same runloop tick
-/// as the window frame — the two must never disagree (see the capsule's
-/// two-phase dance in CapsuleWindowController.requestState).
+/// as the window frame — the two must never disagree (see the two-phase
+/// open in WidgetWindowController.openPanel).
 @MainActor
 @Observable
 final class WidgetViewModel {
