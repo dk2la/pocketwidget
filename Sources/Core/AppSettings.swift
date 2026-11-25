@@ -146,6 +146,15 @@ final class AppSettings {
         didSet { persist(Double(widgetPanelHeight), Self.widgetPanelHeightKey) }
     }
 
+    /// Size of the Settings module's panel, dragged by the same grips as
+    /// the module panel but stored apart from it (720×520 at first).
+    private(set) var settingsPanelSize: CGSize {
+        didSet {
+            defaults.set(Double(settingsPanelSize.width), forKey: Self.settingsPanelWidthKey)
+            persist(Double(settingsPanelSize.height), Self.settingsPanelHeightKey)
+        }
+    }
+
     /// User-chosen size of the expanded panel (dragged by the corner grip).
     private(set) var expandedPanelSize: CGSize {
         didSet {
@@ -168,7 +177,7 @@ final class AppSettings {
 
     /// Channels in user order, disabled ones filtered out.
     var orderedEnabledTabs: [ModuleTab] {
-        tabOrder.filter { enabledTabs.contains($0) }
+        StripLineup.visible(order: tabOrder, enabled: enabledTabs)
     }
 
     /// Both window controllers react to changes — the capsule re-evaluates its
@@ -230,6 +239,8 @@ final class AppSettings {
     @ObservationIgnored private static let onboardingCompletedKey = "settings.onboardingCompleted"
     @ObservationIgnored private static let widgetPanelWidthKey = "settings.widgetPanelWidth"
     @ObservationIgnored private static let widgetPanelHeightKey = "settings.widgetPanelHeight"
+    @ObservationIgnored private static let settingsPanelWidthKey = "settings.settingsPanelWidth"
+    @ObservationIgnored private static let settingsPanelHeightKey = "settings.settingsPanelHeight"
 
     init(defaults: UserDefaults = .app) {
         self.defaults = defaults
@@ -263,6 +274,16 @@ final class AppSettings {
             storedPanelHeight > 0 ? storedPanelHeight : WidgetMetrics.panelDefaultHeight,
             visibleFrame: screen?.visibleFrame
         )
+        let storedSettingsWidth = defaults.double(forKey: Self.settingsPanelWidthKey)
+        let storedSettingsHeight = defaults.double(forKey: Self.settingsPanelHeightKey)
+        settingsPanelSize = WidgetGeometry.clampedPanelSize(
+            CGSize(
+                width: storedSettingsWidth > 0 ? storedSettingsWidth : WidgetMetrics.settingsPanelDefaultSize.width,
+                height: storedSettingsHeight > 0 ? storedSettingsHeight : WidgetMetrics.settingsPanelDefaultSize.height
+            ),
+            screenFrame: screen?.frame,
+            visibleFrame: screen?.visibleFrame
+        )
         theme = defaults.string(forKey: Self.themeKey)
             .flatMap(CapsuleTheme.init(rawValue:)) ?? .stealth
         idleMode = defaults.string(forKey: Self.idleKey)
@@ -287,7 +308,7 @@ final class AppSettings {
         let defaultEnabled = Set(ModuleTab.defaultTabs)
         if let stored = defaults.stringArray(forKey: Self.tabsKey) {
             let tabs = Set(stored.compactMap(ModuleTab.init(rawValue:)))
-            enabledTabs = tabs.isEmpty ? defaultEnabled : tabs
+            enabledTabs = StripLineup.loadedEnabled(tabs.isEmpty ? defaultEnabled : tabs)
         } else if let (legacy, extras) = Self.legacyTabsKeys
             .compactMap({ key, extras in
                 defaults.stringArray(forKey: key).map { ($0, extras) }
@@ -296,17 +317,14 @@ final class AppSettings {
             // Migration: keep the user's choices, surface freshly shipped
             // tabs they could not have known about.
             let tabs = Set(legacy.compactMap(ModuleTab.init(rawValue:))).union(extras)
-            enabledTabs = tabs.isEmpty ? defaultEnabled : tabs
+            enabledTabs = StripLineup.loadedEnabled(tabs.isEmpty ? defaultEnabled : tabs)
         } else {
-            enabledTabs = defaultEnabled
+            enabledTabs = StripLineup.loadedEnabled(defaultEnabled)
         }
         // Stored order, with any newly introduced tabs appended at the end.
-        var order = (defaults.stringArray(forKey: Self.tabOrderKey) ?? [])
-            .compactMap(ModuleTab.init(rawValue:))
-        for tab in ModuleTab.allCases where !order.contains(tab) {
-            order.append(tab)
-        }
-        tabOrder = order
+        tabOrder = StripLineup.loadedOrder(
+            stored: (defaults.stringArray(forKey: Self.tabOrderKey) ?? []).compactMap(ModuleTab.init(rawValue:))
+        )
         launchAtLogin = SMAppService.mainApp.status == .enabled
         L10n.shared.language = language
         if displayIsGone {
@@ -390,6 +408,43 @@ final class AppSettings {
         widgetPanelHeight = clamped
     }
 
+    func setSettingsPanelWidth(_ raw: CGFloat) {
+        let width = WidgetGeometry.clampedPanelWidth(raw, screenFrame: stripScreen?.frame)
+        guard width != settingsPanelSize.width else { return }
+        settingsPanelSize.width = width
+    }
+
+    func setSettingsPanelHeight(_ raw: CGFloat) {
+        let height = WidgetGeometry.clampedPanelHeight(raw, visibleFrame: stripScreen?.visibleFrame)
+        guard height != settingsPanelSize.height else { return }
+        settingsPanelSize.height = height
+    }
+
+    /// The size `tab`'s widget panel opens at: Settings has its own, every
+    /// other module shares one.
+    func panelSize(for tab: ModuleTab?) -> CGSize {
+        tab == .settings
+            ? settingsPanelSize
+            : CGSize(width: widgetPanelWidth, height: widgetPanelHeight)
+    }
+
+    /// Writes the size `panelSize(for:)` reads for `tab`.
+    func setPanelWidth(_ width: CGFloat, for tab: ModuleTab?) {
+        if tab == .settings {
+            setSettingsPanelWidth(width)
+        } else {
+            setWidgetPanelWidth(width)
+        }
+    }
+
+    func setPanelHeight(_ height: CGFloat, for tab: ModuleTab?) {
+        if tab == .settings {
+            setSettingsPanelHeight(height)
+        } else {
+            setWidgetPanelHeight(height)
+        }
+    }
+
     func setPanelSize(_ raw: CGSize) {
         let clamped = Self.clampPanelSize(raw, on: stripScreen)
         guard clamped != expandedPanelSize else { return }
@@ -421,6 +476,8 @@ final class AppSettings {
         setPanelSize(expandedPanelSize)
         setWidgetPanelWidth(widgetPanelWidth)
         setWidgetPanelHeight(widgetPanelHeight)
+        setSettingsPanelWidth(settingsPanelSize.width)
+        setSettingsPanelHeight(settingsPanelSize.height)
     }
 
     func moveTabs(fromOffsets source: IndexSet, toOffset destination: Int) {
@@ -445,13 +502,15 @@ final class AppSettings {
         enabledTabs.contains(tab)
     }
 
-    /// The last enabled tab cannot be disabled — the panel needs content.
+    /// False for Settings and for the last enabled module (see StripLineup).
+    func canToggle(_ tab: ModuleTab) -> Bool {
+        StripLineup.canToggle(tab, enabled: enabledTabs)
+    }
+
+    /// A refused toggle is a no-op (see `canToggle`).
     func toggle(_ tab: ModuleTab) {
-        if enabledTabs.contains(tab) {
-            guard enabledTabs.count > 1 else { return }
-            enabledTabs.remove(tab)
-        } else {
-            enabledTabs.insert(tab)
-        }
+        let toggled = StripLineup.toggled(tab, in: enabledTabs)
+        guard toggled != enabledTabs else { return }
+        enabledTabs = toggled
     }
 }

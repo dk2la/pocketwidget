@@ -538,13 +538,16 @@ struct ModulesOrderList: View {
                             .foregroundStyle(Palette.ink40)
                     }
                     Spacer(minLength: 0)
-                    InstrumentToggle(
-                        isOn: Binding(
-                            get: { settings.isEnabled(tab) },
-                            set: { _ in settings.toggle(tab) }
+                    // Settings is always on: no switch, only the drag handle.
+                    if tab != StripLineup.alwaysEnabled {
+                        InstrumentToggle(
+                            isOn: Binding(
+                                get: { settings.isEnabled(tab) },
+                                set: { _ in settings.toggle(tab) }
+                            )
                         )
-                    )
-                    .disabled(settings.isEnabled(tab) && settings.enabledTabs.count == 1)
+                        .disabled(!settings.canToggle(tab))
+                    }
                 }
                 .padding(.vertical, 3)
                 .listRowSeparatorTint(Palette.hairline)

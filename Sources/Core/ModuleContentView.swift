@@ -41,6 +41,10 @@ struct ModuleContentView: View {
             AppShortcutsModuleView(service: services.appShortcuts)
         case .chats:
             ComingSoonModuleView(tab: tab)
+        case .settings:
+            // The widget panel hosts SettingsView itself: it needs the
+            // page selection and has no module header.
+            EmptyView()
         }
     }
 }

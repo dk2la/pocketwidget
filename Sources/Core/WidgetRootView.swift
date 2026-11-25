@@ -189,6 +189,8 @@ struct WidgetRootView: View {
             .overlay {
                 if viewModel.isLocked {
                     LockScreenView(access: services.access)
+                } else if tab == .settings {
+                    settingsContent
                 } else {
                     VStack(spacing: 0) {
                         PanelHeaderView(tab: tab, services: services) {
@@ -205,6 +207,30 @@ struct WidgetRootView: View {
             .clipShape(panelShape)
             .overlay(alignment: widthGripAlignment) { widthGrip }
             .overlay(alignment: heightGripAlignment) { heightGrip }
+    }
+
+    /// The Settings module: the settings pages with their own title, so no
+    /// module header — just a close button in the corner.
+    private var settingsContent: some View {
+        SettingsView(
+            settings: settings,
+            services: services,
+            pageSelection: viewModel.settingsPage,
+            // A detour out of the tour (connecting an account) keeps the
+            // way back to the page it left.
+            onBack: viewModel.cameFromOnboarding ? { viewModel.onResumeOnboarding?() } : nil
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay(alignment: .topTrailing) {
+            GlassCloseButton {
+                viewModel.onClose?()
+            }
+            .keyboardShortcut(.cancelAction)
+            .padding(.top, 18)
+            .padding(.trailing, 18)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("panel.settings")
     }
 
     /// Each grip lives on an edge facing away from the strip — a side the

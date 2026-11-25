@@ -11,7 +11,7 @@ final class WidgetSmokeUITests: XCTestCase {
     /// Modules enabled on a fresh install (`ModuleTab.defaultTabs`). The
     /// test bundle cannot see app types, so the list is repeated here.
     private static let defaultModules = [
-        "playbooks", "calendar", "email", "clipboard", "notes", "assistant", "hotkeys",
+        "playbooks", "calendar", "email", "clipboard", "notes", "assistant", "hotkeys", "settings",
     ]
 
     override func setUpWithError() throws {

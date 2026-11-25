@@ -14,6 +14,8 @@ enum ModuleTab: String, CaseIterable, Identifiable {
     case timer
     case shelf
     case metrics
+    /// The app's settings. Always on — see StripLineup.
+    case settings
 
     var id: String { rawValue }
 
@@ -39,6 +41,7 @@ enum ModuleTab: String, CaseIterable, Identifiable {
         case .timer: (.modTimer, "timer")
         case .shelf: (.modShelf, "tray")
         case .metrics: (.modSystem, "gauge")
+        case .settings: (.setTitle, "gearshape")
         }
     }
 

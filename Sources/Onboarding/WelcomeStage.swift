@@ -79,7 +79,8 @@ struct WelcomeStage: View {
 
     private func label(for tab: ModuleTab?) -> String {
         if let tab { return tab.title }
-        let shipping = ModuleTab.allCases.count - ModuleTab.comingSoon.count
+        // Settings is a strip icon, not a module to advertise.
+        let shipping = ModuleTab.allCases.count - ModuleTab.comingSoon.count - 1
         return "+\(shipping - Self.cells.count + 1)"
     }
 
