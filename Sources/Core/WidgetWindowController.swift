@@ -182,7 +182,7 @@ final class WidgetWindowController: NSObject {
             offset: settings.widgetOffset,
             iconCount: iconCount,
             minimized: minimized,
-            on: screen
+            in: screen.visibleFrame
         )
     }
 
@@ -420,7 +420,7 @@ final class WidgetWindowController: NSObject {
         guard let dropScreen else { return }
         screen = dropScreen
 
-        let placement = WidgetGeometry.nearestPlacement(for: panel.frame, on: dropScreen)
+        let placement = WidgetGeometry.nearestPlacement(for: panel.frame, in: dropScreen.visibleFrame)
         log.info("snap edge=\(placement.edge.rawValue, privacy: .public) offset=\(placement.offset, privacy: .public)")
         viewModel.edge = placement.edge
         settings.setWidgetPlacement(edge: placement.edge, offset: placement.offset)
@@ -460,7 +460,7 @@ final class WidgetWindowController: NSObject {
             offset: settings.widgetOffset,
             iconCount: iconCount,
             panelSize: widgetPanelSize(on: screen),
-            on: screen
+            in: screen.visibleFrame
         ))
     }
 
