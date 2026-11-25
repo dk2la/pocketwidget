@@ -79,9 +79,10 @@ final class CommandLineEnvironmentTests: XCTestCase {
         let shell = try fakeShell(path: "/fake/node/bin:/usr/bin:/bin")
         let commandLine = try environment(shell: shell)
 
-        XCTAssertEqual(
-            commandLine.path(for: URL(fileURLWithPath: "/apps/tools/codex")),
-            "/apps/tools:/fake/node/bin:/usr/bin:/bin"
+        // The usual folders follow, so only the start is fixed.
+        XCTAssertTrue(
+            commandLine.path(for: URL(fileURLWithPath: "/apps/tools/codex"))
+                .hasPrefix("/apps/tools:/fake/node/bin:/usr/bin:/bin:")
         )
     }
 
@@ -95,7 +96,8 @@ final class CommandLineEnvironmentTests: XCTestCase {
         )
         let commandLine = try environment(shell: shell)
 
-        XCTAssertEqual(commandLine.folders, ["/fake/node/bin", "/usr/bin"])
+        XCTAssertEqual(Array(commandLine.folders.prefix(2)), ["/fake/node/bin", "/usr/bin"])
+        XCTAssertFalse(commandLine.folders.contains { $0.contains("wrong") })
     }
 
     func testShellIsAskedAtMostOnce() throws {
@@ -108,7 +110,7 @@ final class CommandLineEnvironmentTests: XCTestCase {
         DispatchQueue.concurrentPerform(iterations: 8) { _ in
             _ = commandLine.path(for: URL(fileURLWithPath: "/apps/claude"))
         }
-        XCTAssertEqual(commandLine.folders, ["/fake/bin"])
+        XCTAssertEqual(commandLine.folders.first, "/fake/bin")
         _ = commandLine.locate("claude")
 
         let asked = try String(contentsOf: counter, encoding: .utf8)
@@ -294,7 +296,7 @@ final class CommandLineEnvironmentTests: XCTestCase {
         let commandLine = try environment(shell: fakeShell(path: "/usr/bin:/bin"), home: home)
 
         XCTAssertEqual(commandLine.locate("pocket-local-cli")?.path, program.path)
-        XCTAssertEqual(commandLine.folders, ["/usr/bin", "/bin"])
+        XCTAssertEqual(Array(commandLine.folders.prefix(2)), ["/usr/bin", "/bin"])
     }
 
     // MARK: - Regression: `env: node: No such file or directory`
@@ -317,7 +319,10 @@ final class CommandLineEnvironmentTests: XCTestCase {
             // The fake interpreter answers with the PATH it was started with.
             let answer = try await client.send(system: "system", prompt: "prompt")
 
-            XCTAssertEqual(answer, "\(programs.path):\(shellPath)", "\(name) must start with the resolved PATH")
+            XCTAssertTrue(
+                answer.hasPrefix("\(programs.path):\(shellPath):"),
+                "\(name) must start with the resolved PATH"
+            )
         }
     }
 }
