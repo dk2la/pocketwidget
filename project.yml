@@ -80,6 +80,7 @@ targets:
       - path: Sources/Modules/Assistant/AssistantModels.swift
       - path: Sources/Modules/Assistant/CLIAssistantClient.swift
       - path: Sources/Modules/Assistant/CommandLineEnvironment.swift
+      - path: Sources/Modules/Assistant/AssistantSetup.swift
       - path: Sources/Services/SpeechCaptureService.swift
       - path: Sources/Core/WidgetGeometry.swift
       - path: Sources/Core/PanelHold.swift
