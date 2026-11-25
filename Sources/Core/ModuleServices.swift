@@ -13,7 +13,7 @@ final class ModuleServices {
     let mediaCenter = MediaCenter()
     let calendarService = CalendarService()
     let statsService = SystemStatsService()
-    let shelfStore = ShelfStore()
+    let shelfStore = ShelfStore(defaults: .app)
     let clipboardStore = ClipboardStore()
     let timerService = TimerService()
     let notesStore = NotesStore()
@@ -57,6 +57,8 @@ final class ModuleServices {
     /// music players. On first launch the welcome tour calls it once it is
     /// closed — its pages ask for the calendar and the notes folder first.
     func beginProtectedAccess() {
+        // UI tests: a system access prompt would block the run.
+        guard !UITestMode.isActive else { return }
         notesStore.activate()
         clipboardStore.startWatching()
         mediaCenter.allowPlayerScripts()

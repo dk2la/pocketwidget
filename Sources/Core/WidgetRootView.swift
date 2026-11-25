@@ -69,6 +69,8 @@ struct WidgetRootView: View {
             .overlay { stripContent }
             .clipShape(stripShape)
             .contentShape(stripShape)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("widget.strip")
             .gesture(dragGesture)
             // Minimized: a click on the dots brings the icons back. The drag
             // gesture keeps priority, so moving the widget still works.
@@ -290,6 +292,7 @@ struct WidgetRootView: View {
             .animation(.easeOut(duration: 0.15), value: hovered)
             // Eight abstract glyphs need names — the system tooltip is free.
             .help(tab.title)
+            .accessibilityIdentifier("strip.icon.\(tab.rawValue)")
         }
     }
 }

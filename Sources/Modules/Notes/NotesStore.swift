@@ -24,7 +24,7 @@ final class NotesStore {
     private(set) var isActive = false
 
     @ObservationIgnored private let log = Logger(subsystem: "com.dk2la.pocket", category: "notes")
-    @ObservationIgnored private let defaults = UserDefaults.standard
+    @ObservationIgnored private let defaults = UserDefaults.app
     @ObservationIgnored private var saveTask: Task<Void, Never>?
     @ObservationIgnored private var watcher: NotesFolderWatcher?
     @ObservationIgnored private var openNoteLoadedMtime: Date?
@@ -39,7 +39,7 @@ final class NotesStore {
     @ObservationIgnored private static let conflictStamp = DateFormatter(format: "yyyy-MM-dd HH.mm")
 
     init() {
-        if let stored = UserDefaults.standard.string(forKey: Self.folderKey) {
+        if let stored = UserDefaults.app.string(forKey: Self.folderKey) {
             folderURL = URL(fileURLWithPath: stored, isDirectory: true)
         } else {
             folderURL = FileManager.default

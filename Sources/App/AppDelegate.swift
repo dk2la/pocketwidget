@@ -74,7 +74,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 try? await Task.sleep(for: .milliseconds(600))
                 NotificationCenter.default.post(name: .pocketShowModule, object: nil, userInfo: ["tab": tab.rawValue])
             }
-        } else if settings.showOnboardingAtLaunch || CommandLine.arguments.contains("--onboarding") {
+        } else if (settings.showOnboardingAtLaunch && !UITestMode.isActive)
+            || CommandLine.arguments.contains("--onboarding") {
+            // UI tests get the tour only when they ask for it.
             deferProtectedAccessUntilTourCloses()
             // A beat after launch, so the capsule visibly drops open instead
             // of appearing already expanded.

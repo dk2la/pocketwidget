@@ -199,7 +199,7 @@ final class AppSettings {
 
     @ObservationIgnored private var isBatchingChanges = false
 
-    @ObservationIgnored private let defaults = UserDefaults.standard
+    @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let log = Logger(subsystem: "com.dk2la.pocket", category: "settings")
     @ObservationIgnored private static let themeKey = "settings.theme"
     @ObservationIgnored private static let idleKey = "settings.idleMode"
@@ -231,8 +231,8 @@ final class AppSettings {
     @ObservationIgnored private static let widgetPanelWidthKey = "settings.widgetPanelWidth"
     @ObservationIgnored private static let widgetPanelHeightKey = "settings.widgetPanelHeight"
 
-    init() {
-        let defaults = UserDefaults.standard
+    init(defaults: UserDefaults = .app) {
+        self.defaults = defaults
         // Resolved before anything else: the panel size limits below come
         // from the strip's display. A saved display that is gone is
         // replaced here, at launch, the same way as on a screen change.

@@ -58,7 +58,7 @@ final class AppShortcutsService {
         if let frontmost = NSWorkspace.shared.frontmostApplication {
             lastFrontmost = Self.targetApp(for: frontmost)
         }
-        heldBundleID = UserDefaults.standard.string(forKey: Self.heldAppKey)
+        heldBundleID = UserDefaults.app.string(forKey: Self.heldAppKey)
         updateTarget()
         NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification,
@@ -102,7 +102,7 @@ final class AppShortcutsService {
 
     func toggleHold() {
         heldBundleID = heldBundleID == nil ? target?.bundleID : nil
-        UserDefaults.standard.set(heldBundleID, forKey: Self.heldAppKey)
+        UserDefaults.app.set(heldBundleID, forKey: Self.heldAppKey)
         updateTarget()
         readIfNeeded()
     }

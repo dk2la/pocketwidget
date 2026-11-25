@@ -60,7 +60,7 @@ final class CalendarService {
 
     @ObservationIgnored private let store = EKEventStore()
     @ObservationIgnored private let log = Logger(subsystem: "com.dk2la.pocket", category: "calendar")
-    @ObservationIgnored private let defaults = UserDefaults.standard
+    @ObservationIgnored private let defaults = UserDefaults.app
     @ObservationIgnored private static let enabledKey = "calendar.enabledIDs"
     @ObservationIgnored private static let modeKey = "calendar.displayMode"
 
