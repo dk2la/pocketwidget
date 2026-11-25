@@ -8,7 +8,7 @@ import Observation
 @MainActor
 @Observable
 final class Access {
-    static let trialLength: TimeInterval = 3 * day
+    static let trialLength: TimeInterval = 7 * day
     /// The License key is re-validated once this much time has passed.
     static let validationInterval: TimeInterval = day
     /// How long Pocket keeps working without a successful validation.

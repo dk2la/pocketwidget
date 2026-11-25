@@ -64,7 +64,7 @@ Subscription feature) are defined in [GLOSSARY.md](../GLOSSARY.md).
 
 ## Trial
 
-- **3 days** with every feature available, starting at first launch.
+- **7 days** with every feature available, starting at first launch.
 - To make resetting the trial hard, a small Cloudflare Worker stores a hashed
   Mac ID with the trial start date, and Keychain keeps a local copy. Starting
   the trial needs an internet connection.
