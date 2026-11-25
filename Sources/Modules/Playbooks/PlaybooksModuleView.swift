@@ -8,7 +8,7 @@ import SwiftUI
 /// button opens the playbook: a hero card with Run and
 /// its steps in order, so it is clear what running it will do, Delete, and
 /// Edit, which opens the same editor filled with it. With no playbook at all the
-/// computer device stands over the empty message. A quiet register
+/// module is the empty message over "Add playbook…". A quiet register
 /// underneath reports failures of the last run.
 struct PlaybooksModuleView: View {
     var store: PlaybookStore
@@ -104,13 +104,11 @@ struct PlaybooksModuleView: View {
 
     // MARK: - Empty
 
-    /// No playbook yet: the device over the empty message, centred in the
-    /// free space, and the bar that adds the first one.
+    /// No playbook yet: the empty message, centred in the free space, and
+    /// the bar that adds the first one.
     private var emptyScreen: some View {
         VStack(spacing: 10) {
-            ModuleEmptyScreen(label: L10n.t(.playNoneTitle)) {
-                IsoComputerView()
-            }
+            ModuleEmptyScreen(label: L10n.t(.playNoneTitle))
             EmptyActionBar(label: L10n.t(.playAdd)) {
                 show(.editor(nil))
             }

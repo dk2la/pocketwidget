@@ -23,10 +23,6 @@ struct IsoBox: Equatable {
     var x: CGFloat, y: CGFloat, z: CGFloat
     var w: CGFloat, d: CGFloat, h: CGFloat
 
-    func lifted(by dz: CGFloat) -> IsoBox {
-        IsoBox(x: x, y: y, z: z + dz, w: w, d: d, h: h)
-    }
-
     var topZ: CGFloat { z + h }
 }
 
@@ -139,12 +135,6 @@ struct IsoTone {
         front: Color(white: 0.08),
         side: Color(white: 0.06),
         edge: Color.white.opacity(0.10)
-    )
-    static let key = IsoTone(
-        top: Color(white: 0.30),
-        front: Color(white: 0.20),
-        side: Color(white: 0.15),
-        edge: Color.white.opacity(0.22)
     )
 }
 

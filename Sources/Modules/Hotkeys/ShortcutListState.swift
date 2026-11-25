@@ -1,6 +1,6 @@
 import Foundation
 
-/// What the Hotkeys list area shows. The keyboard device belongs to the
+/// What the Hotkeys list area shows. The empty screen belongs to the
 /// two states with nothing to list for the app in front; a search that
 /// finds nothing keeps its plain message, and a list still on its way
 /// leaves the word to the hero card.
@@ -32,8 +32,8 @@ enum ShortcutListState: Equatable {
         }
     }
 
-    /// True when the list area is the empty screen with the device.
-    var showsDevice: Bool {
+    /// True when the list area is the empty screen.
+    var showsEmptyScreen: Bool {
         self == .noApp || self == .noShortcuts
     }
 }

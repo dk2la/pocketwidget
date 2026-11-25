@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// "Timer" module. With nothing going it is the empty screen: the desk
-/// clock set to the picked length, over Start. A countdown or an alarm —
-/// running or paused partway — takes the clock away and shows a hero card
-/// with the time left, a bar that drains with it, Pause / Start and Reset.
+/// "Timer" module. With nothing going it is the empty screen: the ready
+/// message with the picked length, over Start. A countdown or an alarm —
+/// running or paused partway — shows a hero card instead, with the time
+/// left, a bar that drains with it, Pause / Start and Reset.
 /// Under either sit the same two blocks: a row of lengths and an alarm that
 /// counts down to a clock time.
 struct TimerModuleView: View {
@@ -18,13 +18,12 @@ struct TimerModuleView: View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 18) {
                 hero.emptyScreen(when: timer.isIdle) {
-                    ModuleEmptyScreen(label: L10n.t(.focusReady)) {
-                        IsoClockView(
-                            time: TimeFormat.mmss(timer.remaining),
-                            fraction: 1,
-                            isRunning: false
-                        )
-                    } extra: {
+                    // The sublabel is the picked length: a custom one shows
+                    // nowhere else once its field is cleared.
+                    ModuleEmptyScreen(
+                        label: L10n.t(.focusReady),
+                        sublabel: TimeFormat.mmss(timer.remaining)
+                    ) {
                         ModuleButton(label: L10n.t(.timerStart), systemName: "play.fill", kind: .accent) {
                             timer.start()
                         }

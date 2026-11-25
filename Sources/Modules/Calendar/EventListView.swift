@@ -24,19 +24,15 @@ struct WeekView: View {
                 ? EventRow.next(in: events, at: context.date)?.id
                 : nil
             if events.isEmpty {
-                // The tear-off calendar is the empty day only. The week
-                // strip and the day's title stay — an empty day must still
-                // let the user move to another one.
+                // The week strip and the day's title stay — an empty day
+                // must still let the user move to another one.
                 VStack(alignment: .leading, spacing: 14) {
                     weekNav
                     weekStrip(now: context.date)
                     VStack(alignment: .leading, spacing: 8) {
                         SectionHeader(title: sectionTitle, trailing: nil)
                             .padding(.top, 6)
-                        ModuleEmptyScreen(label: L10n.t(.calNoEvents)) {
-                            // The page is the day that was picked, not today.
-                            IsoCalendarView(date: service.selectedDay, events: 0)
-                        }
+                        ModuleEmptyScreen(label: L10n.t(.calNoEvents))
                     }
                     if canCreate {
                         EmptyActionBar(
@@ -231,11 +227,8 @@ struct AgendaListView: View {
                     }
                 }
             }
-            // The tear-off calendar is the empty agenda only.
             .emptyScreen(when: shown.isEmpty) {
-                ModuleEmptyScreen(label: L10n.t(.calNoEvents)) {
-                    IsoCalendarView(date: context.date, events: 0)
-                }
+                ModuleEmptyScreen(label: L10n.t(.calNoEvents))
             }
         }
     }

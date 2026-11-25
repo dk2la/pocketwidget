@@ -11,9 +11,7 @@ struct ClipboardModuleView: View {
 
     var body: some View {
         history.emptyScreen(when: clipboard.entries.isEmpty) {
-            ModuleEmptyScreen(label: L10n.t(.clipEmptyTitle), sublabel: L10n.t(.clipEmptySub)) {
-                IsoClipboardView(count: 0, latestID: nil)
-            }
+            ModuleEmptyScreen(label: L10n.t(.clipEmptyTitle), sublabel: L10n.t(.clipEmptySub))
         }
     }
 
