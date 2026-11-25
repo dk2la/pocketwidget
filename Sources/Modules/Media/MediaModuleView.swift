@@ -15,9 +15,17 @@ struct MediaModuleView: View {
         VStack(alignment: .leading, spacing: 10) {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
-                    if let track = media.track {
-                        PlayerCard(media: media, audio: audio, track: track)
-                    } else {
+                    switch MusicPanelContent.decide(hasTrack: media.track != nil, hasProviderSource: media.hasProviderSource) {
+                    case .player(let withProviders):
+                        if let track = media.track {
+                            PlayerCard(media: media, audio: audio, track: track)
+                        }
+                        if withProviders {
+                            MusicProviderChooser(media: media)
+                        }
+                    case .providers:
+                        MusicProviderChooser(media: media)
+                    case .idle:
                         EmptyStateZone(label: L10n.t(.mediaNoSignal), sublabel: idleMessage)
                             .frame(height: 110)
                     }
@@ -89,6 +97,94 @@ struct MediaModuleView: View {
             return L10n.f(.mediaSilent, media.label(for: active))
         }
         return L10n.t(.mediaIdle)
+    }
+}
+
+// MARK: - Provider chooser
+
+/// Shown when no music app can be driven: one row per supported app with
+/// what a click does — open it in the background and connect, allow it in
+/// System Settings, or get it.
+private struct MusicProviderChooser: View {
+    var media: MediaCenter
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: L10n.t(.mediaProviders))
+            GroupedCard {
+                ForEach(Array(MusicProvider.allCases.enumerated()), id: \.element.id) { index, provider in
+                    row(provider, isLast: index == MusicProvider.allCases.count - 1)
+                }
+            }
+            Text(L10n.t(.mediaProvidersHint))
+                .font(Theme.captionFont)
+                .foregroundStyle(Theme.textTertiary)
+                .padding(.horizontal, 4)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("music.providers")
+    }
+
+    private func row(_ provider: MusicProvider, isLast: Bool) -> some View {
+        let status = media.status(of: provider)
+        let enabled = status != .notInstalled || provider.downloadURL != nil
+        return Button {
+            media.connect(provider)
+        } label: {
+            HStack(spacing: 12) {
+                appIcon(provider)
+                    .opacity(status == .notInstalled ? 0.45 : 1)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(provider.displayName)
+                        .font(Theme.bodyFont)
+                        .lineLimit(1)
+                        .foregroundStyle(status == .notInstalled ? Theme.textSecondary : Theme.textPrimary)
+                    Text(Self.caption(status, provider: provider))
+                        .font(Theme.subFont)
+                        .lineLimit(1)
+                        .foregroundStyle(status == .needsPermission ? Theme.accent : Theme.textTertiary)
+                }
+                Spacer(minLength: 0)
+                if enabled {
+                    Image(systemName: Self.trailingSymbol(status))
+                        .font(Theme.iconSmallFont)
+                        .foregroundStyle(Theme.textTertiary)
+                }
+            }
+            .groupedRow(isLast: isLast)
+        }
+        .buttonStyle(PressableStyle())
+        .disabled(!enabled)
+        .accessibilityIdentifier("music.provider.\(provider.id)")
+    }
+
+    /// The app's own icon when installed, a generic note otherwise.
+    @ViewBuilder
+    private func appIcon(_ provider: MusicProvider) -> some View {
+        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: provider.bundleID) {
+            Image(nsImage: NSWorkspace.shared.icon(forFile: url.path))
+                .resizable()
+                .frame(width: 32, height: 32)
+        } else {
+            IconTile(systemName: "music.note", dashed: true)
+        }
+    }
+
+    private static func caption(_ status: MusicProviderStatus, provider: MusicProvider) -> String {
+        switch status {
+        case .notInstalled: L10n.t(provider.downloadURL == nil ? .mediaProviderMissing : .mediaProviderGet)
+        case .needsPermission: L10n.t(.mediaProviderPermission)
+        case .notRunning: L10n.t(.mediaProviderOpen)
+        case .ready: L10n.t(.mediaProviderConnect)
+        }
+    }
+
+    private static func trailingSymbol(_ status: MusicProviderStatus) -> String {
+        switch status {
+        case .notInstalled: "arrow.down.circle"
+        case .needsPermission: "gearshape"
+        case .notRunning, .ready: "chevron.right"
+        }
     }
 }
 

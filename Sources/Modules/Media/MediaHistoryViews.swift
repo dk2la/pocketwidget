@@ -2,34 +2,40 @@ import SwiftUI
 
 /// The blocks under the player card, built from what Pocket heard play on
 /// this Mac: the song on repeat and a shelf of recently played covers.
-/// Clicking one starts it again in its player (Spotify, Music).
+/// Clicking one starts it again in its player (Spotify, Music). Only songs
+/// that can be started again are listed; with none, the section is gone.
 struct MediaHistorySection: View {
     var media: MediaCenter
 
     var body: some View {
         let history = media.history
-        let recent = history.recent(excluding: media.track)
-        VStack(alignment: .leading, spacing: 18) {
-            if let entry = history.onRepeat {
-                OnRepeatCard(media: media, entry: entry)
-            }
-            VStack(alignment: .leading, spacing: 8) {
-                SectionHeader(title: L10n.t(.mediaRecent), trailing: recent.isEmpty ? nil : "\(recent.count)")
-                if recent.isEmpty {
-                    EmptyStateZone(label: L10n.t(.mediaHistoryHint), sublabel: nil)
-                        .frame(height: 72)
-                } else {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        LazyHStack(alignment: .top, spacing: 12) {
-                            ForEach(recent) { entry in
-                                RecentCover(media: media, entry: entry)
-                            }
-                        }
-                        .padding(.horizontal, 2)
-                    }
-                    .scrollClipDisabled()
+        let usable = media.replayableSourceIDs
+        let recent = history.recent(excluding: media.track, usableSourceIDs: usable)
+        let onRepeat = history.onRepeat(usableSourceIDs: usable)
+        if onRepeat != nil || !recent.isEmpty {
+            VStack(alignment: .leading, spacing: 18) {
+                if let onRepeat {
+                    OnRepeatCard(media: media, entry: onRepeat)
+                }
+                if !recent.isEmpty {
+                    recentShelf(recent)
                 }
             }
+        }
+    }
+
+    private func recentShelf(_ recent: [PlayHistoryEntry]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: L10n.t(.mediaRecent), trailing: "\(recent.count)")
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(alignment: .top, spacing: 12) {
+                    ForEach(recent) { entry in
+                        RecentCover(media: media, entry: entry)
+                    }
+                }
+                .padding(.horizontal, 2)
+            }
+            .scrollClipDisabled()
         }
     }
 }
@@ -45,7 +51,6 @@ private struct OnRepeatCard: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: Theme.heroRadius, style: .continuous)
         let tint = media.history.accent(for: entry) ?? Theme.accent
-        let canPlay = media.canReplay(entry)
         HStack(spacing: 14) {
             HistoryCover(image: media.history.cover(for: entry), size: 72)
                 .shadow(color: tint.opacity(0.45), radius: isHovered ? 14 : 8, y: 4)
@@ -75,23 +80,21 @@ private struct OnRepeatCard: View {
                     .foregroundStyle(Theme.textTertiary)
             }
             Spacer(minLength: 0)
-            if canPlay {
-                Button {
-                    media.replay(entry)
-                } label: {
-                    Image(systemName: "play.fill")
-                        .font(Theme.iconSmallFont)
-                        .foregroundStyle(Theme.inkOnAccent)
-                        .offset(x: 1)
-                        .frame(width: 38, height: 38)
-                        .background(Circle().fill(tint))
-                        .shadow(color: tint.opacity(0.5), radius: isHovered ? 10 : 4)
-                        .scaleEffect(isHovered ? 1.06 : 1)
-                        .contentShape(Circle())
-                }
-                .buttonStyle(PressableStyle())
-                .help(L10n.t(.mediaPlay))
+            Button {
+                media.replay(entry)
+            } label: {
+                Image(systemName: "play.fill")
+                    .font(Theme.iconSmallFont)
+                    .foregroundStyle(Theme.inkOnAccent)
+                    .offset(x: 1)
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(tint))
+                    .shadow(color: tint.opacity(0.5), radius: isHovered ? 10 : 4)
+                    .scaleEffect(isHovered ? 1.06 : 1)
+                    .contentShape(Circle())
             }
+            .buttonStyle(PressableStyle())
+            .help(L10n.t(.mediaPlay))
         }
         .padding(14)
         .background(
@@ -119,7 +122,6 @@ private struct RecentCover: View {
     private static let side: CGFloat = 92
 
     var body: some View {
-        let canPlay = media.canReplay(entry)
         Button {
             media.replay(entry)
         } label: {
@@ -127,17 +129,15 @@ private struct RecentCover: View {
                 ZStack {
                     HistoryCover(image: media.history.cover(for: entry), size: Self.side)
                         .scaleEffect(isHovered ? 1.03 : 1)
-                    if canPlay {
-                        Image(systemName: "play.fill")
-                            .font(Theme.iconSmallFont)
-                            .foregroundStyle(Theme.inkOnAccent)
-                            .offset(x: 1)
-                            .frame(width: 32, height: 32)
-                            .background(Circle().fill(Color.white))
-                            .shadow(color: .black.opacity(0.35), radius: 6)
-                            .opacity(isHovered ? 1 : 0)
-                            .scaleEffect(isHovered ? 1 : 0.6)
-                    }
+                    Image(systemName: "play.fill")
+                        .font(Theme.iconSmallFont)
+                        .foregroundStyle(Theme.inkOnAccent)
+                        .offset(x: 1)
+                        .frame(width: 32, height: 32)
+                        .background(Circle().fill(Color.white))
+                        .shadow(color: .black.opacity(0.35), radius: 6)
+                        .opacity(isHovered ? 1 : 0)
+                        .scaleEffect(isHovered ? 1 : 0.6)
                 }
                 .shadow(color: .black.opacity(isHovered ? 0.4 : 0.2), radius: isHovered ? 10 : 5, y: 3)
                 VStack(alignment: .leading, spacing: 1) {
@@ -156,7 +156,7 @@ private struct RecentCover: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(PressableStyle())
-        .disabled(!canPlay)
+        .help(L10n.t(.mediaPlay))
         .onHover { hovering in
             withAnimation(.easeOut(duration: 0.25)) { isHovered = hovering }
         }
