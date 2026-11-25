@@ -1,11 +1,11 @@
 import SwiftUI
 
-/// The calendar as a desk tear-off block: today's page with the month, the
-/// day and the weekday, a dot per event. The page flips in when the module
-/// opens and when the day changes.
+/// The calendar as a desk tear-off block: the page of `date` with the
+/// month, the day and the weekday, a dot per event. The page flips in when
+/// the module opens and when the date moves to another day.
 struct IsoCalendarView: View {
     let date: Date
-    /// Events today.
+    /// Events on that day.
     let events: Int
 
     @State private var isShown = false
@@ -33,7 +33,9 @@ struct IsoCalendarView: View {
             }
         }
         .onAppear { flip() }
-        .onChange(of: day) { flip() }
+        // The whole date, not the day number: the 28th of another month is
+        // another page.
+        .onChange(of: Calendar.current.startOfDay(for: date)) { flip() }
     }
 
     private func flip() {

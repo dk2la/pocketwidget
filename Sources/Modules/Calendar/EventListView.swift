@@ -34,7 +34,8 @@ struct WeekView: View {
                         SectionHeader(title: sectionTitle, trailing: nil)
                             .padding(.top, 6)
                         ModuleEmptyScreen(label: L10n.t(.calNoEvents)) {
-                            IsoCalendarView(date: context.date, events: 0)
+                            // The page is the day that was picked, not today.
+                            IsoCalendarView(date: service.selectedDay, events: 0)
                         }
                     }
                     if canCreate {
