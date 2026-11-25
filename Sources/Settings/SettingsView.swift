@@ -4,8 +4,9 @@ import SwiftUI
 /// Settings UI, hosted inside the expanded capsule (see CapsuleSettingsView).
 /// Drawn on the capsule's glass — the widget's material — with nothing
 /// opaque in between: a lighter sidebar of pages on the left, the page on
-/// the right as a titled stack of grouped cards. Fully localized; sized by
-/// its host, not itself.
+/// the right as a titled stack of grouped cards. A panel narrower than
+/// `SettingsLayout.sidebarMinWidth` moves the pages to a scrolling strip on
+/// top. Fully localized; sized by its host, not itself.
 struct SettingsView: View {
     @Bindable var settings: AppSettings
     var services: ModuleServices
@@ -18,6 +19,10 @@ struct SettingsView: View {
 
     @State private var editingPlaybook: Playbook?
     @State private var creatingPlaybook = false
+    /// Follows the width the host gives, so a resize switches it live.
+    @State private var layout: SettingsLayout = .sidebar
+
+    private var isNarrow: Bool { layout == .topStrip }
 
     enum Page: String, CaseIterable, Identifiable {
         case general
@@ -48,61 +53,26 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            sidebar
+        // One layout that only changes axis, so the page keeps its identity
+        // (and an open playbook editor its draft) across the threshold.
+        let stack = isNarrow
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 0))
+            : AnyLayout(HStackLayout(spacing: 0))
+        stack {
+            if isNarrow {
+                pageStrip
+            } else {
+                sidebar
+            }
             page
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    // MARK: - Sidebar
-
-    private var sidebar: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 10) {
-                if let onBack {
-                    PillButton(L10n.t(.obBack), systemName: "chevron.left", size: .small, action: onBack)
-                        .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .leading)))
-                }
-                Text(L10n.t(.setTitle))
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(Palette.ink)
-                    .lineLimit(1)
-            }
-            .frame(height: 30)
-            .padding(.horizontal, 8)
-            .padding(.top, 16)
-            .padding(.bottom, 16)
-            ForEach(Page.allCases) { item in
-                SidebarRow(page: item, isActive: pageSelection.page == item) {
-                    pageSelection.page = item
-                }
-            }
-            Spacer(minLength: 0)
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Pocket \(Self.version)")
-                    .font(Theme.captionFont)
-                    .foregroundStyle(Palette.ink40)
-                // Debug builds have no updater (see AppUpdater): the button
-                // is shown there too, greyed out, so the layout can be checked.
-                PillButton(L10n.t(.setCheckUpdates), systemName: "arrow.down.circle", size: .small) {
-                    services.updater.checkForUpdates()
-                }
-                .disabled(!services.updater.isAvailable)
-            }
-            .padding(.horizontal, 10)
-            .padding(.bottom, 18)
+        .environment(\.settingsCompactRows, isNarrow)
+        .onGeometryChange(for: SettingsLayout.self) { proxy in
+            SettingsLayout.mode(forWidth: proxy.size.width)
+        } action: { mode in
+            layout = mode
         }
-        .padding(.horizontal, 12)
-        .frame(width: 200)
-        .frame(maxHeight: .infinity)
-        .background(Palette.sidebar)
-        .overlay(alignment: .trailing) {
-            Rectangle()
-                .fill(Palette.hairline)
-                .frame(width: 1)
-        }
-        .animation(Theme.stateSpring, value: onBack != nil)
     }
 
     // MARK: - Page
@@ -131,8 +101,8 @@ struct SettingsView: View {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .padding(.horizontal, 28)
-        .padding(.top, 20)
+        .padding(.horizontal, isNarrow ? 16 : 28)
+        .padding(.top, isNarrow ? 16 : 20)
         .padding(.bottom, 14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
@@ -212,6 +182,16 @@ struct SettingsView: View {
                 }
             }
             demoSection
+            // The strip has no room for the sidebar's footer: version and
+            // updates close the first page instead.
+            if isNarrow {
+                HStack(spacing: 10) {
+                    versionLabel
+                    Spacer(minLength: 0)
+                    updateButton
+                }
+                .padding(.horizontal, 4)
+            }
         }
     }
 
@@ -369,18 +349,23 @@ struct SettingsView: View {
     @ViewBuilder
     private var playbooksPage: some View {
         if creatingPlaybook {
-            PlaybookEditorView(store: playbooks, existing: nil) {
+            PlaybookEditorView(store: playbooks, existing: nil, layout: editorLayout) {
                 creatingPlaybook = false
             }
             .id("new")
         } else if let playbook = editingPlaybook {
-            PlaybookEditorView(store: playbooks, existing: playbook) {
+            PlaybookEditorView(store: playbooks, existing: playbook, layout: editorLayout) {
                 editingPlaybook = nil
             }
             .id(playbook.id)
         } else {
             playbooksList
         }
+    }
+
+    /// A narrow panel gets the editor's single-column layout.
+    private var editorLayout: PlaybookEditorView.Layout {
+        isNarrow ? .panel : .page
     }
 
     private var playbooksList: some View {
@@ -472,11 +457,128 @@ struct SettingsView: View {
     }
 }
 
-/// One sidebar page: icon and name; the open page sits on a raised glass
+// MARK: - Page list
+
+/// The sidebar, or in a narrow panel the strip on top, plus the version
+/// footer both share.
+extension SettingsView {
+    /// "‹ Back" (when the tour sent us here) and the settings title.
+    private var titleRow: some View {
+        HStack(spacing: 10) {
+            if let onBack {
+                PillButton(L10n.t(.obBack), systemName: "chevron.left", size: .small, action: onBack)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .leading)))
+            }
+            Text(L10n.t(.setTitle))
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(Palette.ink)
+                .lineLimit(1)
+        }
+        .frame(height: 30)
+        .animation(Theme.stateSpring, value: onBack != nil)
+    }
+
+    private func pageButton(_ item: Page, fillsWidth: Bool) -> some View {
+        SidebarRow(page: item, isActive: pageSelection.page == item, fillsWidth: fillsWidth) {
+            pageSelection.page = item
+        }
+        .accessibilityIdentifier("settings.page.\(item.rawValue)")
+    }
+
+    private var sidebar: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            titleRow
+                .padding(.horizontal, 8)
+                .padding(.top, 16)
+                .padding(.bottom, 16)
+            ForEach(Page.allCases) { item in
+                pageButton(item, fillsWidth: true)
+            }
+            Spacer(minLength: 0)
+            VStack(alignment: .leading, spacing: 8) {
+                versionLabel
+                updateButton
+            }
+            .padding(.horizontal, 10)
+            .padding(.bottom, 18)
+        }
+        .padding(.horizontal, 12)
+        .frame(width: 200)
+        .frame(maxHeight: .infinity)
+        .background(Palette.sidebar)
+        .overlay(alignment: .trailing) {
+            Rectangle()
+                .fill(Palette.hairline)
+                .frame(width: 1)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("settings.pages.sidebar")
+    }
+
+    /// The narrow panel's page list: the title row, then every page in one
+    /// horizontally scrolling row that keeps the open page in view.
+    private var pageStrip: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            titleRow
+                .padding(.horizontal, 20)
+                // The close button floats over the top-right corner.
+                .padding(.trailing, 40)
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 2) {
+                        ForEach(Page.allCases) { item in
+                            pageButton(item, fillsWidth: false)
+                                .id(item)
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                }
+                .onAppear {
+                    proxy.scrollTo(pageSelection.page, anchor: .center)
+                }
+                .onChange(of: pageSelection.page) { _, item in
+                    withAnimation(Theme.stateSpring) {
+                        proxy.scrollTo(item, anchor: .center)
+                    }
+                }
+            }
+        }
+        .padding(.top, 16)
+        .padding(.bottom, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Palette.sidebar)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Palette.hairline)
+                .frame(height: 1)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("settings.pages.strip")
+    }
+
+    private var versionLabel: some View {
+        Text("Pocket \(Self.version)")
+            .font(Theme.captionFont)
+            .foregroundStyle(Palette.ink40)
+    }
+
+    /// Debug builds have no updater (see AppUpdater): the button is shown
+    /// there too, greyed out, so the layout can be checked.
+    private var updateButton: some View {
+        PillButton(L10n.t(.setCheckUpdates), systemName: "arrow.down.circle", size: .small) {
+            services.updater.checkForUpdates()
+        }
+        .disabled(!services.updater.isAvailable)
+    }
+}
+
+/// One page in the sidebar or the strip: icon and name; the open page sits on a raised glass
 /// tile with its icon in the accent.
 private struct SidebarRow: View {
     let page: SettingsView.Page
     let isActive: Bool
+    /// The sidebar's rows span its width; the strip's hug their label.
+    var fillsWidth = true
     let action: () -> Void
 
     @State private var hovered = false
@@ -497,7 +599,7 @@ private struct SidebarRow: View {
             }
             .padding(.horizontal, 10)
             .frame(height: 32)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: fillsWidth ? .infinity : nil, alignment: .leading)
             .background(
                 shape.fill(Theme.textPrimary.opacity(isActive ? 0.09 : hovered ? 0.05 : 0))
             )

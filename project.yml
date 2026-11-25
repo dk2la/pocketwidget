@@ -85,6 +85,7 @@ targets:
       - path: Sources/Services/SpeechCaptureService.swift
       - path: Sources/Core/WidgetGeometry.swift
       - path: Sources/Core/StripDisplay.swift
+      - path: Sources/Settings/SettingsLayout.swift
       - path: Sources/Modules/LiveEvents/LiveEvent.swift
       - path: Sources/Modules/LiveEvents/LiveEventGate.swift
       - path: Sources/Core/StripLineup.swift

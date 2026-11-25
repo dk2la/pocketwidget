@@ -253,24 +253,54 @@ struct SettingRow<Control: View>: View {
     var subtitle: String?
     @ViewBuilder var control: () -> Control
 
+    @Environment(\.settingsCompactRows) private var compact
+
     var body: some View {
-        HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(Theme.bodyFont)
-                    .fontWeight(.medium)
-                    .foregroundStyle(Palette.ink)
-                if let subtitle {
-                    Text(subtitle)
-                        .font(Theme.subFont)
-                        .foregroundStyle(Palette.ink40)
+        Group {
+            if compact {
+                // A narrow panel keeps a small control beside the title and
+                // moves a wide one (segmented pickers) under it.
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .center, spacing: 12) {
+                        titles
+                            .frame(minWidth: 0, idealWidth: 110, maxWidth: .infinity, alignment: .leading)
+                        control()
+                    }
+                    VStack(alignment: .leading, spacing: 8) {
+                        titles
+                        control()
+                    }
+                }
+            } else {
+                HStack(alignment: .center, spacing: 16) {
+                    titles
+                    Spacer(minLength: 0)
+                    control()
                 }
             }
-            Spacer(minLength: 0)
-            control()
         }
         .padding(.vertical, 12)
     }
+
+    private var titles: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(Theme.bodyFont)
+                .fontWeight(.medium)
+                .foregroundStyle(Palette.ink)
+            if let subtitle {
+                Text(subtitle)
+                    .font(Theme.subFont)
+                    .foregroundStyle(Palette.ink40)
+            }
+        }
+    }
+}
+
+extension EnvironmentValues {
+    /// Set by a Settings panel too narrow for its sidebar (see
+    /// SettingsLayout): rows then make room for their controls.
+    @Entry var settingsCompactRows = false
 }
 
 /// Grouped rows on a glass card — the settings' unit of layout. Rows keep
