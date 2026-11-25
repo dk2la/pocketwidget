@@ -47,3 +47,10 @@ export const supportEmail = 'support@pocketwidget.tech';
  * sees their License key and Activations.
  */
 export const licensePortalURL = 'https://polar.sh/pocketwidget/portal';
+
+/**
+ * Public origin of the site. The build normally takes it from SITE_URL (see
+ * astro.config.mjs); this is the fallback for the sitemap and must match the
+ * `Sitemap:` line in `public/robots.txt`.
+ */
+export const siteOrigin = 'https://pocketwidget.tech';
