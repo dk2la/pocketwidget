@@ -31,7 +31,7 @@ export const price = {
  * Whether Pocket is on sale. While false, every Buy button opens a note with
  * `salesOpenOn` instead of the checkout page. Set to true on launch day.
  */
-export const salesOpen = false;
+export const salesOpen = true;
 
 /** Launch day, as written in the note behind the Buy buttons. */
 export const salesOpenOn = 'november 25';
