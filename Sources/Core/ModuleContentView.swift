@@ -18,7 +18,8 @@ struct ModuleContentView: View {
             MetricsModuleView(
                 stats: services.statsService,
                 power: services.powerMonitor,
-                audio: services.audioMonitor
+                audio: services.audioMonitor,
+                settings: services.settings
             )
         case .shelf:
             ShelfModuleView(shelf: services.shelfStore)

@@ -3,6 +3,8 @@
 /// (two clipboard histories) or double the work (two media pollers).
 @MainActor
 final class ModuleServices {
+    /// Persisted preferences, for modules that remember a choice.
+    let settings: AppSettings
     /// Sparkle. Shared so the status-bar menu and the settings sidebar ask
     /// the same updater.
     let updater = AppUpdater()
@@ -38,7 +40,8 @@ final class ModuleServices {
         licensingEnforced && access.state.isLocked
     }
 
-    init() {
+    init(settings: AppSettings) {
+        self.settings = settings
         access = Access.live(enforced: licensingEnforced)
         playbookRunner = PlaybookRunner(timer: timerService)
         // The toolbox needs the fully built container, so it attaches last.

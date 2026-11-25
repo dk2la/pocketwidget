@@ -107,6 +107,12 @@ final class AppSettings {
         didSet { persist(onboardingCompleted, Self.onboardingCompletedKey, log: "onboardingCompleted") }
     }
 
+    /// The metric on the System module's large chart: CPU until another is
+    /// chosen. Written straight to defaults: no window reacts to it.
+    var systemMetric: Gauge {
+        didSet { MetricSelection.save(systemMetric, to: defaults) }
+    }
+
     /// Size of the widget-mode panel, each axis dragged by its own grip.
     /// Separate from the capsule's `expandedPanelSize` — the two surfaces
     /// have different geometry.
@@ -225,6 +231,7 @@ final class AppSettings {
         // Absent key = on: the tour shows until the user turns it off.
         showOnboardingAtLaunch = (defaults.object(forKey: Self.onboardingAtLaunchKey) as? Bool) ?? true
         onboardingCompleted = defaults.bool(forKey: Self.onboardingCompletedKey)
+        systemMetric = MetricSelection.load(from: defaults)
         // A fresh install starts with the core modules only; the rest are
         // switched on in Settings → Modules.
         let defaultEnabled = Set(ModuleTab.defaultTabs)

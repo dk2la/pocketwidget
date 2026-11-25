@@ -1,41 +1,46 @@
 import SwiftUI
 
-/// "System" module: a panel for the selected metric (current / average /
-/// peak and a live chart of the last two minutes) and a card with a small
-/// chart for each metric. Clicking a card selects it.
+/// "System" module: one large card on top with the chart of the selected
+/// metric (current / average / peak over the last two minutes), and below
+/// it, under a "Metrics" heading, a card with a small chart for each metric.
+/// Clicking a card selects it; the choice is remembered.
 struct MetricsModuleView: View {
     var stats: SystemStatsService
     var power: PowerSourceMonitor
     var audio: AudioSystemMonitor
+    var settings: AppSettings
 
     /// Whether this view instance currently holds a stats observer. SwiftUI
     /// can fire appear/disappear repeatedly during transitions; the flag
     /// keeps the contribution to the service's count at exactly zero or one.
     @State private var isObservingStats = false
-    @State private var selected: Gauge = .cpu
+    /// Starts empty on every open: nothing is sampled in the background.
     @State private var history: [MetricSample] = []
 
     /// Sampling step and window of the charts.
     static let step: Double = 2
     static let window = 60
 
-    private var focus: Gauge { selected }
+    private var focus: Gauge { settings.systemMetric }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 14) {
-                    MetricPanel(
-                        gauge: focus,
-                        history: history,
-                        now: currentSample,
-                        audio: audio
-                    )
-                    // A fresh panel per gauge: the charts cross-fade instead
-                    // of morphing one series into another.
-                    .id(focus)
-                    .transition(.opacity)
-                    overview
+            GeometryReader { proxy in
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        MetricPanel(
+                            gauge: focus,
+                            history: history,
+                            now: currentSample,
+                            audio: audio,
+                            chartHeight: MetricGrid.chartHeight(available: proxy.size.height)
+                        )
+                        // A fresh panel per gauge: the charts cross-fade
+                        // instead of morphing one series into another.
+                        .id(focus)
+                        .transition(.opacity)
+                        cards(width: proxy.size.width)
+                    }
                 }
             }
             ModuleFootnote(systemName: "eye", text: L10n.t(.sysLiveNote))
@@ -61,20 +66,28 @@ struct MetricsModuleView: View {
 
     // MARK: - Cards
 
-    /// Every gauge as a small stat panel with a sparkline.
-    private var overview: some View {
-        LazyVGrid(
-            columns: [GridItem(.adaptive(minimum: 120), spacing: 10)],
-            spacing: 10
-        ) {
-            ForEach(Gauge.allCases) { gauge in
-                MetricStatCard(
-                    gauge: gauge,
-                    history: history,
-                    now: currentSample,
-                    isSelected: gauge == focus
-                ) {
-                    withAnimation(.snappy) { selected = gauge }
+    /// Every metric as a card with a small chart, in rows that share the
+    /// width evenly.
+    private func cards(width: CGFloat) -> some View {
+        let all = Gauge.allCases
+        let rows = MetricGrid.rows(width: width, count: all.count)
+        let starts = rows.indices.map { rows[..<$0].reduce(0, +) }
+        return VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: L10n.t(.sysMetricsSection))
+            VStack(spacing: MetricGrid.spacing) {
+                ForEach(rows.indices, id: \.self) { row in
+                    HStack(spacing: MetricGrid.spacing) {
+                        ForEach(all[starts[row]..<starts[row] + rows[row]]) { gauge in
+                            MetricStatCard(
+                                gauge: gauge,
+                                history: history,
+                                now: currentSample,
+                                isSelected: gauge == focus
+                            ) {
+                                withAnimation(.snappy) { settings.systemMetric = gauge }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -104,12 +117,7 @@ struct MetricsModuleView: View {
 
 // MARK: - Model
 
-/// The parameters, in the order of their cards.
-enum Gauge: String, CaseIterable, Identifiable {
-    case cpu, memory, network, battery, volume
-
-    var id: String { rawValue }
-
+extension Gauge {
     @MainActor var title: String {
         switch self {
         case .cpu: "CPU"
@@ -120,7 +128,7 @@ enum Gauge: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Series color, from the Grafana palette.
+    /// Series color.
     var color: Color {
         switch self {
         case .cpu: Theme.accent
