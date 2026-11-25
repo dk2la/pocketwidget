@@ -61,6 +61,7 @@ targets:
     scheme:
       testTargets:
         - PocketTests
+        - PocketUITests
 
   # Logic-only bundle: it compiles the pure mail parsing sources into itself,
   # so the tests need no app host and never touch Keychain or the network.
@@ -114,3 +115,22 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.dk2la.pocket.tests
         SWIFT_VERSION: "6.0"
         GENERATE_INFOPLIST_FILE: YES
+
+  # Drives the real app (launched with --ui-testing, see UITestMode.swift).
+  # Runs on GitHub-hosted runners only, never on a developer's Mac.
+  PocketUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    configFiles:
+      Debug: Support/Signing.xcconfig
+      Release: Support/Signing.xcconfig
+    sources:
+      - path: UITests
+    dependencies:
+      - target: Pocket
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.dk2la.pocket.uitests
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Pocket

@@ -85,7 +85,7 @@ jobs:
       - name: Security scan (semgrep)
         run: |
           pipx install semgrep==1.184.0
-          semgrep scan --config p/swift --config p/secrets --metrics off --error Sources Tests
+          semgrep scan --config p/swift --config p/secrets --metrics off --error Sources Tests UITests
 
   build-test:
     needs: plan
@@ -101,3 +101,12 @@ jobs:
         run: brew install xcodegen
       - name: Build and test
         run: ./run.sh --clean --test --no-run
+      # run.sh runs the unit tests only; the UI tests launch the app with
+      # --ui-testing (throwaway defaults, no tour, no prompts) and drive it,
+      # which only a GitHub-hosted runner may do.
+      - name: UI tests
+        run: |
+          set -o pipefail
+          xcodebuild -project Pocket.xcodeproj -scheme Pocket -configuration Debug \
+            -derivedDataPath build test -only-testing:PocketUITests 2>&1 |
+            grep -E "error:|warning: [^M]|Test Case|Executed [0-9]+ tests|\*\* "

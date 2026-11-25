@@ -80,7 +80,7 @@ final class HotkeyService {
     @ObservationIgnored private var eventHandler: EventHandlerRef?
     @ObservationIgnored private var keyMonitor: Any?
     @ObservationIgnored private var rejectionTask: Task<Void, Never>?
-    @ObservationIgnored private let defaults = UserDefaults.standard
+    @ObservationIgnored private let defaults = UserDefaults.app
     @ObservationIgnored private let log = Logger(subsystem: "com.dk2la.pocket", category: "hotkeys")
 
     /// Four-char-code namespace for our hotkey ids ("HTZI").
