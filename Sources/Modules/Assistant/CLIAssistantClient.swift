@@ -80,8 +80,11 @@ struct CLIAssistantClient: Sendable {
 
     /// Runs one turn. `prompt` already contains the flattened transcript.
     func send(system: String, prompt: String) async throws -> String {
+        // Off the cooperative pool: the first lookup after launch waits for
+        // the login shell, which can take seconds.
+        let commandLine = commandLine
         guard let name = provider.executableName,
-              let executable = commandLine.locate(name)
+              let executable = await Task.detached(operation: { commandLine.locate(name) }).value
         else { throw CLIError.notInstalled(provider.executableName ?? "CLI") }
 
         let arguments: [String]

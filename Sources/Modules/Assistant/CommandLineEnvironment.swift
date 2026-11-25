@@ -46,8 +46,11 @@ final class CommandLineEnvironment: @unchecked Sendable {
 
     // MARK: - Interface
 
-    /// The folders programs are looked up in, in order: the login shell's
-    /// `PATH`, or the usual install folders when the shell gave no answer.
+    /// The folders programs are looked up in and started with, in order:
+    /// the login shell's `PATH`, then the usual install folders. The usual
+    /// ones are all there is when the shell gave no answer; after a shell
+    /// answer they still catch a program or a `node` that an installer put
+    /// where the shell's `PATH` does not reach yet (`~/.local/bin`, for one).
     ///
     /// The first call asks the shell and may take up to the time limit;
     /// every later call returns the remembered answer.
@@ -55,13 +58,11 @@ final class CommandLineEnvironment: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         if let resolved { return resolved }
-        let answer: [String]
-        if let fromShell = readShellPath() {
-            answer = fromShell
-        } else {
+        let fromShell = readShellPath()
+        if fromShell == nil {
             Self.log.info("login shell gave no PATH, using the usual folders")
-            answer = usualFolders()
         }
+        let answer = Self.withoutRepeats((fromShell ?? []) + usualFolders())
         resolved = answer
         return answer
     }
@@ -72,13 +73,11 @@ final class CommandLineEnvironment: @unchecked Sendable {
         ([executable.deletingLastPathComponent().path] + folders).joined(separator: ":")
     }
 
-    /// Finds a program by name in `folders`, then in the usual install
-    /// folders: an installer can put a program where the shell's `PATH`
-    /// does not reach yet (`~/.local/bin`, for one), and it still runs,
-    /// because its own folder leads the `PATH` it is started with.
+    /// Finds a program by name in `folders`: the same list it is then
+    /// started with, so "found" and "can run" agree.
     func locate(_ name: String) -> URL? {
         let manager = FileManager.default
-        for folder in Self.withoutRepeats(folders + usualFolders()) {
+        for folder in folders {
             let candidate = URL(fileURLWithPath: folder).appendingPathComponent(name)
             if manager.isExecutableFile(atPath: candidate.path) {
                 return candidate
