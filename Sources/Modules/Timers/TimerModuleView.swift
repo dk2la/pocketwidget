@@ -4,13 +4,11 @@ import SwiftUI
 /// message with the picked length, over Start. A countdown or an alarm —
 /// running or paused partway — shows a hero card instead, with the time
 /// left, a bar that drains with it, Pause / Start and Reset.
-/// Under either sit the same two blocks: a row of lengths and an alarm that
-/// counts down to a clock time.
+/// Under either sit the same two blocks: the length — a dial to drag and a
+/// row of usual lengths — and an alarm that counts down to a clock time.
 struct TimerModuleView: View {
     var timer: TimerService
 
-    @State private var customMinutes = ""
-    @FocusState private var customFocused: Bool
     /// The alarm block's clock time; only hour and minute are used.
     @State private var alarmTime = Date().addingTimeInterval(30 * 60)
 
@@ -32,7 +30,7 @@ struct TimerModuleView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     SectionHeader(
                         title: L10n.t(.timerLength),
-                        trailing: L10n.t(.timerCustomPlaceholder)
+                        trailing: L10n.f(.ageMin, Int(timer.duration / 60))
                     )
                     lengthPicker
                 }
@@ -139,22 +137,29 @@ struct TimerModuleView: View {
 
     // MARK: - Length
 
-    /// Presets plus a free field in one segmented row. Locked while the
-    /// timer runs — the length belongs to the countdown already going.
+    /// The dial for any length, over the usual ones as one-click cells.
+    /// Locked while the timer runs — the length belongs to the countdown
+    /// already going.
     private var lengthPicker: some View {
         let shape = RoundedRectangle(cornerRadius: Theme.groupRadius, style: .continuous)
-        return HStack(spacing: 4) {
-            ForEach(TimerService.presets, id: \.self) { preset in
-                Button {
-                    timer.setDuration(preset)
-                } label: {
-                    Text("\(Int(preset / 60))")
-                        .monospacedDigit()
-                        .lengthCell(isActive: timer.duration == preset)
-                }
-                .buttonStyle(PressableStyle())
+        return VStack(spacing: 4) {
+            LengthDial(minutes: Int(timer.duration / 60)) { minutes in
+                timer.setDuration(TimeInterval(minutes * 60))
             }
-            customCell
+            HStack(spacing: 4) {
+                ForEach(TimerService.presets, id: \.self) { preset in
+                    Button {
+                        withAnimation(.snappy(duration: 0.3)) {
+                            timer.setDuration(preset)
+                        }
+                    } label: {
+                        Text("\(Int(preset / 60))")
+                            .monospacedDigit()
+                            .lengthCell(isActive: timer.duration == preset)
+                    }
+                    .buttonStyle(PressableStyle())
+                }
+            }
         }
         .padding(4)
         .background(Theme.cardFill, in: shape)
@@ -162,26 +167,101 @@ struct TimerModuleView: View {
         .opacity(timer.isRunning ? 0.35 : 1)
         .disabled(timer.isRunning)
     }
+}
 
-    /// Last cell of the row: type any minute count, Enter arms it. Lights
-    /// up like an active preset while a non-preset length is set.
-    private var customCell: some View {
-        TextField("…", text: $customMinutes)
-            .textFieldStyle(.plain)
-            .multilineTextAlignment(.center)
-            .focused($customFocused)
-            .onSubmit(applyCustomMinutes)
-            .onChange(of: customMinutes) { _, value in
-                let digits = String(value.filter(\.isNumber).prefix(3))
-                if digits != value { customMinutes = digits }
-            }
-            .lengthCell(isActive: !TimerService.presets.contains(timer.duration))
+/// A ruler of minutes under a fixed pointer: drag it sideways to set the
+/// length. It snaps to whole minutes and ticks under the finger on each one.
+private struct LengthDial: View {
+    /// The length now set, in minutes.
+    var minutes: Int
+    var onChange: (Int) -> Void
+
+    static let range = 1...180
+    private static let spacing: CGFloat = 9
+    /// Room for the labels of the first and last tick.
+    private static let inset: CGFloat = 16
+    private static let height: CGFloat = 48
+
+    /// Where the ruler sits while it is dragged, in fractional minutes.
+    @State private var dragPosition: Double?
+    @State private var dragStart: Double?
+
+    var body: some View {
+        let position = dragPosition ?? Double(minutes)
+        return GeometryReader { geometry in
+            ruler
+                .offset(x: geometry.size.width / 2 - Self.inset - CGFloat(position) * Self.spacing)
+        }
+        .frame(height: Self.height)
+        .overlay(alignment: .bottom) {
+            Capsule()
+                .fill(Theme.accent)
+                .frame(width: 2, height: 22)
+        }
+        .mask(
+            LinearGradient(
+                stops: [
+                    .init(color: .clear, location: 0),
+                    .init(color: .black, location: 0.2),
+                    .init(color: .black, location: 0.8),
+                    .init(color: .clear, location: 1),
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        )
+        .contentShape(Rectangle())
+        .gesture(drag)
     }
 
-    private func applyCustomMinutes() {
-        guard let minutes = Int(customMinutes), minutes >= 1 else { return }
-        timer.setDuration(TimeInterval(min(minutes, 999) * 60))
-        customFocused = false
+    private var drag: some Gesture {
+        DragGesture(minimumDistance: 2)
+            .onChanged { value in
+                let start = dragStart ?? Double(minutes)
+                dragStart = start
+                let moved = start - Double(value.translation.width / Self.spacing)
+                let position = min(max(moved, Double(Self.range.lowerBound)), Double(Self.range.upperBound))
+                dragPosition = position
+                let snapped = Int(position.rounded())
+                if snapped != minutes {
+                    onChange(snapped)
+                    NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+                }
+            }
+            .onEnded { _ in
+                dragStart = nil
+                withAnimation(.snappy(duration: 0.2)) { dragPosition = nil }
+            }
+    }
+
+    /// Every minute as a tick, every fifth one taller and numbered. Drawn
+    /// once at full length and slid under the pointer.
+    private var ruler: some View {
+        Canvas { context, size in
+            for minute in 0...Self.range.upperBound {
+                let isMajor = minute % 5 == 0
+                let x = Self.inset + CGFloat(minute) * Self.spacing
+                let tickHeight: CGFloat = isMajor ? 14 : 8
+                let tick = CGRect(x: x - 0.5, y: size.height - tickHeight, width: 1, height: tickHeight)
+                context.fill(
+                    Path(roundedRect: tick, cornerRadius: 0.5),
+                    with: .color(isMajor ? Theme.textTertiary : Theme.textQuaternary.opacity(0.6))
+                )
+                if isMajor, minute > 0 {
+                    context.draw(
+                        Text("\(minute)")
+                            .font(Theme.subFont)
+                            .monospacedDigit()
+                            .foregroundStyle(Theme.textTertiary),
+                        at: CGPoint(x: x, y: 12)
+                    )
+                }
+            }
+        }
+        .frame(
+            width: Self.inset * 2 + CGFloat(Self.range.upperBound) * Self.spacing,
+            height: Self.height
+        )
     }
 }
 
