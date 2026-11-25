@@ -691,6 +691,12 @@ extension WidgetWindowController {
     /// The welcome tour, in the Settings slot. `resume` comes back to the
     /// page a settings detour left; otherwise it starts at the first page.
     func openOnboarding(resume: Bool = false) {
+        // Locked, the tour is no way around the lock either: the lock
+        // screen opens in the lock button's slot, as for Settings.
+        guard !viewModel.isLocked else {
+            openSettings()
+            return
+        }
         if !resume {
             viewModel.onboardingStep = .welcome
         }

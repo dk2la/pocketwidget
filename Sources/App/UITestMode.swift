@@ -7,7 +7,13 @@ import Foundation
 /// a system prompt would block the test run.
 enum UITestMode {
     static let argument = "--ui-testing"
+    /// Debug builds only: a launch flag must not change how a shipped
+    /// Pocket stores its settings.
+    #if DEBUG
     static let isActive = CommandLine.arguments.contains(argument)
+    #else
+    static let isActive = false
+    #endif
     /// `--minimized` with `--ui-testing`: the widget starts rolled up. The
     /// defaults suite is wiped at every launch, so a test cannot store it.
     static let startsMinimized = isActive && CommandLine.arguments.contains("--minimized")
