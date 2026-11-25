@@ -88,9 +88,8 @@ struct EmailModuleView: View {
     /// No account yet: the message and the one thing to do about it —
     /// setup starts right here, not in Settings.
     private var addMailScreen: some View {
-        VStack(spacing: 10) {
-            ModuleEmptyScreen(label: L10n.t(.mailSetupTitle), sublabel: L10n.t(.mailSetupSub))
-            EmptyActionBar(label: L10n.t(.mailAddAction)) {
+        ModuleEmptyScreen(label: L10n.t(.mailSetupTitle), sublabel: L10n.t(.mailSetupSub)) {
+            ModuleButton(label: L10n.t(.mailAddAction), kind: .light) {
                 service.beginSetup()
             }
         }

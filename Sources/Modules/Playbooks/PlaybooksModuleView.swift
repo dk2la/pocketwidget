@@ -104,12 +104,11 @@ struct PlaybooksModuleView: View {
 
     // MARK: - Empty
 
-    /// No playbook yet: the empty message, centred in the free space, and
-    /// the bar that adds the first one.
+    /// No playbook yet: the empty message, centred in the free space, over
+    /// the button that adds the first one.
     private var emptyScreen: some View {
-        VStack(spacing: 10) {
-            ModuleEmptyScreen(label: L10n.t(.playNoneTitle))
-            EmptyActionBar(label: L10n.t(.playAdd)) {
+        ModuleEmptyScreen(label: L10n.t(.playNoneTitle), sublabel: L10n.t(.playNoneSub)) {
+            ModuleButton(label: L10n.t(.playAdd), kind: .light) {
                 show(.editor(nil))
             }
         }
