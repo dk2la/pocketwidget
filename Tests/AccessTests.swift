@@ -76,10 +76,10 @@ final class AccessTests: XCTestCase {
 
     // MARK: - Trial
 
-    func testFirstLaunchOnlineStartsThreeDayTrial() async {
+    func testFirstLaunchOnlineStartsSevenDayTrial() async {
         let world = World()
         let access = await world.launch()
-        XCTAssertEqual(access.state, .trial(daysLeft: 3))
+        XCTAssertEqual(access.state, .trial(daysLeft: 7))
     }
 
     func testTrialDaysCountDown() async {
@@ -87,16 +87,16 @@ final class AccessTests: XCTestCase {
         let access = await world.launch()
         world.advance(days: 1.5)
         await access.refresh()
-        XCTAssertEqual(access.state, .trial(daysLeft: 2))
-        world.advance(days: 1)
+        XCTAssertEqual(access.state, .trial(daysLeft: 6))
+        world.advance(days: 5)
         await access.refresh()
         XCTAssertEqual(access.state, .trial(daysLeft: 1))
     }
 
-    func testTrialEndsAfterThreeDays() async {
+    func testTrialEndsAfterSevenDays() async {
         let world = World()
         let access = await world.launch()
-        world.advance(days: 3)
+        world.advance(days: 7)
         await access.refresh()
         XCTAssertEqual(access.state, .locked(.trialEnded))
     }
@@ -114,7 +114,7 @@ final class AccessTests: XCTestCase {
         let access = await world.launch()
         world.trialServer.isOnline = true
         await access.refresh()
-        XCTAssertEqual(access.state, .trial(daysLeft: 3))
+        XCTAssertEqual(access.state, .trial(daysLeft: 7))
     }
 
     func testStartedTrialWorksOffline() async {
@@ -123,13 +123,13 @@ final class AccessTests: XCTestCase {
         world.advance(days: 1.5)
         world.trialServer.isOnline = false
         let relaunched = await world.launch()
-        XCTAssertEqual(relaunched.state, .trial(daysLeft: 2))
+        XCTAssertEqual(relaunched.state, .trial(daysLeft: 6))
     }
 
     func testWipingLocalDataDoesNotRestartTrial() async {
         let world = World()
         _ = await world.launch()
-        world.advance(days: 2.5)
+        world.advance(days: 6.5)
         world.wipeLocalData()
         let reinstalled = await world.launch()
         XCTAssertEqual(reinstalled.state, .trial(daysLeft: 1))
@@ -138,7 +138,7 @@ final class AccessTests: XCTestCase {
     func testServerDateWinsOverLocalCopy() async {
         let world = World()
         _ = await world.launch()
-        world.advance(days: 2.5)
+        world.advance(days: 6.5)
         // A doctored local copy claims the Trial started just now.
         world.store.record.trialStart = world.clock.now
         let relaunched = await world.launch()
@@ -188,7 +188,7 @@ final class AccessTests: XCTestCase {
         let access = await world.launch()
         world.api.activateResult = .failure(.invalidKey)
         await assertThrows(.invalidKey) { try await access.activate(licenseKey: "TYPO") }
-        XCTAssertEqual(access.state, .trial(daysLeft: 3))
+        XCTAssertEqual(access.state, .trial(daysLeft: 7))
     }
 
     func testActivationLimitIsReportedAndStateUnchanged() async {
@@ -196,7 +196,7 @@ final class AccessTests: XCTestCase {
         let access = await world.launch()
         world.api.activateResult = .failure(.activationLimitReached)
         await assertThrows(.activationLimitReached) { try await access.activate(licenseKey: "KEY-1") }
-        XCTAssertEqual(access.state, .trial(daysLeft: 3))
+        XCTAssertEqual(access.state, .trial(daysLeft: 7))
     }
 
     func testActivationWithoutConnectionIsReported() async {
@@ -204,7 +204,7 @@ final class AccessTests: XCTestCase {
         let access = await world.launch()
         world.api.activateResult = .failure(.network)
         await assertThrows(.noConnection) { try await access.activate(licenseKey: "KEY-1") }
-        XCTAssertEqual(access.state, .trial(daysLeft: 3))
+        XCTAssertEqual(access.state, .trial(daysLeft: 7))
     }
 
     func testKeyForAnotherProductIsRejectedAndItsActivationFreed() async {
@@ -212,10 +212,10 @@ final class AccessTests: XCTestCase {
         let access = await world.launch()
         world.sellKey(activationID: "foreign", productID: "benefit-other")
         await assertThrows(.wrongProduct) { try await access.activate(licenseKey: "OTHER-APP") }
-        XCTAssertEqual(access.state, .trial(daysLeft: 3))
+        XCTAssertEqual(access.state, .trial(daysLeft: 7))
         XCTAssertEqual(world.api.freedActivations, ["foreign"])
         let relaunched = await world.launch()
-        XCTAssertEqual(relaunched.state, .trial(daysLeft: 3))
+        XCTAssertEqual(relaunched.state, .trial(daysLeft: 7))
     }
 
     // MARK: - Daily re-validation
@@ -321,11 +321,11 @@ final class AccessTests: XCTestCase {
         let access = try await world.launchLicensed()
         world.advance(days: 1.5)
         try await access.deactivate()
-        XCTAssertEqual(access.state, .trial(daysLeft: 2))
+        XCTAssertEqual(access.state, .trial(daysLeft: 6))
         XCTAssertNil(access.licenseKey)
         XCTAssertEqual(world.api.freedActivations, ["inst-1"])
         let relaunched = await world.launch()
-        XCTAssertEqual(relaunched.state, .trial(daysLeft: 2))
+        XCTAssertEqual(relaunched.state, .trial(daysLeft: 6))
     }
 
     func testDeactivationAfterTrialLocks() async throws {
@@ -352,7 +352,7 @@ final class AccessTests: XCTestCase {
     func testClockMovedBackDoesNotAddTrialDays() async {
         let world = World()
         let access = await world.launch()
-        world.advance(days: 2.5)
+        world.advance(days: 6.5)
         await access.refresh()
         XCTAssertEqual(access.state, .trial(daysLeft: 1))
         world.clock.now = world.start
@@ -365,7 +365,7 @@ final class AccessTests: XCTestCase {
     func testClockMovedBackDoesNotReviveEndedTrial() async {
         let world = World()
         let access = await world.launch()
-        world.advance(days: 4)
+        world.advance(days: 8)
         await access.refresh()
         world.clock.now = world.start
         world.trialServer.isOnline = false
@@ -392,15 +392,15 @@ final class AccessTests: XCTestCase {
         // The Mac's clock is a week behind the server's.
         world.clock.now = world.start.addingTimeInterval(-7 * 86_400)
         let access = await world.launch()
-        XCTAssertEqual(access.state, .trial(daysLeft: 3))
+        XCTAssertEqual(access.state, .trial(daysLeft: 7))
     }
 
     func testTrialRunsOutOnAMacWhoseClockIsBehind() async {
         let world = World()
         world.clock.now = world.start.addingTimeInterval(-30 * 86_400)
         let access = await world.launch()
-        // Three real days pass; the Mac's clock is still a month behind.
-        world.clock.advance(days: 3)
+        // Seven real days pass; the Mac's clock is still a month behind.
+        world.clock.advance(days: 7)
         world.trialServer.isOnline = false
         await access.refresh()
         XCTAssertEqual(access.state, .locked(.trialEnded))
@@ -409,7 +409,7 @@ final class AccessTests: XCTestCase {
     func testClockBehindAndWipedDataDoesNotRestartTrial() async {
         let world = World()
         _ = await world.launch()
-        world.advance(days: 5)
+        world.advance(days: 8)
         world.wipeLocalData()
         world.clock.now = world.start
         let reinstalled = await world.launch()

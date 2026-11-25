@@ -3,7 +3,7 @@ import Foundation
 /// Whether Pocket is usable right now. See GLOSSARY.md for Trial, License
 /// and Activation.
 enum AccessState: Equatable, Sendable {
-    /// Inside the Trial; `daysLeft` counts started days, so it runs 3, 2, 1.
+    /// Inside the Trial; `daysLeft` counts started days, so it runs 7, 6, …, 1.
     case trial(daysLeft: Int)
     case licensed
     case locked(LockReason)

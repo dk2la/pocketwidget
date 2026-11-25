@@ -35,7 +35,7 @@ const siteName = 'Pocket';
 const tagline = 'One small widget for the whole day';
 const {
   title,
-  description = 'Pocket is a small widget for your Mac that opens right where you work. Move it, size it, put it anywhere. 3-day Trial, then a one-time purchase.',
+  description = 'Pocket is a small widget for your Mac that opens right where you work. Move it, size it, put it anywhere. 7-day Trial, then a one-time purchase.',
 } = Astro.props;
 const pageTitle = title ? `${title} — ${siteName}` : `${siteName} — ${tagline}`;
 const year = new Date().getFullYear();
@@ -122,7 +122,7 @@ const ogImageAlt = `${tagline}. The Pocket widget on a halftone picture of a roo
             sales open on {salesOpenOn}
           </h2>
           <p class="body presale__text">
-            until then, download pocket and use the 3-day Trial with everything switched on.
+            until then, download pocket and use the 7-day Trial with everything switched on.
           </p>
           <div class="presale__cta">
             <a class="btn btn--light btn--wide" href={downloadURL} download>
