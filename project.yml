@@ -49,7 +49,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dk2la.pocket
-        MARKETING_VERSION: 0.2.2
+        MARKETING_VERSION: 0.2.3
         CURRENT_PROJECT_VERSION: 1
         SWIFT_VERSION: "6.0"
         # Drawn by Support/make-art.swift.
@@ -81,14 +81,28 @@ targets:
       - path: Sources/Modules/Assistant/CLIAssistantClient.swift
       - path: Sources/Services/SpeechCaptureService.swift
       - path: Sources/Core/WidgetGeometry.swift
+      - path: Sources/Core/PanelHold.swift
+      - path: Sources/Modules/Shelf/ShelfStore.swift
+      - path: Sources/Modules/Shelf/ShelfFilePicker.swift
+      - path: Sources/Modules/Timers/TimerService.swift
       - path: Sources/Modules/Email/EmailHTMLSanitizer.swift
       - path: Sources/Modules/Email/MailTransport.swift
       - path: Sources/Modules/Email/IMAPClient.swift
       - path: Sources/Modules/Email/MailSession.swift
+      - path: Sources/Modules/Email/MailSetup.swift
+      - path: Sources/Modules/Clipboard/ClipboardHistory.swift
       - path: Sources/Licensing/AccessPorts.swift
       - path: Sources/Licensing/Access.swift
       - path: Sources/Licensing/MacID.swift
       - path: Sources/Licensing/PolarLicenseAPI.swift
+      - path: Sources/Modules/Playbooks/PlaybooksRoute.swift
+      - path: Sources/Modules/Hotkeys/ShortcutListState.swift
+      - path: Sources/Modules/Playbooks/Playbook.swift
+      - path: Sources/Modules/Playbooks/PlaybookStore.swift
+      - path: Sources/Modules/Playbooks/PlaybookDraft.swift
+      - path: Sources/Modules/Playbooks/AppVisuals.swift
+      - path: Sources/Services/WindowLayout.swift
+      - path: Sources/Core/Localization.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dk2la.pocket.tests

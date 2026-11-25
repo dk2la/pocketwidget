@@ -48,6 +48,55 @@ enum EmailProvider: String, CaseIterable, Identifiable {
 
     /// Personal Outlook killed password auth for IMAP — warn up front.
     var isPasswordAuthUnreliable: Bool { self == .outlook }
+
+    /// The provider's page for creating an app password; nil where there is
+    /// no such page to send the user to.
+    var appPasswordURL: URL? {
+        switch self {
+        case .gmail: URL(string: "https://myaccount.google.com/apppasswords")
+        // "App-Specific Passwords" sits in the Sign-In and Security section.
+        case .icloud: URL(string: "https://account.apple.com/account/manage")
+        case .yandex: URL(string: "https://id.yandex.com/security/app-passwords")
+        case .outlook, .custom: nil
+        }
+    }
+
+    /// The app password in `copied`, when the whole text has the shape this
+    /// provider issues them in; nil for anything else. Mail setup uses it to
+    /// tell a freshly copied password from ordinary clipboard text.
+    ///
+    /// - Gmail: 16 lowercase letters, shown as four groups of four with
+    ///   spaces between; returned without the spaces.
+    /// - iCloud: `xxxx-xxxx-xxxx-xxxx`, lowercase letters, hyphens kept.
+    /// - Yandex: 16 lowercase letters.
+    func appPassword(in copied: String) -> String? {
+        let text = copied.trimmingCharacters(in: .whitespacesAndNewlines)
+        switch self {
+        case .gmail:
+            let groups = text.split(omittingEmptySubsequences: false) { $0 == " " || $0 == "\u{00A0}" }
+            if groups.count == 1 {
+                return Self.isLowercaseLetters(text, count: 16) ? text : nil
+            }
+            guard groups.count == 4, groups.allSatisfy({ Self.isLowercaseLetters($0, count: 4) }) else {
+                return nil
+            }
+            return groups.joined()
+        case .icloud:
+            let groups = text.split(separator: "-", omittingEmptySubsequences: false)
+            guard groups.count == 4, groups.allSatisfy({ Self.isLowercaseLetters($0, count: 4) }) else {
+                return nil
+            }
+            return text
+        case .yandex:
+            return Self.isLowercaseLetters(text, count: 16) ? text : nil
+        case .outlook, .custom:
+            return nil
+        }
+    }
+
+    private static func isLowercaseLetters(_ text: some StringProtocol, count: Int) -> Bool {
+        text.count == count && text.allSatisfy { $0.isASCII && $0.isLowercase }
+    }
 }
 
 /// Gmail-like inbox sections. Each one is a message list of its own; the
@@ -72,6 +121,31 @@ enum Mailbox: String, CaseIterable, Sendable, Codable {
 struct MessageKey: Hashable, Sendable, Codable {
     var mailbox: String
     var uid: UInt32
+}
+
+/// What the inbox's list area shows. A search that has run decides alone:
+/// its hits replace the mailbox list, and no hits is an empty screen even
+/// when the mailbox has mail.
+enum InboxListState: Equatable {
+    /// The selected mailbox has no messages.
+    case emptyInbox
+    /// A search ran and found nothing.
+    case noSearchResults
+    case messages([EmailMessage])
+
+    init(messages: [EmailMessage], searchResults: [EmailMessage]?) {
+        if let searchResults {
+            self = searchResults.isEmpty ? .noSearchResults : .messages(searchResults)
+        } else {
+            self = messages.isEmpty ? .emptyInbox : .messages(messages)
+        }
+    }
+
+    /// True when the list area is the empty screen.
+    var isEmpty: Bool {
+        if case .messages = self { return false }
+        return true
+    }
 }
 
 /// One inbox message. `bodyPlain` is filled lazily on open.

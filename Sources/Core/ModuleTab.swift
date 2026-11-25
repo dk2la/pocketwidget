@@ -1,6 +1,6 @@
-/// Modules of the panel — V3 set. Every module except the coming-soon ones
-/// ships enabled (see AppSettings); all are toggleable and reorderable in
-/// settings. Only Chats is still a placeholder without a backing service.
+/// Modules of the panel — V3 set. Only the core set (`defaultTabs`) ships
+/// enabled; all are toggleable and reorderable in settings. Only Chats is
+/// still a placeholder without a backing service.
 enum ModuleTab: String, CaseIterable, Identifiable {
     case playbooks
     case calendar
@@ -17,10 +17,9 @@ enum ModuleTab: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    /// Core module set — tagged "default" in the settings module list. Not
-    /// the enabled-by-default set (AppSettings enables everything that is
-    /// not coming soon); it only drives the badge.
-    static let defaultTabs: [ModuleTab] = [.playbooks, .calendar, .email, .clipboard, .notes, .assistant, .chats]
+    /// Core module set: enabled on a fresh install and tagged "default" in
+    /// the settings module list. Music, Timer, Shelf and System are opt-in.
+    static let defaultTabs: [ModuleTab] = [.playbooks, .calendar, .email, .clipboard, .notes, .assistant, .hotkeys]
     /// No backing service yet — shown as "soon", excluded from defaults.
     static let comingSoon: Set<ModuleTab> = [.chats]
 

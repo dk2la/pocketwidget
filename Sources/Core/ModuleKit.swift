@@ -110,6 +110,33 @@ struct IconTile: View {
     }
 }
 
+/// "Add playbook…", "New event at 14:00", "Add file…" — the row a list
+/// ends in to add one more. One look in every module: the dashed plus tile
+/// and the label, as the last row of a `GroupedCard`.
+struct AddRow: View {
+    let label: String
+    /// Width the tile sits in, for lists whose rows start with a column
+    /// wider than the tile (Calendar's time column).
+    var iconSlot: CGFloat?
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                IconTile(systemName: "plus", dashed: true)
+                    .frame(width: iconSlot, alignment: .leading)
+                Text(label)
+                    .font(Theme.bodyFont)
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.textSecondary)
+                Spacer(minLength: 0)
+            }
+            .groupedRow(isLast: true)
+        }
+        .buttonStyle(PressableStyle())
+    }
+}
+
 /// Small round status dot: unread mail, the next meeting, a live account.
 struct StatusDot: View {
     var color: Color = Theme.accent
@@ -135,6 +162,8 @@ struct ModuleButton: View {
     var kind: Kind = .ghost
     var height: CGFloat = 32
     var enabled = true
+    /// Overrides the content colour — a destructive ghost button is red.
+    var tint: Color?
     let action: () -> Void
 
     var body: some View {
@@ -152,7 +181,7 @@ struct ModuleButton: View {
                         .lineLimit(1)
                 }
             }
-            .foregroundStyle(kind == .ghost ? Theme.textPrimary : Theme.inkOnAccent)
+            .foregroundStyle(tint ?? (kind == .ghost ? Theme.textPrimary : Theme.inkOnAccent))
             .padding(.horizontal, label == nil ? 0 : 14)
             .frame(minWidth: height, minHeight: height)
             .background(shape.fill(fill))

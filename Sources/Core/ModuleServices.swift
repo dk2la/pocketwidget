@@ -3,6 +3,9 @@
 /// (two clipboard histories) or double the work (two media pollers).
 @MainActor
 final class ModuleServices {
+    /// Sparkle. Shared so the status-bar menu and the settings sidebar ask
+    /// the same updater.
+    let updater = AppUpdater()
     let powerMonitor = PowerSourceMonitor()
     let audioMonitor = AudioSystemMonitor()
     let mediaCenter = MediaCenter()
@@ -41,6 +44,9 @@ final class ModuleServices {
         // The toolbox needs the fully built container, so it attaches last.
         assistantService.attachToolbox(services: self)
         demo.attach(services: self)
+        // An app password Mail setup takes from the clipboard is a secret:
+        // Clipboard history must not list it.
+        emailService.setup.onPasswordPickedUp = { [clipboardStore] in clipboardStore.withhold($0) }
     }
 
     /// Starts everything that makes macOS ask for access on its own: the

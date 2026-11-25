@@ -27,6 +27,17 @@ private struct RefreshResult: Sendable {
 @Observable
 final class EmailService {
     private(set) var config: EmailAccountConfig?
+    /// The account is saved but its password is not in the Keychain (another
+    /// build saved it, or the item was removed). Mail cannot work until it
+    /// is entered again.
+    private(set) var isPasswordMissing = false
+    /// Nothing to show until the user adds mail: no account, or one whose
+    /// password is gone. Never in demo mode: its scripted account has no
+    /// password to miss, whatever state the real one was parked in.
+    var needsSetup: Bool { !isDemo && (config == nil || isPasswordMissing) }
+    /// "Add mail" in the module. Lives here so a half-done setup survives
+    /// the panel closing while the user fetches an app password.
+    let setup: MailSetupFlow
     private(set) var connection: MailConnectionState = .offline
     private(set) var unreadCount = 0
     /// The section on screen; remembered across launches.
@@ -147,6 +158,9 @@ final class EmailService {
     private static let idleReenterDelay: Duration = .seconds(1)
 
     init() {
+        setup = MailSetupFlow(pasteboard: SystemMailSetupPasteboard()) { config, password in
+            await EmailService.testConnection(config, password: password)
+        }
         if let data = defaults.data(forKey: EmailAccountConfig.defaultsKey),
            let stored = try? JSONDecoder().decode(EmailAccountConfig.self, from: data) {
             config = stored
@@ -155,23 +169,31 @@ final class EmailService {
         if config != nil {
             loadCachedLists()
         }
+        setup.onConnected = { [weak self] config, password in
+            self?.saveAccount(config, password: password) ?? false
+        }
         startPolling()
         log.info("configured=\(self.config != nil, privacy: .public)")
     }
 
     // MARK: - Account
 
-    func saveAccount(_ newConfig: EmailAccountConfig, password: String) {
-        guard !isDemo else { return }
+    /// False when the password could not be stored; nothing changes then.
+    @discardableResult
+    func saveAccount(_ newConfig: EmailAccountConfig, password: String) -> Bool {
+        guard !isDemo else { return false }
         do {
             try vault.set(password, account: newConfig.email)
         } catch {
             log.error("keychain write failed: \(error.localizedDescription, privacy: .public)")
-            return
+            return false
         }
+        // However the account was added, setup in the module is over.
+        setup.cancel()
         dropSessions()
         idleSupported = nil
         config = newConfig
+        isPasswordMissing = false
         if let data = try? JSONEncoder().encode(newConfig) {
             defaults.set(data, forKey: EmailAccountConfig.defaultsKey)
         }
@@ -179,6 +201,13 @@ final class EmailService {
         log.info("account saved host=\(newConfig.imapHost, privacy: .public)")
         startPolling()
         refresh()
+        return true
+    }
+
+    /// "Add mail" in the module. An account that only lost its password
+    /// comes back filled in, so the password is all there is to enter.
+    func beginSetup() {
+        setup.begin(from: config)
     }
 
     func removeAccount() {
@@ -188,6 +217,7 @@ final class EmailService {
         }
         dropSessions()
         config = nil
+        isPasswordMissing = false
         defaults.removeObject(forKey: EmailAccountConfig.defaultsKey)
         resetLists()
         openMessage = nil
@@ -361,9 +391,11 @@ final class EmailService {
     func refresh() {
         guard !isDemo, refreshTask == nil, config != nil else { return }
         guard accountPassword() != nil else {
+            isPasswordMissing = true
             connection = .failed("No password in Keychain")
             return
         }
+        isPasswordMissing = false
         guard let session = activePollSession() else { return }
         connection = messages.isEmpty ? .connecting : connection
         let limit = Self.messageLimit

@@ -17,6 +17,7 @@ final class CapsuleWindowController: NSObject {
     private var targetState: CapsuleState = .closed
     private var collapseTask: Task<Void, Never>?
     private var expandTask: Task<Void, Never>?
+    private var hoverOpenTask: Task<Void, Never>?
     private var eventShowTask: Task<Void, Never>?
     private var eventDismissTask: Task<Void, Never>?
     /// Set synchronously in `present` — guards the window frame against
@@ -193,6 +194,7 @@ final class CapsuleWindowController: NSObject {
     private func handleOutsideClick(at location: NSPoint) {
         guard targetState == .expanded, viewModel.content != .onboarding,
               !PermissionGuide.shared.isShowing, !viewModel.isResizingPanel,
+              !PanelHold.shared.isHeld,
               panel.attachedSheet == nil, !panel.hasOwnPopupWindow,
               let screen = CapsuleGeometry.targetScreen else { return }
         if !expandedContains(location, on: screen) {
@@ -293,6 +295,7 @@ final class CapsuleWindowController: NSObject {
     /// Leaving closes at once — no grace period. Menus, sheets and the
     /// resize grip are still respected by `collapseIfCursorLeft`.
     private func hoverExited() {
+        cancelHoverOpen()
         collapseIfCursorLeft()
     }
 
@@ -314,21 +317,44 @@ final class CapsuleWindowController: NSObject {
     /// event's bulge). The window outlives the close animation by a beat,
     /// and without this the cursor crossing the space a closing drop is
     /// still vacating would throw it straight back open.
+    ///
+    /// The cursor has to rest there for `hoverOpenDelayMilliseconds` first:
+    /// one countdown per visit, dropped as soon as the cursor moves off.
     private func expandIfOverRestingCapsule() {
-        guard targetState != .expanded, let screen = CapsuleGeometry.targetScreen else { return }
+        guard isCursorOverRestingCapsule else {
+            cancelHoverOpen()
+            return
+        }
+        guard hoverOpenTask == nil else { return }
+        hoverOpenTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(CapsuleMetrics.hoverOpenDelayMilliseconds))
+            guard !Task.isCancelled, let self else { return }
+            self.hoverOpenTask = nil
+            guard self.isCursorOverRestingCapsule else { return }
+            // Hover is a glance at the settings — never the tour.
+            self.viewModel.content = .settings
+            self.viewModel.cameFromOnboarding = false
+            self.requestState(.expanded)
+        }
+    }
+
+    private var isCursorOverRestingCapsule: Bool {
+        guard targetState != .expanded, let screen = CapsuleGeometry.targetScreen else { return false }
         let resting = eventOwnsWindow ? eventFrame(on: screen) : frame(for: targetState, on: screen)
         // One point of slack: the cursor parks on the screen's very edge.
-        guard resting.insetBy(dx: -1, dy: -1).contains(NSEvent.mouseLocation) else { return }
-        // Hover is a glance at the settings — never the tour.
-        viewModel.content = .settings
-        viewModel.cameFromOnboarding = false
-        requestState(.expanded)
+        return resting.insetBy(dx: -1, dy: -1).contains(NSEvent.mouseLocation)
+    }
+
+    private func cancelHoverOpen() {
+        hoverOpenTask?.cancel()
+        hoverOpenTask = nil
     }
 
     /// Collapses only when the cursor really is away from the panel and
     /// nothing of ours (a menu, a popover, a sheet) is up in front of it.
     private func collapseIfCursorLeft() {
         guard targetState == .expanded, !settingsPinned, !viewModel.isResizingPanel else { return }
+        guard !PanelHold.shared.isHeld else { return }
         guard panel.attachedSheet == nil, !panel.hasOwnPopupWindow else { return }
         guard let screen = CapsuleGeometry.targetScreen else { return }
         if expandedContains(NSEvent.mouseLocation, on: screen) { return }
@@ -345,6 +371,7 @@ final class CapsuleWindowController: NSObject {
         guard newState != targetState else { return }
         log.info("state -> \(String(describing: newState), privacy: .public) mouse=\(NSStringFromPoint(NSEvent.mouseLocation), privacy: .public)")
         targetState = newState
+        cancelHoverOpen()
         collapseTask?.cancel()
         expandTask?.cancel()
         guard let screen = CapsuleGeometry.targetScreen else { return }

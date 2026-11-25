@@ -1,28 +1,44 @@
 import AppKit
 import SwiftUI
 
-/// Editor sheet for a single playbook: name and icon on top, then the
-/// ordered list of steps — one card each with its own fields, reorder and
-/// remove controls — and an "Add step" menu. Drawn on the settings palette
-/// so it reads as part of the Settings window, not a system form.
+/// Editor of a single playbook: name and icon on top, then the ordered list
+/// of steps — one card each with its own fields, reorder and remove
+/// controls — and an "Add step" menu. One editor for both places a playbook
+/// is made: the Settings page and the Playbooks module's panel, which is
+/// narrower and so gets the `panel` layout. It works on a draft; the store
+/// changes only on Save and Delete.
 struct PlaybookEditorView: View {
+    /// How the editor is laid out for the place it is shown in.
+    enum Layout {
+        /// Settings: a wide page, labels beside the fields, actions in a
+        /// row at the bottom.
+        case page
+        /// The module's panel, down to its smallest size: Back, Delete and Save
+        /// pinned on top, everything else stacked in one scrolling column.
+        case panel
+    }
+
     var store: PlaybookStore
-    /// nil means "create new".
-    var existing: Playbook?
+    var layout: Layout
+    /// Called once the editor is finished with: saved, cancelled or deleted.
     let onDone: () -> Void
 
-    @State private var draft: Playbook
+    @State private var draft: PlaybookDraft
     @State private var apps: [InstalledApp] = []
     @State private var shortcuts: [String] = []
     /// Re-read when the app comes back to front — the user may have just
     /// flipped the switch in System Settings.
     @State private var accessibilityTrusted = false
+    /// Delete was clicked once and waits for the confirming click.
+    @State private var confirmingDelete = false
+    @State private var confirmTask: Task<Void, Never>?
 
-    init(store: PlaybookStore, existing: Playbook?, onDone: @escaping () -> Void) {
+    /// `existing == nil` means "create new".
+    init(store: PlaybookStore, existing: Playbook?, layout: Layout = .page, onDone: @escaping () -> Void) {
         self.store = store
-        self.existing = existing
+        self.layout = layout
         self.onDone = onDone
-        _draft = State(initialValue: existing ?? Playbook(name: ""))
+        _draft = State(initialValue: PlaybookDraft(editing: existing))
     }
 
     private static let icons = [
@@ -30,20 +46,29 @@ struct PlaybookEditorView: View {
         "book.fill", "moon.zzz.fill", "cup.and.saucer.fill", "paintbrush.fill",
     ]
 
+    private var isPanel: Bool { layout == .panel }
+
     var body: some View {
         VStack(spacing: 0) {
+            if isPanel {
+                panelBar
+                    .padding(.bottom, 10)
+            }
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: isPanel ? 14 : 18) {
                     identitySection
                     stepsSection
                 }
-                .padding(20)
+                // The panel already insets its module.
+                .padding(isPanel ? 0 : 20)
             }
-            Hairline(color: Palette.hairline)
-            actionRow
-                .padding(16)
+            if !isPanel {
+                Hairline(color: Palette.hairline)
+                actionRow
+                    .padding(16)
+            }
         }
-        // Sized by the settings page it replaces, not by itself.
+        // Sized by the page or panel it fills, not by itself.
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Palette.panel)
         .task {
@@ -54,6 +79,15 @@ struct PlaybookEditorView: View {
         }
         .onAppear {
             accessibilityTrusted = WindowLayoutService.isTrusted
+            // An editor in the widget keeps its panel open: the cursor
+            // wanders while typing, and granting access leads out to
+            // System Settings. Unsaved input must not vanish with a panel
+            // that shut by itself; the close button and the tabs still work.
+            if isPanel { PanelHold.shared.begin() }
+        }
+        .onDisappear {
+            if isPanel { PanelHold.shared.end() }
+            confirmTask?.cancel()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             accessibilityTrusted = WindowLayoutService.isTrusted
@@ -62,31 +96,45 @@ struct PlaybookEditorView: View {
 
     // MARK: - Name + icon
 
+    @ViewBuilder
     private var identitySection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 12) {
-                InstrumentLabel(L10n.t(.playName), color: Palette.ink40)
-                    .frame(width: 60, alignment: .leading)
-                PaletteTextField(placeholder: L10n.t(.playName), text: $draft.name)
+        if isPanel {
+            // No room for a label column: the placeholder names the field.
+            VStack(alignment: .leading, spacing: 8) {
+                PaletteTextField(placeholder: L10n.t(.playName), text: $draft.playbook.name)
+                iconChoices
             }
-            HStack(spacing: 12) {
-                InstrumentLabel(L10n.t(.playIcon), color: Palette.ink40)
-                    .frame(width: 60, alignment: .leading)
-                HStack(spacing: 6) {
-                    ForEach(Self.icons, id: \.self) { icon in
-                        let isActive = draft.icon == icon
-                        Button {
-                            draft.icon = icon
-                        } label: {
-                            Image(systemName: icon)
-                                .font(Theme.iconSmallFont)
-                                .foregroundStyle(isActive ? Palette.accent : Palette.ink60)
-                                .frame(width: 30, height: 26)
-                                .paletteTile(isActive: isActive)
-                        }
-                        .buttonStyle(PressableStyle())
-                    }
+        } else {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 12) {
+                    InstrumentLabel(L10n.t(.playName), color: Palette.ink40)
+                        .frame(width: 60, alignment: .leading)
+                    PaletteTextField(placeholder: L10n.t(.playName), text: $draft.playbook.name)
                 }
+                HStack(spacing: 12) {
+                    InstrumentLabel(L10n.t(.playIcon), color: Palette.ink40)
+                        .frame(width: 60, alignment: .leading)
+                    iconChoices
+                }
+            }
+        }
+    }
+
+    /// One row of symbols. In the panel the tiles share its whole width.
+    private var iconChoices: some View {
+        HStack(spacing: 6) {
+            ForEach(Self.icons, id: \.self) { icon in
+                let isActive = draft.playbook.icon == icon
+                Button {
+                    draft.playbook.icon = icon
+                } label: {
+                    Image(systemName: icon)
+                        .font(Theme.iconSmallFont)
+                        .foregroundStyle(isActive ? Palette.accent : Palette.ink60)
+                        .frame(minWidth: 22, maxWidth: isPanel ? .infinity : 30, minHeight: 26, maxHeight: 26)
+                        .paletteTile(isActive: isActive)
+                }
+                .buttonStyle(PressableStyle())
             }
         }
     }
@@ -96,24 +144,26 @@ struct PlaybookEditorView: View {
     private var stepsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             InstrumentLabel(L10n.t(.playSteps), color: Palette.ink40)
-            if draft.steps.isEmpty {
+            if draft.playbook.steps.isEmpty {
                 Text(L10n.t(.playNoSteps))
                     .font(Theme.subFont)
                     .foregroundStyle(Palette.ink40)
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(.vertical, 6)
             }
-            ForEach($draft.steps) { $step in
-                let index = draft.steps.firstIndex { $0.id == step.id } ?? 0
+            ForEach($draft.playbook.steps) { $step in
+                let index = draft.playbook.steps.firstIndex { $0.id == step.id } ?? 0
                 PlaybookStepCard(
                     step: $step,
+                    compact: isPanel,
                     apps: apps,
                     shortcuts: shortcuts,
                     accessibilityTrusted: accessibilityTrusted,
                     canMoveUp: index > 0,
-                    canMoveDown: index < draft.steps.count - 1,
-                    onMoveUp: { move(step.id, by: -1) },
-                    onMoveDown: { move(step.id, by: 1) },
-                    onRemove: { draft.steps.removeAll { $0.id == step.id } },
+                    canMoveDown: index < draft.playbook.steps.count - 1,
+                    onMoveUp: { draft.moveStep(step.id, by: -1) },
+                    onMoveDown: { draft.moveStep(step.id, by: 1) },
+                    onRemove: { draft.removeStep(step.id) },
                     onGrantAccess: {
                         WindowLayoutService.requestAccess {
                             accessibilityTrusted = true
@@ -126,18 +176,11 @@ struct PlaybookEditorView: View {
         }
     }
 
-    private func move(_ id: UUID, by offset: Int) {
-        guard let index = draft.steps.firstIndex(where: { $0.id == id }) else { return }
-        let target = index + offset
-        guard draft.steps.indices.contains(target) else { return }
-        draft.steps.swapAt(index, target)
-    }
-
     private var addStepMenu: some View {
         Menu {
             ForEach(PlaybookStep.Kind.allCases, id: \.self) { kind in
                 Button {
-                    draft.steps.append(kind.makeStep())
+                    draft.playbook.steps.append(kind.makeStep())
                 } label: {
                     Label(kind.title, systemImage: kind.icon)
                 }
@@ -163,13 +206,46 @@ struct PlaybookEditorView: View {
 
     // MARK: - Actions
 
+    /// Panel layout: Back where the opened playbook has it, Save across
+    /// from it. Both stay put while the fields scroll.
+    private var panelBar: some View {
+        HStack(spacing: 8) {
+            // Back gives up its label while Delete shows one: all three do
+            // not fit at the smallest panel size.
+            ModuleButton(
+                label: confirmingDelete ? nil : L10n.t(.playBack),
+                systemName: "chevron.left",
+                height: 28
+            ) {
+                onDone()
+            }
+            .help(L10n.t(.playBack))
+            Spacer(minLength: 0)
+            if !draft.isNew {
+                // The same trash button the opened playbook carries.
+                ModuleButton(
+                    label: confirmingDelete ? L10n.t(.calDelete) : nil,
+                    systemName: "trash",
+                    height: 28,
+                    tint: Theme.critical.opacity(0.9)
+                ) {
+                    deleteTapped()
+                }
+                .help(L10n.t(.calDelete))
+                .accessibilityLabel(L10n.t(confirmingDelete ? .calConfirmDelete : .calDelete))
+            }
+            ModuleButton(label: L10n.t(.calSave), kind: .accent, height: 28, enabled: draft.canSave) {
+                save()
+            }
+        }
+        .animation(Theme.stateSpring, value: confirmingDelete)
+    }
+
+    /// Page layout: everything in one row under the fields.
     private var actionRow: some View {
         HStack(spacing: 10) {
-            if let existing {
-                PaletteButton(L10n.t(.calDelete), color: Theme.critical.opacity(0.9)) {
-                    store.remove(existing)
-                    onDone()
-                }
+            if !draft.isNew {
+                deleteButton
             }
             Spacer(minLength: 0)
             PaletteButton(L10n.t(.mailCancel), color: Palette.ink60) {
@@ -180,40 +256,42 @@ struct PlaybookEditorView: View {
                 save()
             }
             .keyboardShortcut(.defaultAction)
-            .disabled(!canSave)
-            .opacity(canSave ? 1 : 0.4)
+            .disabled(!draft.canSave)
+            .opacity(draft.canSave ? 1 : 0.4)
         }
     }
 
-    private var canSave: Bool {
-        !draft.name.trimmingCharacters(in: .whitespaces).isEmpty
+    /// Delete asks first: the first click turns it into "Confirm delete"
+    /// (the trash button of the panel grows a label instead) for a few
+    /// seconds, the second one deletes.
+    private var deleteButton: some View {
+        PaletteButton(
+            confirmingDelete ? L10n.t(.calConfirmDelete) : L10n.t(.calDelete),
+            color: Theme.critical.opacity(0.9)
+        ) {
+            deleteTapped()
+        }
+        .animation(Theme.stateSpring, value: confirmingDelete)
     }
 
-    /// Trims what the user typed so the runner never sees blank lines or
-    /// padded names.
-    private func save() {
-        var cleaned = draft
-        cleaned.name = cleaned.name.trimmingCharacters(in: .whitespaces)
-        cleaned.steps = cleaned.steps.map { step in
-            switch step {
-            case .runShortcut(let id, let name):
-                .runShortcut(id: id, name: name.trimmingCharacters(in: .whitespaces))
-            case .setFocus(let id, let name):
-                .setFocus(id: id, shortcutName: name.trimmingCharacters(in: .whitespaces))
-            case .openURLs(let id, let urls):
-                .openURLs(
-                    id: id,
-                    urls: urls.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
-                )
-            default:
-                step
+    private func deleteTapped() {
+        confirmTask?.cancel()
+        guard confirmingDelete else {
+            confirmingDelete = true
+            confirmTask = Task {
+                try? await Task.sleep(for: .seconds(3))
+                guard !Task.isCancelled else { return }
+                confirmingDelete = false
             }
+            return
         }
-        if existing == nil {
-            store.add(cleaned)
-        } else {
-            store.update(cleaned)
-        }
+        confirmingDelete = false
+        draft.delete(from: store)
+        onDone()
+    }
+
+    private func save() {
+        guard draft.save(to: store) else { return }
         onDone()
     }
 }
@@ -225,6 +303,8 @@ struct PlaybookEditorView: View {
 /// field so the card never has to know the step's index.
 private struct PlaybookStepCard: View {
     @Binding var step: PlaybookStep
+    /// Narrow (panel) layout: rows that would not fit side by side stack.
+    let compact: Bool
     let apps: [InstalledApp]
     let shortcuts: [String]
     let accessibilityTrusted: Bool
@@ -246,6 +326,8 @@ private struct PlaybookStepCard: View {
                     .font(Theme.bodyFont)
                     .fontWeight(.medium)
                     .foregroundStyle(Palette.ink)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
                 control("chevron.up", enabled: canMoveUp, action: onMoveUp)
                 control("chevron.down", enabled: canMoveDown, action: onMoveDown)
@@ -253,7 +335,7 @@ private struct PlaybookStepCard: View {
             }
             fields
         }
-        .padding(12)
+        .padding(compact ? 10 : 12)
         .background(Palette.desk, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 9, style: .continuous)
@@ -304,47 +386,84 @@ private struct PlaybookStepCard: View {
 
     private var layoutPicker: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 10) {
-                Text(L10n.t(.playLayout))
-                    .font(Theme.subFont)
-                    .foregroundStyle(Palette.ink60)
-                Spacer(minLength: 0)
-                Text(layout.wrappedValue.title)
-                    .font(Theme.subFont)
-                    .foregroundStyle(Palette.ink40)
-                    .lineLimit(1)
-                HStack(spacing: 4) {
-                    ForEach(WindowLayout.allCases) { option in
-                        let isActive = layout.wrappedValue == option
-                        Button {
-                            layout.wrappedValue = option
-                        } label: {
-                            Image(systemName: option.icon)
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(isActive ? Palette.accent : Palette.ink60)
-                                .frame(width: 28, height: 24)
-                                .paletteTile(isActive: isActive)
-                        }
-                        .buttonStyle(PressableStyle())
-                        .help(option.title)
-                    }
+            if compact {
+                // Caption over the tiles, which share the card's width.
+                HStack(spacing: 10) {
+                    layoutCaption
+                }
+                layoutTiles
+            } else {
+                HStack(spacing: 10) {
+                    layoutCaption
+                    layoutTiles
                 }
             }
             if layout.wrappedValue != .none, !accessibilityTrusted {
-                HStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(Theme.selection)
-                    Text(L10n.t(.playLayoutHint))
-                        .font(Theme.subFont)
-                        .foregroundStyle(Palette.ink60)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    Spacer(minLength: 0)
-                    PaletteButton(L10n.t(.playGrantAccess), action: onGrantAccess)
+                if compact {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            layoutHintIcon
+                            layoutHintText
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        PaletteButton(L10n.t(.playGrantAccess), vPad: 4, action: onGrantAccess)
+                    }
+                } else {
+                    HStack(spacing: 8) {
+                        layoutHintIcon
+                        layoutHintText
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        Spacer(minLength: 0)
+                        PaletteButton(L10n.t(.playGrantAccess), action: onGrantAccess)
+                    }
                 }
             }
         }
+    }
+
+    /// "Layout" on the left, the chosen arrangement's name on the right.
+    @ViewBuilder
+    private var layoutCaption: some View {
+        Text(L10n.t(.playLayout))
+            .font(Theme.subFont)
+            .foregroundStyle(Palette.ink60)
+        Spacer(minLength: 0)
+        Text(layout.wrappedValue.title)
+            .font(Theme.subFont)
+            .foregroundStyle(Palette.ink40)
+            .lineLimit(1)
+    }
+
+    private var layoutTiles: some View {
+        HStack(spacing: 4) {
+            ForEach(WindowLayout.allCases) { option in
+                let isActive = layout.wrappedValue == option
+                Button {
+                    layout.wrappedValue = option
+                } label: {
+                    Image(systemName: option.icon)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(isActive ? Palette.accent : Palette.ink60)
+                        .frame(minWidth: 28, maxWidth: compact ? .infinity : 28, minHeight: 24, maxHeight: 24)
+                        .paletteTile(isActive: isActive)
+                }
+                .buttonStyle(PressableStyle())
+                .help(option.title)
+            }
+        }
+    }
+
+    private var layoutHintIcon: some View {
+        Image(systemName: "exclamationmark.triangle")
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundStyle(Theme.selection)
+    }
+
+    private var layoutHintText: some View {
+        Text(L10n.t(.playLayoutHint))
+            .font(Theme.subFont)
+            .foregroundStyle(Palette.ink60)
     }
 
     // MARK: Shortcut
@@ -540,6 +659,7 @@ private struct AppPickerView: View {
                 Text("\(filtered.count) / \(apps.count) · " + L10n.f(.playSelectedCount, selected.count))
                     .font(Theme.subFont)
                     .foregroundStyle(Palette.ink40)
+                    .lineLimit(1)
             }
             HStack(spacing: 8) {
                 PaletteTextField(placeholder: L10n.t(.playAddBundleID), text: $manualBundleID)
@@ -558,9 +678,22 @@ private struct AppPickerView: View {
         }
     }
 
+    /// One row where it fits (Settings), two in the narrow panel.
     private var sourceChips: some View {
+        let all = AppSource.allCases
+        let half = (all.count + 1) / 2
+        return ViewThatFits(in: .horizontal) {
+            chipRow(all)
+            VStack(alignment: .leading, spacing: 6) {
+                chipRow(Array(all.prefix(half)))
+                chipRow(Array(all.dropFirst(half)))
+            }
+        }
+    }
+
+    private func chipRow(_ shown: [AppSource]) -> some View {
         HStack(spacing: 6) {
-            ForEach(AppSource.allCases) { source in
+            ForEach(shown) { source in
                 let isOn = sources.contains(source)
                 Button {
                     if isOn {
@@ -571,6 +704,7 @@ private struct AppPickerView: View {
                 } label: {
                     Text(source.title)
                         .font(Theme.captionFont)
+                        .lineLimit(1)
                         .foregroundStyle(isOn ? Palette.accent : Palette.ink60)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)

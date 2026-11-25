@@ -23,6 +23,18 @@ final class TimerService {
 
     static let presets: [TimeInterval] = [5 * 60, 10 * 60, 25 * 60, 45 * 60]
 
+    /// Nothing to show yet: no countdown or alarm going, and none paused
+    /// partway. The module shows its empty screen exactly then.
+    var isIdle: Bool {
+        Self.isIdle(isRunning: isRunning, remaining: remaining, duration: duration)
+    }
+
+    nonisolated static func isIdle(
+        isRunning: Bool, remaining: TimeInterval, duration: TimeInterval
+    ) -> Bool {
+        !isRunning && remaining >= duration
+    }
+
     func setDuration(_ newDuration: TimeInterval) {
         guard !isRunning else { return }
         duration = newDuration

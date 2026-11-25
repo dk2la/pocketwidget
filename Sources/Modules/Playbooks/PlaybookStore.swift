@@ -11,14 +11,19 @@ final class PlaybookStore {
 
     @ObservationIgnored private let log = Logger(subsystem: "com.dk2la.pocket", category: "playbooks")
 
-    @ObservationIgnored private static let fileURL: URL = {
+    /// The user's playbooks in Application Support.
+    static let defaultFileURL: URL = {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return support
             .appendingPathComponent("Pocket", isDirectory: true)
             .appendingPathComponent("playbooks.json")
     }()
 
-    init() {
+    @ObservationIgnored private let fileURL: URL
+
+    /// `fileURL` is where the playbooks live; tests pass a file of their own.
+    init(fileURL: URL = PlaybookStore.defaultFileURL) {
+        self.fileURL = fileURL
         load()
     }
 
@@ -39,7 +44,7 @@ final class PlaybookStore {
     }
 
     private func load() {
-        guard let data = try? Data(contentsOf: Self.fileURL) else {
+        guard let data = try? Data(contentsOf: fileURL) else {
             // First launch: seed the one universally safe playbook.
             playbooks = [Playbook(name: "Clear", icon: "moon.zzz.fill", steps: [.closeOtherApps(id: UUID())])]
             save()
@@ -72,12 +77,12 @@ final class PlaybookStore {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd-HHmmss"
         let stamp = formatter.string(from: Date())
-        let name = Self.fileURL.deletingPathExtension().lastPathComponent
-        let target = Self.fileURL
+        let name = fileURL.deletingPathExtension().lastPathComponent
+        let target = fileURL
             .deletingLastPathComponent()
             .appendingPathComponent("\(name).corrupt-\(stamp).json")
         do {
-            try FileManager.default.moveItem(at: Self.fileURL, to: target)
+            try FileManager.default.moveItem(at: fileURL, to: target)
             log.error("moved unreadable playbooks.json to \(target.lastPathComponent, privacy: .public)")
         } catch {
             log.error("failed to quarantine playbooks.json: \(error, privacy: .public)")
@@ -108,11 +113,11 @@ final class PlaybookStore {
     private func save() {
         guard !isDemo else { return }
         do {
-            let directory = Self.fileURL.deletingLastPathComponent()
+            let directory = fileURL.deletingLastPathComponent()
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-            try encoder.encode(playbooks).write(to: Self.fileURL, options: .atomic)
+            try encoder.encode(playbooks).write(to: fileURL, options: .atomic)
         } catch {
             log.error("failed to save playbooks.json: \(error, privacy: .public)")
         }

@@ -3,11 +3,13 @@ import QuickLookThumbnailing
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// "Shelf" module: a small bookcase on top — every parked file is a book —
-/// then the picked file as a card with a preview of what is inside, and
-/// the whole shelf as one grouped list. Files drop anywhere on the module
-/// and drag back out of the card or a row. Clearing lives in the panel
-/// header.
+/// "Shelf" module. Empty, it is the empty screen: a small bookcase, and
+/// the "Add file" bar pinned to the bottom. With files there is no
+/// bookcase: the picked file sits on top as a card with a preview of what
+/// is inside, Open and Show in Finder, and under it the whole shelf as one
+/// grouped list whose last row is "Add file". Tapping a row puts that
+/// file in the card. Files drop anywhere on the module in both states and
+/// drag back out of the card or a row. Clearing lives in the panel header.
 struct ShelfModuleView: View {
     var shelf: ShelfStore
 
@@ -20,41 +22,27 @@ struct ShelfModuleView: View {
     }
 
     var body: some View {
-        let books = ShelfBook.row(for: shelf.items)
-        return VStack(alignment: .leading, spacing: 10) {
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 14) {
-                    IsoShelfView(
-                        items: shelf.items,
-                        books: books,
-                        selectedID: focus?.id,
-                        isTargeted: isTargeted
-                    ) { item in
-                        select(item)
+        VStack(alignment: .leading, spacing: 10) {
+            files.emptyScreen(when: shelf.items.isEmpty) {
+                VStack(spacing: 10) {
+                    ModuleEmptyScreen(label: L10n.t(.shelfEmpty), sublabel: L10n.t(.shelfEmptySub)) {
+                        IsoShelfView(isTargeted: isTargeted)
                     }
-                    .padding(.top, 4)
-                    if let focus {
-                        fileCard(focus)
-                            // A fresh card per file: it fades up instead of
-                            // swapping text in place.
-                            .id(focus.id)
-                            .transition(.opacity.combined(with: .offset(y: 8)))
-                        if shelf.items.count > 1 {
-                            list(books)
-                        }
-                    } else {
-                        emptyHint
-                    }
+                    ShelfAddFileRow(shelf: shelf, isBar: true) { showNewest() }
                 }
             }
             ModuleFootnote(systemName: "link", text: L10n.t(.shelfLinksNote))
         }
         .dropDestination(for: URL.self) { urls, _ in
             shelf.add(urls)
-            // New files land first — bring the newest one out.
-            withAnimation(.snappy(duration: 0.3)) { selectedID = shelf.items.first?.id }
+            showNewest()
             return !urls.isEmpty
         } isTargeted: { isTargeted = $0 }
+    }
+
+    /// New files land first — open the newest one.
+    private func showNewest() {
+        withAnimation(.snappy(duration: 0.3)) { selectedID = shelf.items.first?.id }
     }
 
     private func select(_ item: ShelfStore.Item) {
@@ -63,17 +51,21 @@ struct ShelfModuleView: View {
         }
     }
 
-    private var emptyHint: some View {
-        VStack(spacing: 4) {
-            Text(L10n.t(.shelfDrop))
-                .font(Theme.headlineFont)
-                .foregroundStyle(Theme.textSecondary)
-            Text(L10n.t(.shelfDropSub))
-                .font(Theme.subFont)
-                .foregroundStyle(Theme.textTertiary)
+    // MARK: - Files
+
+    private var files: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 14) {
+                if let focus {
+                    fileCard(focus)
+                        // A fresh card per file: it fades up instead of
+                        // swapping text in place.
+                        .id(focus.id)
+                        .transition(.opacity.combined(with: .offset(y: 8)))
+                }
+                list
+            }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 6)
     }
 
     // MARK: - Picked file
@@ -115,31 +107,31 @@ struct ShelfModuleView: View {
         }
     }
 
-    private func fileIcon(_ item: ShelfStore.Item) -> some View {
-        Image(nsImage: NSWorkspace.shared.icon(forFile: item.url.path))
-            .resizable()
-            .frame(width: 24, height: 24)
-            .frame(width: 32, height: 32)
-            .background(Theme.raisedFill, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-    }
-
     // MARK: - List
 
-    private func list(_ books: [UUID: ShelfBook]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+    /// Every file, and "Add file" as the last row of the same card.
+    private var list: some View {
+        let books = ShelfBook.row(for: shelf.items)
+        return VStack(alignment: .leading, spacing: 8) {
             SectionHeader(title: L10n.t(.shelfSection), trailing: "\(shelf.items.count)")
             GroupedCard {
-                ForEach(Array(shelf.items.enumerated()), id: \.element.id) { index, item in
-                    itemRow(item, book: books[item.id], isLast: index == shelf.items.count - 1)
+                ForEach(shelf.items) { item in
+                    itemRow(item, book: books[item.id])
                 }
+                ShelfAddFileRow(shelf: shelf) { showNewest() }
             }
+            // The card lights up while files hang over the module.
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.groupRadius, style: .continuous)
+                    .stroke(Theme.accent.opacity(isTargeted ? 0.7 : 0), lineWidth: 1)
+            )
         }
     }
 
-    private func itemRow(_ item: ShelfStore.Item, book: ShelfBook?, isLast: Bool) -> some View {
+    private func itemRow(_ item: ShelfStore.Item, book: ShelfBook?) -> some View {
         let isPicked = item.id == focus?.id
         return HStack(spacing: 12) {
-            // The book's cloth, so a row can be found on the case above.
+            // The file's own color, so a row is easy to find again.
             RoundedRectangle(cornerRadius: 1.5)
                 .fill(book?.color ?? Theme.segmentOn)
                 .frame(width: 3, height: 30)
@@ -168,13 +160,21 @@ struct ShelfModuleView: View {
             }
             .buttonStyle(PressableStyle())
         }
-        .groupedRow(isLast: isLast)
+        .groupedRow(isLast: false)
         .onDrag {
             NSItemProvider(object: item.url as NSURL)
         }
         .onTapGesture {
             select(item)
         }
+    }
+
+    private func fileIcon(_ item: ShelfStore.Item) -> some View {
+        Image(nsImage: NSWorkspace.shared.icon(forFile: item.url.path))
+            .resizable()
+            .frame(width: 24, height: 24)
+            .frame(width: 32, height: 32)
+            .background(Theme.raisedFill, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
     }
 
     /// "2.4 MB · PDF document" — folders carry the kind alone.

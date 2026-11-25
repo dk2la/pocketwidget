@@ -23,45 +23,65 @@ struct WeekView: View {
             let nextID = calendar.isDateInToday(service.selectedDay)
                 ? EventRow.next(in: events, at: context.date)?.id
                 : nil
-            ScrollView(.vertical, showsIndicators: false) {
+            if events.isEmpty {
+                // The tear-off calendar is the empty day only. The week
+                // strip and the day's title stay — an empty day must still
+                // let the user move to another one.
                 VStack(alignment: .leading, spacing: 14) {
-                    IsoCalendarView(
-                        date: context.date,
-                        events: service.events(forDay: context.date).count
-                    )
-                    .moduleScene()
                     weekNav
-                    HStack(spacing: 6) {
-                        ForEach(days, id: \.self) { day in
-                            dayTile(day, now: context.date)
+                    weekStrip(now: context.date)
+                    VStack(alignment: .leading, spacing: 8) {
+                        SectionHeader(title: sectionTitle, trailing: nil)
+                            .padding(.top, 6)
+                        ModuleEmptyScreen(label: L10n.t(.calNoEvents)) {
+                            // The page is the day that was picked, not today.
+                            IsoCalendarView(date: service.selectedDay, events: 0)
                         }
                     }
-                    VStack(alignment: .leading, spacing: 8) {
-                        SectionHeader(title: sectionTitle, trailing: events.isEmpty ? nil : "\(events.count)")
-                            .padding(.top, 6)
-                        GroupedCard {
-                            ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
-                                EventRow(
-                                    event: event,
-                                    isNext: event.id == nextID,
-                                    isLast: index == events.count - 1 && !canCreate,
-                                    stacked: true,
-                                    now: context.date
-                                ) {
-                                    service.open(event)
+                    if canCreate {
+                        EmptyActionBar(
+                            label: L10n.f(.calNewEventAt, Self.slotLabel(on: service.selectedDay, calendar: calendar))
+                        ) {
+                            service.startCreating(on: service.selectedDay)
+                        }
+                        .padding(.top, -4)
+                    }
+                }
+            } else {
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        weekNav
+                        weekStrip(now: context.date)
+                        VStack(alignment: .leading, spacing: 8) {
+                            SectionHeader(title: sectionTitle, trailing: "\(events.count)")
+                                .padding(.top, 6)
+                            GroupedCard {
+                                ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
+                                    EventRow(
+                                        event: event,
+                                        isNext: event.id == nextID,
+                                        isLast: index == events.count - 1 && !canCreate,
+                                        stacked: true,
+                                        now: context.date
+                                    ) {
+                                        service.open(event)
+                                    }
                                 }
-                            }
-                            if canCreate {
-                                newEventRow
-                            } else if events.isEmpty {
-                                Text(L10n.t(.calNoEvents).prefix(1).uppercased() + L10n.t(.calNoEvents).dropFirst())
-                                    .font(Theme.bodyFont)
-                                    .foregroundStyle(Theme.textTertiary)
-                                    .groupedRow(isLast: true)
+                                if canCreate {
+                                    newEventRow
+                                }
                             }
                         }
                     }
                 }
+            }
+        }
+    }
+
+    private func weekStrip(now: Date) -> some View {
+        HStack(spacing: 6) {
+            ForEach(days, id: \.self) { day in
+                dayTile(day, now: now)
             }
         }
     }
@@ -153,27 +173,12 @@ struct WeekView: View {
     /// Dashed "+" and the slot the new event will take — the same one the
     /// form opens with (next full hour today, 09:00 otherwise).
     private var newEventRow: some View {
-        Button {
+        AddRow(
+            label: L10n.f(.calNewEventAt, Self.slotLabel(on: service.selectedDay, calendar: calendar)),
+            iconSlot: 42
+        ) {
             service.startCreating(on: service.selectedDay)
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "plus")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(Theme.textSecondary)
-                    .frame(width: 28, height: 28)
-                    .overlay(
-                        Circle().stroke(Theme.dashedBorder, style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
-                    )
-                    .frame(width: 42, alignment: .leading)
-                Text(L10n.f(.calNewEventAt, Self.slotLabel(on: service.selectedDay, calendar: calendar)))
-                    .font(Theme.bodyFont)
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.textSecondary)
-                Spacer(minLength: 0)
-            }
-            .groupedRow(isLast: true)
         }
-        .buttonStyle(PressableStyle())
     }
 
     private static func slotLabel(on day: Date, calendar: Calendar) -> String {
@@ -207,31 +212,29 @@ struct AgendaListView: View {
     }
 
     var body: some View {
-        let shown = sections
-        if shown.isEmpty {
-            EmptyStateZone(label: L10n.t(.calNoEvents))
-                .frame(maxHeight: 90)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
-            TimelineView(.periodic(from: .now, by: 30)) { context in
-                let today = todayEvents(in: shown)
-                let nextID = EventRow.next(in: today, at: context.date)?.id
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 18) {
-                        IsoCalendarView(date: context.date, events: today.count)
-                            .moduleScene()
-                        if let upNext = UpNextCard.event(in: today, at: context.date) {
-                            UpNextCard(event: upNext, now: context.date) {
-                                service.open(upNext)
-                            }
-                        }
-                        ForEach(shown, id: \.day) { day, events in
-                            VStack(alignment: .leading, spacing: 8) {
-                                SectionHeader(title: service.dayLabel(day), trailing: "\(events.count)")
-                                EventGroup(events: events, nextID: nextID, now: context.date, onOpen: service.open)
-                            }
+        TimelineView(.periodic(from: .now, by: 30)) { context in
+            let shown = sections
+            let today = todayEvents(in: shown)
+            let nextID = EventRow.next(in: today, at: context.date)?.id
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 18) {
+                    if let upNext = UpNextCard.event(in: today, at: context.date) {
+                        UpNextCard(event: upNext, now: context.date) {
+                            service.open(upNext)
                         }
                     }
+                    ForEach(shown, id: \.day) { day, events in
+                        VStack(alignment: .leading, spacing: 8) {
+                            SectionHeader(title: service.dayLabel(day), trailing: "\(events.count)")
+                            EventGroup(events: events, nextID: nextID, now: context.date, onOpen: service.open)
+                        }
+                    }
+                }
+            }
+            // The tear-off calendar is the empty agenda only.
+            .emptyScreen(when: shown.isEmpty) {
+                ModuleEmptyScreen(label: L10n.t(.calNoEvents)) {
+                    IsoCalendarView(date: context.date, events: 0)
                 }
             }
         }

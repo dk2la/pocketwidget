@@ -65,21 +65,44 @@ struct AppShortcutsModuleView: View {
     // MARK: - List
 
     private var list: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        let listing = listing
+        let state = ShortcutListState(
+            hasApp: service.target != nil,
+            shownCount: listing.count,
+            query: service.query,
+            isSettled: service.snapshot != nil || service.supportsPresetImport
+        )
+        // The keyboard is the empty module only: with shortcuts to show,
+        // the list starts at the app card.
+        return VStack(alignment: .leading, spacing: 10) {
             if let target = service.target {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 18) {
-                        IsoKeyboardView()
-                            .moduleScene()
                         hero(target)
-                        content
+                        content(listing, state: state)
+                    }
+                }
+                .emptyScreen(when: state == .noShortcuts) {
+                    // The app card stays: it names the app and holds
+                    // re-read and preset import, the ways out of empty.
+                    VStack(alignment: .leading, spacing: 10) {
+                        VStack(alignment: .leading, spacing: 18) {
+                            hero(target)
+                            ModuleEmptyScreen(label: L10n.t(.keysNone), sublabel: L10n.t(.keysNoneSub)) {
+                                IsoKeyboardView()
+                            }
+                        }
+                        EmptyActionBar(label: L10n.t(.keysAddOwn)) {
+                            editing = .new
+                        }
                     }
                 }
                 searchBar
-            } else {
-                EmptyStateZone(label: L10n.t(.keysNoApp), sublabel: L10n.t(.keysNoAppSub))
-                    .frame(maxHeight: 100)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .emptyScreen(when: state == .noApp) {
+            ModuleEmptyScreen(label: L10n.t(.keysNoApp), sublabel: L10n.t(.keysNoAppSub)) {
+                IsoKeyboardView()
             }
         }
     }
@@ -181,8 +204,19 @@ struct AppShortcutsModuleView: View {
         .fixedSize()
     }
 
-    @ViewBuilder
-    private var content: some View {
+    /// The shortcuts left after the search filter, in list order: pinned,
+    /// the user's own, then the app's by menu.
+    private struct Listing {
+        var pinned: [AppShortcut]
+        var custom: [AppShortcut]
+        var menus: [(menu: String, shortcuts: [AppShortcut])]
+
+        var count: Int {
+            pinned.count + custom.count + menus.reduce(0) { $0 + $1.shortcuts.count }
+        }
+    }
+
+    private var listing: Listing {
         let query = service.query
         let pinned = service.pinnedShortcuts.filter { service.matches($0, query: query) }
         let pinnedIDs = Set(pinned.map(\.id))
@@ -191,40 +225,33 @@ struct AppShortcutsModuleView: View {
             (service.presetShortcuts + service.menuShortcuts)
                 .filter { !pinnedIDs.contains($0.id) && service.matches($0, query: query) }
         )
-
-        if pinned.isEmpty, custom.isEmpty, menus.isEmpty {
-            emptyState(searching: !query.trimmingCharacters(in: .whitespaces).isEmpty)
-        } else {
-            LazyVStack(alignment: .leading, spacing: 18) {
-                if !pinned.isEmpty {
-                    section(L10n.t(.keysPinned), pinned)
-                }
-                if !custom.isEmpty {
-                    section(L10n.t(.keysMine), custom)
-                }
-                ForEach(menus, id: \.menu) { group in
-                    section(group.menu, group.shortcuts)
-                }
-            }
-        }
+        return Listing(pinned: pinned, custom: custom, menus: menus)
     }
 
     @ViewBuilder
-    private func emptyState(searching: Bool) -> some View {
-        if searching {
-            EmptyStateZone(label: L10n.t(.mailNoResults))
-                .frame(height: 80)
-        } else if service.snapshot != nil || service.supportsPresetImport {
-            VStack(spacing: 12) {
-                EmptyStateZone(label: L10n.t(.keysNone), sublabel: L10n.t(.keysNoneSub))
-                    .frame(height: 80)
-                ModuleButton(label: L10n.t(.keysAddOwn), systemName: "plus", kind: .light) {
-                    editing = .new
+    private func content(_ listing: Listing, state: ShortcutListState) -> some View {
+        switch state {
+        case .shortcuts:
+            LazyVStack(alignment: .leading, spacing: 18) {
+                if !listing.pinned.isEmpty {
+                    section(L10n.t(.keysPinned), listing.pinned)
+                }
+                if !listing.custom.isEmpty {
+                    section(L10n.t(.keysMine), listing.custom)
+                }
+                ForEach(listing.menus, id: \.menu) { group in
+                    section(group.menu, group.shortcuts)
                 }
             }
-            .frame(maxWidth: .infinity)
+        case .noSearchResults:
+            // A search that finds nothing is not an empty module: no device.
+            EmptyStateZone(label: L10n.t(.mailNoResults))
+                .frame(height: 80)
+        case .noApp, .noShortcuts, .pending:
+            // The empty screen takes the first two; while the menus are
+            // being read or access is missing, the hero card says so.
+            EmptyView()
         }
-        // Still reading, or no access yet: the hero card says so.
     }
 
     private func section(_ title: String, _ shortcuts: [AppShortcut]) -> some View {

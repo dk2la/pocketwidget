@@ -106,7 +106,7 @@ enum L10nKey {
     case ageNow, ageMin, ageHour, kindLink, kindText
 
     // Shelf
-    case shelfDrop, shelfLinksNote, shelfDropSub, shelfSection, shelfReveal
+    case shelfEmpty, shelfLinksNote, shelfEmptySub, shelfSection, shelfReveal, shelfAdd
 
     // Calendar
     case calAllDay, calJoin, calNow, calNoEvents, calToday, calTomorrow
@@ -136,6 +136,8 @@ enum L10nKey {
     case mailToField, mailSubjectField, mailNewMessage, mailBodyPlaceholder
     case mailboxPrimary, mailboxStarred, mailboxImportant, mailboxSent, mailboxSpam
     case mailSectionNew, mailSectionEarlier, mailReplyTo
+    case mailAddAction, mailGetAppPassword, mailAppPasswordStep, mailPasswordPickedUp, mailConnect
+    case mailErrorRejected, mailErrorUnreachable, mailErrorNotSaved
 
     // Assistant
     case asstSetupTitle, asstSetupSub, asstHint, asstPlaceholder, asstThinking
@@ -146,6 +148,7 @@ enum L10nKey {
 
     // Playbooks
     case playNew, playEmpty, playDone, playClosed, playOpened, playErrors, playAdd
+    case playNoneTitle, playBack
     case playApps, playCloseRest, playFocus
     case playStepOpenApps, playStepCloseOthers, playStepShortcut, playStepFocus, playStepTimer, playStepURLs
     case playAddStep, playLayout, playGrantAccess, playLayoutHint
@@ -159,6 +162,7 @@ enum L10nKey {
 
     // Settings
     case setTitle, setGeneral, setAppearance, setModules, setHotkeys
+    case setCheckUpdates
     case setBehavior, setLaunch, setLaunchSub
     case setIdle, setIdleSub, setIdleInvisible, setIdleCompact
     case setLanguage, setLanguageSub
@@ -265,11 +269,12 @@ enum L10nKey {
         case .kindLink: return ["link", "ссылка", "lien", "enlace", "链接", "ligação", "Link", "link", "リンク", "링크"]
         case .kindText: return ["text", "текст", "texte", "texto", "文本", "texto", "Text", "testo", "テキスト", "텍스트"]
 
-        case .shelfDrop: return ["Drop files here", "Перетащите файлы сюда", "Déposez des fichiers ici", "Suelta archivos aquí", "拖放文件到这里", "Largue ficheiros aqui", "Dateien hier ablegen", "Trascina i file qui", "ここにファイルをドロップ", "여기에 파일을 놓으세요"]
+        case .shelfEmpty: return ["Add files to the shelf", "Добавьте файлы на полку", "Ajoutez des fichiers à l'étagère", "Añade archivos al estante", "把文件添加到暂存架", "Adicione ficheiros à prateleira", "Dateien zur Ablage hinzufügen", "Aggiungi file alla mensola", "シェルフにファイルを追加", "선반에 파일을 추가하세요"]
         case .shelfLinksNote: return ["Links only — originals stay in place", "Только ссылки — оригиналы остаются на месте", "Liens seulement — les originaux restent en place", "Solo enlaces — los originales no se mueven", "仅链接 — 原文件保持原位", "Só ligações — os originais ficam no lugar", "Nur Links — Originale bleiben am Ort", "Solo link — gli originali restano al loro posto", "リンクのみ — 元ファイルは移動しません", "링크만 — 원본은 그대로"]
-        case .shelfDropSub: return ["Drag them back out anywhere", "Потом перетащите их куда угодно", "Faites-les ensuite glisser où vous voulez", "Luego arrástralos adonde quieras", "之后可拖到任何地方", "Depois arraste-os para onde quiser", "Später überallhin herausziehen", "Poi trascinali dove vuoi", "あとでどこへでもドラッグできます", "나중에 어디로든 끌어다 놓으세요"]
+        case .shelfEmptySub: return ["Then drag them out anywhere", "Потом перетащите их куда угодно", "Faites-les ensuite glisser où vous voulez", "Luego arrástralos adonde quieras", "之后可拖到任何地方", "Depois arraste-os para onde quiser", "Später überallhin herausziehen", "Poi trascinali dove vuoi", "あとでどこへでもドラッグできます", "나중에 어디로든 끌어다 놓으세요"]
         case .shelfSection: return ["On the shelf", "На полке", "Sur l'étagère", "En la estantería", "架上文件", "Na prateleira", "Im Regal", "Sullo scaffale", "シェルフ内", "선반에 있음"]
         case .shelfReveal: return ["Show in Finder", "Показать в Finder", "Afficher dans le Finder", "Mostrar en Finder", "在访达中显示", "Mostrar no Finder", "Im Finder zeigen", "Mostra nel Finder", "Finderに表示", "Finder에서 보기"]
+        case .shelfAdd: return ["Add file…", "Добавить файл…", "Ajouter un fichier…", "Añadir archivo…", "添加文件…", "Adicionar ficheiro…", "Datei hinzufügen…", "Aggiungi file…", "ファイルを追加…", "파일 추가…"]
 
         case .calAllDay: return ["all day", "весь день", "toute la journée", "todo el día", "全天", "o dia todo", "ganztägig", "tutto il giorno", "終日", "종일"]
         case .calJoin: return ["Join", "Войти", "Rejoindre", "Unirse", "加入", "Entrar", "Beitreten", "Entra", "参加", "참여"]
@@ -315,6 +320,14 @@ enum L10nKey {
         case .mailSetupTitle: return ["no account", "нет аккаунта", "aucun compte", "sin cuenta", "未设置账户", "sem conta", "kein Konto", "nessun account", "アカウントなし", "계정 없음"]
         case .mailSetupSub: return ["Connect your mailbox — it stays between your Mac and your provider", "Подключите ящик — данные ходят только между Mac и вашим провайдером", "Connectez votre boîte — tout reste entre votre Mac et votre fournisseur", "Conecta tu buzón — todo queda entre tu Mac y tu proveedor", "连接邮箱 — 数据仅在您的 Mac 与邮件服务商之间传输", "Ligue a sua caixa — tudo fica entre o Mac e o fornecedor", "Postfach verbinden — alles bleibt zwischen Mac und Anbieter", "Collega la casella — resta tra il tuo Mac e il provider", "メールボックスを接続 — データはMacとプロバイダ間のみ", "메일함 연결 — 데이터는 Mac과 제공업체 사이에만"]
         case .mailSetupAction: return ["Set up account", "Настроить аккаунт", "Configurer le compte", "Configurar cuenta", "设置账户", "Configurar conta", "Konto einrichten", "Configura account", "アカウントを設定", "계정 설정"]
+        case .mailAddAction: return ["Add mail", "Добавить почту", "Ajouter une boîte mail", "Añadir correo", "添加邮箱", "Adicionar e-mail", "Mail hinzufügen", "Aggiungi posta", "メールを追加", "메일 추가"]
+        case .mailGetAppPassword: return ["Get app password", "Получить пароль приложения", "Obtenir un mot de passe d'application", "Obtener contraseña de aplicación", "获取应用专用密码", "Obter palavra-passe de aplicação", "App-Passwort holen", "Ottieni password per le app", "アプリパスワードを取得", "앱 암호 받기"]
+        case .mailAppPasswordStep: return ["Create a password for Pocket there and copy it — it appears here by itself", "Создайте там пароль для Pocket и скопируйте — он появится здесь сам", "Créez-y un mot de passe pour Pocket et copiez-le — il apparaîtra ici tout seul", "Crea allí una contraseña para Pocket y cópiala — aparecerá aquí sola", "在那里为 Pocket 创建密码并复制 — 它会自动出现在这里", "Crie lá uma palavra-passe para o Pocket e copie-a — ela aparece aqui sozinha", "Dort ein Passwort für Pocket erstellen und kopieren — es erscheint hier von selbst", "Crea lì una password per Pocket e copiala — comparirà qui da sola", "そこでPocket用のパスワードを作成してコピー — ここに自動で入ります", "거기서 Pocket용 암호를 만들어 복사하세요 — 여기에 자동으로 입력됩니다"]
+        case .mailPasswordPickedUp: return ["Password picked up from the clipboard", "Пароль взят из буфера обмена", "Mot de passe récupéré du presse-papiers", "Contraseña tomada del portapapeles", "已从剪贴板获取密码", "Palavra-passe obtida da área de transferência", "Passwort aus der Zwischenablage übernommen", "Password presa dagli appunti", "クリップボードからパスワードを取得しました", "클립보드에서 암호를 가져왔습니다"]
+        case .mailConnect: return ["Connect", "Подключить", "Connecter", "Conectar", "连接", "Ligar", "Verbinden", "Connetti", "接続", "연결"]
+        case .mailErrorRejected: return ["The provider did not accept this address and password", "Провайдер не принял этот адрес и пароль", "Le fournisseur a refusé cette adresse et ce mot de passe", "El proveedor no aceptó esta dirección y contraseña", "服务商未接受此地址和密码", "O fornecedor não aceitou este endereço e palavra-passe", "Der Anbieter hat Adresse und Passwort nicht akzeptiert", "Il provider non ha accettato indirizzo e password", "プロバイダがこのアドレスとパスワードを受け付けませんでした", "제공업체가 이 주소와 암호를 받아들이지 않았습니다"]
+        case .mailErrorUnreachable: return ["Could not reach the mail server — check the internet connection and the address", "Не удалось связаться с почтовым сервером — проверьте интернет и адрес", "Serveur de messagerie injoignable — vérifiez la connexion internet et l'adresse", "No se pudo conectar con el servidor de correo — revisa internet y la dirección", "无法连接邮件服务器 — 请检查网络和地址", "Não foi possível contactar o servidor de e-mail — verifique a internet e o endereço", "Mailserver nicht erreichbar — Internetverbindung und Adresse prüfen", "Impossibile raggiungere il server di posta — controlla internet e l'indirizzo", "メールサーバに接続できません — ネット接続とアドレスを確認してください", "메일 서버에 연결할 수 없습니다 — 인터넷과 주소를 확인하세요"]
+        case .mailErrorNotSaved: return ["Could not save the password to the Keychain", "Не удалось сохранить пароль в Связке ключей", "Impossible d'enregistrer le mot de passe dans le trousseau", "No se pudo guardar la contraseña en el llavero", "无法将密码保存到钥匙串", "Não foi possível guardar a palavra-passe no Porta-chaves", "Passwort konnte nicht im Schlüsselbund gespeichert werden", "Impossibile salvare la password nel Portachiavi", "パスワードをキーチェーンに保存できませんでした", "암호를 키체인에 저장할 수 없습니다"]
         case .mailInboxEmpty: return ["inbox is empty", "входящие пусты", "boîte vide", "bandeja vacía", "收件箱为空", "caixa vazia", "Posteingang leer", "posta vuota", "受信トレイは空", "받은편지함 비어 있음"]
         case .mailSectionNew: return ["New", "Новые", "Nouveaux", "Nuevos", "新邮件", "Novos", "Neu", "Nuovi", "新着", "새 메일"]
         case .mailSectionEarlier: return ["Earlier", "Ранее", "Plus tôt", "Anteriores", "更早", "Anteriores", "Früher", "Precedenti", "以前", "이전"]
@@ -418,6 +431,8 @@ enum L10nKey {
         case .playURLsHint: return ["One link per line", "По одной ссылке на строку", "Un lien par ligne", "Un enlace por línea", "每行一个链接", "Um link por linha", "Ein Link pro Zeile", "Un link per riga", "1行に1リンク", "한 줄에 링크 하나"]
         case .playLinks: return ["%d links", "%d ссыл.", "%d liens", "%d enlaces", "%d 个链接", "%d links", "%d Links", "%d link", "%d件のリンク", "링크 %d개"]
         case .playAdd: return ["Add playbook…", "Добавить плейбук…", "Ajouter un playbook…", "Añadir playbook…", "添加行动手册…", "Adicionar playbook…", "Playbook hinzufügen…", "Aggiungi playbook…", "プレイブックを追加…", "플레이북 추가…"]
+        case .playNoneTitle: return ["no playbooks", "нет плейбуков", "aucun playbook", "sin playbooks", "没有行动手册", "sem playbooks", "keine Playbooks", "nessun playbook", "プレイブックなし", "플레이북 없음"]
+        case .playBack: return ["Back", "Назад", "Retour", "Atrás", "返回", "Voltar", "Zurück", "Indietro", "戻る", "뒤로"]
 
         case .sysMemory: return ["Memory", "Память", "Mémoire", "Memoria", "内存", "Memória", "Speicher", "Memoria", "メモリ", "메모리"]
         case .sysNetwork: return ["Network", "Сеть", "Réseau", "Red", "网络", "Rede", "Netzwerk", "Rete", "ネットワーク", "네트워크"]
@@ -433,6 +448,7 @@ enum L10nKey {
         case .sysDownload: return ["Download", "Загрузка", "Réception", "Descarga", "下载", "Download", "Empfang", "Download", "ダウンロード", "다운로드"]
         case .sysUpload: return ["Upload", "Отдача", "Envoi", "Subida", "上传", "Upload", "Senden", "Upload", "アップロード", "업로드"]
 
+        case .setCheckUpdates: return ["Check for Updates", "Проверить обновления", "Rechercher des mises à jour", "Buscar actualizaciones", "检查更新", "Buscar atualizações", "Nach Updates suchen", "Verifica aggiornamenti", "アップデートを確認", "업데이트 확인"]
         case .setTitle: return ["Settings", "Настройки", "Réglages", "Ajustes", "设置", "Ajustes", "Einstellungen", "Impostazioni", "設定", "설정"]
         case .setGeneral: return ["General", "Общие", "Général", "General", "通用", "Geral", "Allgemein", "Generali", "一般", "일반"]
         case .setAppearance: return ["Appearance", "Вид", "Apparence", "Apariencia", "外观", "Aparência", "Aussehen", "Aspetto", "外観", "모양"]

@@ -84,6 +84,8 @@ struct ModuleBackButton: View {
                 { services.emailService.closeCompose() }
             } else if services.emailService.openMessage != nil {
                 { services.emailService.closeMessage() }
+            } else if services.emailService.needsSetup, services.emailService.setup.isActive {
+                { services.emailService.setup.cancel() }
             } else {
                 nil
             }
@@ -132,6 +134,7 @@ struct ModuleAccessoriesView: View {
         case .assistant:
             assistantAccessories
         case .notes:
+            // An open note carries its own Delete, in the editor.
             if services.notesStore.openNote == nil {
                 HeaderIconButton("plus", help: L10n.t(.notesNew)) {
                     services.notesStore.create()
@@ -161,7 +164,7 @@ struct ModuleAccessoriesView: View {
     @ViewBuilder
     private var emailAccessories: some View {
         let service = services.emailService
-        if service.config != nil, !service.isComposeOpen {
+        if !service.needsSetup, !service.isComposeOpen {
             if let message = service.openMessage {
                 // Sent and Spam mail is not in the inbox — nothing to archive.
                 if service.canArchive(message) {

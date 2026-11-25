@@ -6,18 +6,14 @@ import Observation
 @MainActor
 @Observable
 final class ClipboardStore {
-    struct Entry: Identifiable, Equatable {
-        let id: UUID
-        let text: String
-        let copiedAt: Date
-    }
+    typealias Entry = ClipboardHistory.Entry
 
-    private(set) var entries: [Entry] = []
+    private var history = ClipboardHistory()
+    var entries: [Entry] { history.entries }
 
     @ObservationIgnored private var lastChangeCount = NSPasteboard.general.changeCount
     @ObservationIgnored private var pollTask: Task<Void, Never>?
 
-    private static let capacity = 25
     /// Password managers mark secrets with this type — never record them.
     private static let concealedType = NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType")
     private static let transientType = NSPasteboard.PasteboardType("org.nspasteboard.TransientType")
@@ -45,13 +41,13 @@ final class ClipboardStore {
         guard !isDemo else { return }
         isDemo = true
         parkedEntries = entries
-        entries = demoEntries
+        history.entries = demoEntries
     }
 
     func exitDemo() {
         guard isDemo else { return }
         isDemo = false
-        entries = parkedEntries
+        history.entries = parkedEntries
         parkedEntries = []
         lastChangeCount = NSPasteboard.general.changeCount
     }
@@ -64,17 +60,18 @@ final class ClipboardStore {
 
         let types = pasteboard.types ?? []
         guard !types.contains(Self.concealedType), !types.contains(Self.transientType),
-              let text = pasteboard.string(forType: .string)?
-                  .trimmingCharacters(in: .whitespacesAndNewlines),
-              !text.isEmpty,
-              text != entries.first?.text
+              let text = pasteboard.string(forType: .string)
         else { return }
+        history.record(text, at: Date())
+    }
 
-        entries.removeAll { $0.text == text }
-        entries.insert(Entry(id: UUID(), text: String(text.prefix(10_000)), copiedAt: Date()), at: 0)
-        if entries.count > Self.capacity {
-            entries.removeLast(entries.count - Self.capacity)
-        }
+    /// Keeps a secret another module took from the clipboard out of the
+    /// history — the app password Mail setup picks up. Whichever of the two
+    /// sees the copy first, the text does not stay listed.
+    func withhold(_ text: String) {
+        history.withhold(text)
+        // History parked under demo mode must not bring it back either.
+        parkedEntries.removeAll { $0.text == text }
     }
 
     /// Puts an entry back onto the pasteboard and moves it to the top.
@@ -84,11 +81,11 @@ final class ClipboardStore {
         pasteboard.setString(entry.text, forType: .string)
         // Our own write must not be re-captured as a new entry.
         lastChangeCount = pasteboard.changeCount
-        entries.removeAll { $0.id == entry.id }
-        entries.insert(entry, at: 0)
+        history.entries.removeAll { $0.id == entry.id }
+        history.entries.insert(entry, at: 0)
     }
 
     func clear() {
-        entries.removeAll()
+        history.entries.removeAll()
     }
 }

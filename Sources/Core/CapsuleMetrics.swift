@@ -31,6 +31,10 @@ enum CapsuleMetrics {
     /// Capsule size on Macs without a camera housing.
     static let fallbackClosedSize = CGSize(width: 196, height: 32)
 
+    /// How long the cursor must rest on the capsule before hover opens it
+    /// (ms). Passing over it on the way to the menu bar opens nothing.
+    static let hoverOpenDelayMilliseconds = 500
+
     /// Delay before shrinking the window after the close animation (ms).
     static let windowCollapseDelayMilliseconds = 450
 
