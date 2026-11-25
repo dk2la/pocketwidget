@@ -104,6 +104,7 @@ targets:
       - path: Sources/Modules/Playbooks/AppVisuals.swift
       - path: Sources/Services/WindowLayout.swift
       - path: Sources/Core/Localization.swift
+      - path: Sources/Modules/Metrics/MetricSelection.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dk2la.pocket.tests

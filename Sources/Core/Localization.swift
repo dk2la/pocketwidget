@@ -157,7 +157,7 @@ enum L10nKey {
 
     // Metrics
     case sysMemory, sysNetwork, sysBattery, sysCharging, sysVolume, sysNow, sysLiveNote
-    case sysAverage, sysPeak, sysLowest, sysLastMinutes, sysDownload, sysUpload
+    case sysAverage, sysPeak, sysLowest, sysLastMinutes, sysDownload, sysUpload, sysMetricsSection
 
     // Settings
     case setTitle, setGeneral, setAppearance, setModules, setHotkeys
@@ -445,6 +445,7 @@ enum L10nKey {
         case .sysLastMinutes: return ["Last 2 min", "За 2 минуты", "2 dernières min", "Últimos 2 min", "最近 2 分钟", "Últimos 2 min", "Letzte 2 Min.", "Ultimi 2 min", "直近 2 分", "최근 2분"]
         case .sysDownload: return ["Download", "Загрузка", "Réception", "Descarga", "下载", "Download", "Empfang", "Download", "ダウンロード", "다운로드"]
         case .sysUpload: return ["Upload", "Отдача", "Envoi", "Subida", "上传", "Upload", "Senden", "Upload", "アップロード", "업로드"]
+        case .sysMetricsSection: return ["Metrics", "Метрики", "Métriques", "Métricas", "指标", "Métricas", "Metriken", "Metriche", "メトリクス", "지표"]
 
         case .setCheckUpdates: return ["Check for Updates", "Проверить обновления", "Rechercher des mises à jour", "Buscar actualizaciones", "检查更新", "Buscar atualizações", "Nach Updates suchen", "Verifica aggiornamenti", "アップデートを確認", "업데이트 확인"]
         case .setTitle: return ["Settings", "Настройки", "Réglages", "Ajustes", "设置", "Ajustes", "Einstellungen", "Impostazioni", "設定", "설정"]
