@@ -105,13 +105,27 @@ struct WidgetRootView: View {
                 RailIconButton(
                     tab: tab,
                     isActive: viewModel.selectedTab == tab,
-                    showsBadge: tab == .email && services.emailService.unreadCount > 0
+                    showsBadge: tab == .email && services.emailService.unreadCount > 0,
+                    liveBadge: liveBadge(for: tab)
                 ) {
                     viewModel.onTabTapped?(tab)
                 }
             }
         }
         .padding(viewModel.edge.isVertical ? .vertical : .horizontal, WidgetMetrics.endPadding)
+    }
+
+    /// Badges ride on the icons, so a minimized strip shows only the first
+    /// icon's badge and never a floating one.
+    private func liveBadge(for tab: ModuleTab) -> IconBadge? {
+        let timer = services.timerService
+        let track = services.mediaCenter.track
+        return IconBadge.badge(
+            for: tab,
+            enabled: settings.enabledTabs.contains(tab),
+            timer: .init(isRunning: timer.isRunning, remaining: timer.remaining, duration: timer.duration),
+            playback: track.map { $0.isPlaying ? .playing : .paused } ?? .none
+        )
     }
 
     /// Minimized the strip keeps its first module button — the widget still
@@ -242,6 +256,7 @@ struct WidgetRootView: View {
         let tab: ModuleTab
         let isActive: Bool
         let showsBadge: Bool
+        var liveBadge: IconBadge?
         let action: () -> Void
 
         @State private var hovered = false
@@ -252,6 +267,7 @@ struct WidgetRootView: View {
                 Image(systemName: tab.icon)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(isActive ? Theme.accent : Theme.textSecondary)
+                    .offset(y: liveBadge == nil ? 0 : -IconBadgeView.glyphLift)
                     .frame(width: WidgetMetrics.cell, height: WidgetMetrics.cell)
                     .background(
                         cellShape.fill(isActive ? Theme.accentWash : hovered ? Theme.raisedFill : .clear)
@@ -263,6 +279,9 @@ struct WidgetRootView: View {
                                 .frame(width: 5, height: 5)
                                 .padding(6)
                         }
+                    }
+                    .overlay(alignment: .bottom) {
+                        if let liveBadge { IconBadgeView(badge: liveBadge) }
                     }
                     .contentShape(cellShape)
             }
