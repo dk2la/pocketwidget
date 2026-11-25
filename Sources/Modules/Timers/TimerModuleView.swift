@@ -1,45 +1,45 @@
 import SwiftUI
 
-/// "Timer" module. With nothing going it is the empty screen: the ready
-/// message with the picked length, over Start. A countdown or an alarm —
-/// running or paused partway — shows a hero card instead, with the time
-/// left, a bar that drains with it, Pause / Start and Reset.
-/// Under either sit the same two blocks: the length — a dial to drag and a
-/// row of usual lengths — and an alarm that counts down to a clock time.
+/// "Timer" module. On top, what is set: a quiet row for the alarm with the
+/// time it rings at, and a hero card for a countdown — running or paused
+/// partway — with the time left, a bar that drains with it, Pause / Start
+/// and Reset. With neither, the empty screen.
+/// Under it one card sets both, switched between Timer and Alarm: a dial to
+/// drag, the usual lengths for the timer, and Start or Set.
 struct TimerModuleView: View {
     var timer: TimerService
 
-    /// The alarm block's clock time, in five-minute steps from midnight.
+    /// What the card under the hero sets.
+    private enum Mode { case timer, alarm }
+
+    @State private var mode = Mode.timer
+    /// The alarm's clock time, in five-minute steps from midnight.
     @State private var alarmStep = TimerModuleView.step(after: Date().addingTimeInterval(30 * 60))
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        let isEmpty = timer.isIdle && timer.alarmDate == nil
+        return VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 18) {
-                hero.emptyScreen(when: timer.isIdle) {
-                    // The sublabel is the picked length: a custom one shows
-                    // nowhere else once its field is cleared.
-                    ModuleEmptyScreen(
-                        label: L10n.t(.focusReady),
-                        sublabel: TimeFormat.mmss(timer.remaining)
-                    ) {
-                        ModuleButton(label: L10n.t(.timerStart), systemName: "play.fill", kind: .accent) {
-                            timer.start()
-                        }
+                VStack(alignment: .leading, spacing: 10) {
+                    if let alarmDate = timer.alarmDate {
+                        alarmRow(alarmDate)
+                            .transition(.opacity)
+                    }
+                    if !timer.isIdle {
+                        hero
+                            .transition(.opacity)
                     }
                 }
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(
-                        title: L10n.t(.timerLength),
-                        trailing: L10n.f(.ageMin, Int(timer.duration / 60))
-                    )
-                    lengthPicker
+                .animation(Theme.stateSpring, value: timer.alarmDate)
+                .animation(Theme.stateSpring, value: timer.isIdle)
+                .emptyScreen(when: isEmpty) {
+                    ModuleEmptyScreen(label: L10n.t(.focusReady), sublabel: L10n.t(.timerDoneNote))
                 }
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: L10n.t(.timerRingAt), trailing: untilAlarm)
-                    alarmBlock
-                }
+                picker
             }
-            ModuleFootnote(systemName: "bell", text: L10n.t(.timerDoneNote))
+            if !isEmpty {
+                ModuleFootnote(systemName: "bell", text: L10n.t(.timerDoneNote))
+            }
         }
     }
 
@@ -50,13 +50,7 @@ struct TimerModuleView: View {
         let state = L10n.t(timer.isRunning ? .focusRunning : .focusReady)
         return HeroCard {
             HStack(spacing: 7) {
-                if timer.isAlarm {
-                    Image(systemName: "alarm")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(Theme.accent)
-                } else {
-                    StatusDot(color: timer.isRunning ? Theme.accent : Theme.segmentOff)
-                }
+                StatusDot(color: timer.isRunning ? Theme.accent : Theme.segmentOff)
                 // Stored lower case ("focus · running"); reads as a sentence.
                 Text(state.prefix(1).uppercased() + state.dropFirst())
                     .heroCaption()
@@ -76,8 +70,7 @@ struct TimerModuleView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                     .foregroundStyle(Theme.textPrimary)
-                // An alarm has no round length to count from.
-                if isPartway, !timer.isAlarm {
+                if isPartway {
                     Text(L10n.f(.timerLeftOf, Int(timer.duration / 60)))
                         .font(Theme.subFont)
                         .lineLimit(1)
@@ -137,11 +130,9 @@ struct TimerModuleView: View {
         return date.formatted(date: .omitted, time: .shortened)
     }
 
-    /// How long until the clock next shows the picked time: "1 h 20 min".
-    private var untilAlarm: String {
-        let now = Calendar.current.dateComponents([.hour, .minute], from: Date())
-        var minutes = alarmStep * Self.minutesPerStep - ((now.hour ?? 0) * 60 + (now.minute ?? 0))
-        if minutes <= 0 { minutes += 24 * 60 }
+    /// How long until `date`: "1 h 20 min".
+    private static func until(_ date: Date) -> String {
+        let minutes = max(1, Int((date.timeIntervalSinceNow / 60).rounded(.up)))
         let hours = minutes / 60
         let rest = minutes % 60
         if hours == 0 { return L10n.f(.ageMin, rest) }
@@ -149,50 +140,73 @@ struct TimerModuleView: View {
         return L10n.f(.ageHour, hours) + " " + L10n.f(.ageMin, rest)
     }
 
-    /// Drag the day's ruler to a clock time; Set starts a countdown that
-    /// ends exactly then. Same card and dial as the length above it.
-    private var alarmBlock: some View {
+    /// The alarm that is set: nothing counts down here, it only says when
+    /// it rings and how far off that is, and can be taken away.
+    private func alarmRow(_ date: Date) -> some View {
+        // Nothing else redraws the row while it waits.
+        TimelineView(.periodic(from: .now, by: 20)) { _ in
+            GroupedCard {
+                HStack(alignment: .center, spacing: 12) {
+                    IconTile(systemName: "alarm")
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(date.formatted(date: .omitted, time: .shortened))
+                            .font(Theme.bodyFont)
+                            .fontWeight(.medium)
+                            .monospacedDigit()
+                            .lineLimit(1)
+                            .foregroundStyle(Theme.textPrimary)
+                        Text("\(L10n.t(.timerAlarm)) · \(Self.until(date))")
+                            .font(Theme.subFont)
+                            .lineLimit(1)
+                            .foregroundStyle(Theme.textTertiary)
+                    }
+                    Spacer(minLength: 0)
+                    CircleGlassButton(systemName: "xmark", size: 30, solid: false) {
+                        timer.cancelAlarm()
+                    }
+                    .help(L10n.t(.timerReset))
+                }
+                .groupedRow(isLast: true)
+            }
+        }
+    }
+
+    // MARK: - Picker
+
+    /// One card for both: the Timer / Alarm switch, the dial of the chosen
+    /// one, and the value it shows beside Start or Set.
+    private var picker: some View {
         let shape = RoundedRectangle(cornerRadius: Theme.groupRadius, style: .continuous)
         return VStack(spacing: 4) {
-            RulerDial(
-                value: alarmStep,
-                range: 0...(Self.stepsPerDay - 1),
-                majorEvery: 60 / Self.minutesPerStep,
-                label: { "\($0 * Self.minutesPerStep / 60):00" },
-                onChange: { alarmStep = $0 }
-            )
-            HStack(spacing: 10) {
-                Image(systemName: "alarm")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Theme.textTertiary)
-                Text(alarmLabel)
-                    .font(Theme.heroFont)
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .foregroundStyle(Theme.textPrimary)
-                    .contentTransition(.numericText())
-                Spacer(minLength: 0)
-                ModuleButton(label: L10n.t(.timerSet), kind: .light, height: 30) {
-                    timer.ring(atHour: alarmHour, minute: alarmMinute)
-                }
+            HStack(spacing: 4) {
+                modeCell(.timer, label: L10n.t(.modTimer))
+                modeCell(.alarm, label: L10n.t(.timerAlarm))
             }
-            .padding(.leading, 10)
-            .padding(.trailing, 2)
-            .padding(.bottom, 2)
+            switch mode {
+            case .timer: timerPicker
+            case .alarm: alarmPicker
+            }
         }
         .padding(4)
         .background(Theme.cardFill, in: shape)
         .overlay(shape.stroke(Theme.hairlineSoft, lineWidth: 1))
     }
 
-    // MARK: - Length
+    private func modeCell(_ cell: Mode, label: String) -> some View {
+        Button {
+            mode = cell
+        } label: {
+            Text(label)
+                .lengthCell(isActive: mode == cell)
+        }
+        .buttonStyle(PressableStyle())
+    }
 
-    /// The dial for any length, over the usual ones as one-click cells.
-    /// Locked while the timer runs — the length belongs to the countdown
-    /// already going.
-    private var lengthPicker: some View {
-        let shape = RoundedRectangle(cornerRadius: Theme.groupRadius, style: .continuous)
-        return VStack(spacing: 4) {
+    /// The dial for any length, the usual ones as one-click cells, and
+    /// Start. Locked while the timer runs — the length belongs to the
+    /// countdown already going.
+    private var timerPicker: some View {
+        VStack(spacing: 4) {
             RulerDial(
                 value: Int(timer.duration / 60),
                 range: 1...180,
@@ -214,12 +228,49 @@ struct TimerModuleView: View {
                     .buttonStyle(PressableStyle())
                 }
             }
+            actionRow(value: TimeFormat.mmss(timer.duration)) {
+                ModuleButton(label: L10n.t(.timerStart), systemName: "play.fill", kind: .accent, height: 30) {
+                    timer.start()
+                }
+            }
         }
-        .padding(4)
-        .background(Theme.cardFill, in: shape)
-        .overlay(shape.stroke(Theme.hairlineSoft, lineWidth: 1))
         .opacity(timer.isRunning ? 0.35 : 1)
         .disabled(timer.isRunning)
+    }
+
+    /// The day's ruler in five-minute steps, and Set. Setting again moves
+    /// the alarm.
+    private var alarmPicker: some View {
+        VStack(spacing: 4) {
+            RulerDial(
+                value: alarmStep,
+                range: 0...(Self.stepsPerDay - 1),
+                majorEvery: 60 / Self.minutesPerStep,
+                label: { "\($0 * Self.minutesPerStep / 60):00" },
+                onChange: { alarmStep = $0 }
+            )
+            actionRow(value: alarmLabel) {
+                ModuleButton(label: L10n.t(.timerSet), systemName: "alarm", kind: .light, height: 30) {
+                    timer.setAlarm(hour: alarmHour, minute: alarmMinute)
+                }
+            }
+        }
+    }
+
+    /// The picked value, large, beside the one button that acts on it.
+    private func actionRow(value: String, @ViewBuilder button: () -> some View) -> some View {
+        HStack(spacing: 10) {
+            Text(value)
+                .font(Theme.heroFont)
+                .monospacedDigit()
+                .lineLimit(1)
+                .foregroundStyle(Theme.textPrimary)
+            Spacer(minLength: 0)
+            button()
+        }
+        .padding(.leading, 10)
+        .padding(.trailing, 2)
+        .padding(.vertical, 2)
     }
 }
 
