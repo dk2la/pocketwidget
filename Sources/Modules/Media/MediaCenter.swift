@@ -634,9 +634,13 @@ extension MediaCenter {
         let bundleID = provider.bundleID
         guard permissionCache[bundleID] != .granted else { return }
         Task { [weak self] in
-            let status = await Task.detached {
-                AutomationPermission.request(towardsBundleID: bundleID)
-            }.value
+            // The consent dialog belongs above the widget. The call may hang
+            // (see `probePermission`); the yield's timeout covers that.
+            let status = await PanelHold.shared.yielding {
+                await Task.detached {
+                    AutomationPermission.request(towardsBundleID: bundleID)
+                }.value
+            }
             guard let self, self.permissionCache[bundleID] != status else { return }
             self.permissionCache[bundleID] = status
             self.scheduleRefresh()

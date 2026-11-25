@@ -68,7 +68,12 @@ final class SpeechCaptureService {
         guard phase == .idle || phase == .denied else { return }
         phase = .starting
 
-        guard await Self.requestPermissions() else {
+        let granted = if Self.permissionsUnanswered {
+            await PanelHold.shared.yielding { await Self.requestPermissions() }
+        } else {
+            await Self.requestPermissions()
+        }
+        guard granted else {
             phase = .denied
             log.info("permissions denied")
             return
@@ -323,10 +328,10 @@ final class SpeechCaptureService {
         return await AVCaptureDevice.requestAccess(for: .audio)
     }
 
-    static func openPrivacySettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
-            NSWorkspace.shared.open(url)
-        }
+    /// A consent dialog is about to show (speech or microphone).
+    static var permissionsUnanswered: Bool {
+        SFSpeechRecognizer.authorizationStatus() == .notDetermined
+            || AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined
     }
 }
 
