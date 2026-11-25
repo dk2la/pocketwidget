@@ -98,8 +98,23 @@ struct ModuleBackButton: View {
                 : nil
         case .calendar:
             calendarBackAction
+        case .assistant:
+            assistantBackAction
         default:
             nil
+        }
+    }
+
+    /// Form → chooser → chat. The chooser has no way back while there is
+    /// no provider to chat with.
+    private var assistantBackAction: (() -> Void)? {
+        let assistant = services.assistantService
+        guard !assistant.isDemo else { return nil }
+        let setup = assistant.setup
+        switch setup.phase {
+        case .closed: return nil
+        case .chooser: return setup.canClose ? { setup.back() } : nil
+        case .ownKey, .testing, .waiting: return { setup.back() }
         }
     }
 
@@ -219,7 +234,14 @@ struct ModuleAccessoriesView: View {
     @ViewBuilder
     private var assistantAccessories: some View {
         let assistant = services.assistantService
-        if assistant.config != nil {
+        if let config = assistant.config, assistant.isDemo || !assistant.setup.isOpen {
+            // Who answers; opens the chooser over the conversation.
+            HeaderTextButton(Self.providerLabel(config), help: L10n.t(.asstChangeProvider)) {
+                services.speechSynthesis.stop()
+                if !assistant.isDemo {
+                    assistant.setup.open()
+                }
+            }
             HeaderIconButton("waveform", active: assistant.isVoiceMode) {
                 let enabled = !assistant.isVoiceMode
                 assistant.setVoiceMode(enabled)
@@ -234,6 +256,55 @@ struct ModuleAccessoriesView: View {
                 }
             }
         }
+    }
+}
+
+extension ModuleAccessoriesView {
+    /// "Claude", "ChatGPT", or the service behind an own key.
+    static func providerLabel(_ config: AssistantConfig) -> String {
+        guard !config.provider.isCLI else { return config.provider.title }
+        return AssistantAPIPreset.matching(config.baseURL)?.title ?? L10n.t(.asstOwnKey)
+    }
+}
+
+/// A header action that has to be read, not guessed from a glyph: the
+/// assistant's provider. Same hover and height as `HeaderIconButton`.
+struct HeaderTextButton: View {
+    let label: String
+    var help: String?
+    let action: () -> Void
+
+    @State private var hovered = false
+
+    init(_ label: String, help: String? = nil, action: @escaping () -> Void) {
+        self.label = label
+        self.help = help
+        self.action = action
+    }
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Text(label)
+                    .font(Theme.subFont)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 8, weight: .semibold))
+            }
+            .foregroundStyle(hovered ? Theme.textSecondary : Theme.textTertiary)
+            .padding(.horizontal, 8)
+            .frame(height: 28)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(hovered ? Theme.raisedFill : .clear)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PressableStyle())
+        .onHover { hovered = $0 }
+        .animation(.easeOut(duration: 0.15), value: hovered)
+        .help(help ?? "")
     }
 }
 

@@ -11,15 +11,15 @@ struct AssistantModuleView: View {
     @FocusState private var composerFocused: Bool
 
     var body: some View {
-        if assistant.config == nil {
-            setupPrompt
+        // The demo's scripted provider is not a real one to set up.
+        if !assistant.isDemo, assistant.setup.isOpen {
+            AssistantSetupView(flow: assistant.setup) {
+                voice.stop()
+                assistant.removeConfig()
+            }
         } else {
             chat
         }
-    }
-
-    private var setupPrompt: some View {
-        ModuleSetupPrompt(title: L10n.t(.asstSetupTitle), sublabel: L10n.t(.asstSetupSub))
     }
 
     private var chat: some View {
@@ -38,10 +38,15 @@ struct AssistantModuleView: View {
             // Same live dictation line the Notes module shows: the words
             // appear as they are recognised, before the turn is sent.
             SpeechStatusRow(speech: speech)
+            if showsSuggestions {
+                suggestions
+                    .transition(.opacity)
+            }
             composer
         }
         .animation(Theme.stateSpring, value: speech.isRecording)
         .animation(Theme.stateSpring, value: assistant.pendingPlaybook)
+        .animation(Theme.stateSpring, value: showsSuggestions)
         // Answers are spoken from here, not from the service, so the audio
         // follows the view that is actually on screen.
         .onChange(of: assistant.pendingSpeech) { _, pending in
@@ -49,6 +54,42 @@ struct AssistantModuleView: View {
             voice.speak(text, locale: L10n.shared.language.speechLocale)
         }
         .onDisappear { voice.stop() }
+    }
+
+    private var showsSuggestions: Bool {
+        AssistantSuggestion.isOffered(
+            transcriptIsEmpty: assistant.transcript.isEmpty,
+            isThinking: assistant.isThinking
+        )
+    }
+
+    /// Four questions to start from, in one row that scrolls sideways. A
+    /// click sends the question at once; the row is gone after the first
+    /// message.
+    private var suggestions: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                ForEach(AssistantSuggestion.allCases) { suggestion in
+                    let shape = RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous)
+                    Button {
+                        voice.stop()
+                        assistant.send(suggestion.text)
+                    } label: {
+                        Text(suggestion.text)
+                            .font(Theme.subFont)
+                            .fontWeight(.medium)
+                            .lineLimit(1)
+                            .foregroundStyle(Theme.textSecondary)
+                            .padding(.horizontal, 12)
+                            .frame(height: 30)
+                            .background(shape.fill(Theme.cardFill))
+                            .overlay(shape.stroke(Theme.hairlineSoft, lineWidth: 1))
+                            .contentShape(shape)
+                    }
+                    .buttonStyle(PressableStyle())
+                }
+            }
+        }
     }
 
     private var transcript: some View {

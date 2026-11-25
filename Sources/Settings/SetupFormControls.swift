@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Shared scaffolding for the account forms on the Settings → Accounts page
-/// (mail, assistant, and whatever connects next): the check-probe state,
+/// (mail, and whatever connects next): the check-probe state,
 /// the boxed text-field row, and the Check / Remove / Save action row.
 
 /// State of the form's connectivity probe.
