@@ -94,7 +94,7 @@ enum L10nKey {
 
     // Timer
     case focusReady, focusRunning, timerStart, timerPause, timerReset, timerDoneNote
-    case timerLeftOf, timerLength, timerRingAt, timerSet, timerEndsAt
+    case timerLeftOf, timerAlarm, timerSet, timerEndsAt
 
     // Media
     case mediaIdle, mediaSilent, mediaNoSignal
@@ -237,8 +237,7 @@ enum L10nKey {
         case .timerReset: return ["Reset", "Сброс", "Réinitialiser", "Reiniciar", "重置", "Repor", "Zurücksetzen", "Azzera", "リセット", "재설정"]
         case .timerDoneNote: return ["Sound and a notice when it ends", "Звук и уведомление по окончании", "Son et notification à la fin", "Sonido y aviso al terminar", "结束时播放声音并提示", "Som e aviso no fim", "Ton und Hinweis am Ende", "Suono e avviso alla fine", "終了時に音と通知", "끝나면 소리와 알림"]
         case .timerLeftOf: return ["left of %d min", "осталось из %d мин", "restant sur %d min", "restan de %d min", "剩余 · 共 %d 分钟", "restam de %d min", "übrig von %d Min", "rimasti su %d min", "残り · 全 %d 分", "남음 · 총 %d분"]
-        case .timerLength: return ["Length", "Длительность", "Durée", "Duración", "时长", "Duração", "Dauer", "Durata", "長さ", "길이"]
-        case .timerRingAt: return ["Ring at", "Будильник на", "Sonner à", "Sonar a las", "响铃时间", "Tocar às", "Klingeln um", "Suona alle", "鳴らす時刻", "울릴 시각"]
+        case .timerAlarm: return ["Alarm", "Будильник", "Alarme", "Alarma", "闹钟", "Alarme", "Wecker", "Sveglia", "アラーム", "알람"]
         case .timerSet: return ["Set", "Завести", "Régler", "Fijar", "设定", "Definir", "Stellen", "Imposta", "セット", "설정"]
         case .timerEndsAt: return ["Ends at %@", "Закончится в %@", "Fin à %@", "Termina a las %@", "%@ 结束", "Termina às %@", "Endet um %@", "Finisce alle %@", "%@ に終了", "%@에 종료"]
 
