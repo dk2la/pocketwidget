@@ -75,6 +75,11 @@ npm run preview  # serves the built dist/ as-is, http://localhost:4321
   on their own. They must all stay the same 565 × 900 frame: the first screen
   stacks six of them in one box and fades between them, and `Hero.astro`
   holds the position of the lit strip icon in each.
+- `src/pages/sitemap.xml.ts` — `/sitemap.xml`, the list of pages search
+  engines should index. Add a path there when a page is added.
+  `public/robots.txt` points to it. The landing page also carries structured
+  data (schema.org `WebSite` and `SoftwareApplication`) built in
+  `index.astro`.
 - `public/` — files copied to the site root unchanged, including `og.png`,
   the link preview image.
 - `scripts/og.html` — the source of `public/og.png`. Not part of the build;
