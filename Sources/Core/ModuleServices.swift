@@ -13,6 +13,7 @@ final class ModuleServices {
     let mediaCenter = MediaCenter()
     let calendarService = CalendarService()
     let statsService = SystemStatsService()
+    let processMonitor = ProcessMonitor()
     let shelfStore = ShelfStore(defaults: .app)
     let clipboardStore = ClipboardStore()
     let timerService = TimerService()

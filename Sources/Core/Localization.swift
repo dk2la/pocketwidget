@@ -165,6 +165,7 @@ enum L10nKey {
     // Metrics
     case sysMemory, sysNetwork, sysBattery, sysCharging, sysVolume, sysNow, sysLiveNote
     case sysAverage, sysPeak, sysLowest, sysLastMinutes, sysDownload, sysUpload, sysMetricsSection
+    case sysProcessesSection, sysProcessesLoading
 
     // Settings
     case setTitle, setGeneral, setAppearance, setModules, setHotkeys
@@ -473,6 +474,8 @@ enum L10nKey {
         case .sysDownload: return ["Download", "Загрузка", "Réception", "Descarga", "下载", "Download", "Empfang", "Download", "ダウンロード", "다운로드"]
         case .sysUpload: return ["Upload", "Отдача", "Envoi", "Subida", "上传", "Upload", "Senden", "Upload", "アップロード", "업로드"]
         case .sysMetricsSection: return ["Metrics", "Метрики", "Métriques", "Métricas", "指标", "Métricas", "Metriken", "Metriche", "メトリクス", "지표"]
+        case .sysProcessesSection: return ["Top processes", "Самые активные процессы", "Processus les plus actifs", "Procesos más activos", "占用最高的进程", "Processos mais ativos", "Aktivste Prozesse", "Processi più attivi", "負荷の高いプロセス", "부하가 큰 프로세스"]
+        case .sysProcessesLoading: return ["Reading processes…", "Читаем процессы…", "Lecture des processus…", "Leyendo procesos…", "正在读取进程…", "A ler processos…", "Prozesse werden gelesen…", "Lettura dei processi…", "プロセスを読み込み中…", "프로세스 읽는 중…"]
 
         case .setCheckUpdates: return ["Check for Updates", "Проверить обновления", "Rechercher des mises à jour", "Buscar actualizaciones", "检查更新", "Buscar atualizações", "Nach Updates suchen", "Verifica aggiornamenti", "アップデートを確認", "업데이트 확인"]
         case .setTitle: return ["Settings", "Настройки", "Réglages", "Ajustes", "设置", "Ajustes", "Einstellungen", "Impostazioni", "設定", "설정"]
