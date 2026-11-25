@@ -37,10 +37,16 @@ enum ProcessReader {
     }
 
     private static func name(of pid: pid_t) -> String {
-        var buffer = [CChar](repeating: 0, count: Int(MAXCOMLEN) * 2 + 1)
-        guard proc_name(pid, &buffer, UInt32(buffer.count)) > 0 else { return "\(pid)" }
+        var short = [CChar](repeating: 0, count: Int(MAXCOMLEN) * 2 + 1)
+        let shortName = proc_name(pid, &short, UInt32(short.count)) > 0 ? string(short) : "\(pid)"
+        var path = [CChar](repeating: 0, count: Int(MAXPATHLEN) * 4)
+        let pathName = proc_pidpath(pid, &path, UInt32(path.count)) > 0 ? string(path) : nil
+        return ProcessName.display(path: pathName, shortName: shortName)
+    }
+
+    private static func string(_ buffer: [CChar]) -> String {
         let bytes = buffer.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }
-        return String(decoding: bytes, as: UTF8.self)
+        return String(bytes: bytes, encoding: .utf8) ?? ""
     }
 }
 

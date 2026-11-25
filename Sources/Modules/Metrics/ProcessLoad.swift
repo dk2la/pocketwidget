@@ -104,6 +104,51 @@ struct ProcessLoad: Equatable, Identifiable, Sendable {
     }
 }
 
+/// Display name of a process from its executable path. `proc_name` cuts
+/// names at 32 characters and says nothing about which app a helper
+/// belongs to; the path knows both.
+enum ProcessName {
+    /// Longest "App helper" name before the app prefix is dropped.
+    static let maxLength = 40
+    /// Folders that say nothing about the tool inside them.
+    private static let genericFolders: Set<String> = ["versions", "version", "bin", "libexec", "current", "sbin"]
+
+    static func display(path: String?, shortName: String) -> String {
+        guard let path, !path.isEmpty else { return shortName }
+        var components = path.split(separator: "/").map(String.init)
+        guard let basename = components.popLast() else { return shortName }
+
+        // Versioned installs ("claude/versions/2.1.332"): name the tool by
+        // the nearest meaningful folder.
+        if isVersion(basename) {
+            while let folder = components.popLast() {
+                if !isVersion(folder), !genericFolders.contains(folder.lowercased()) {
+                    return folder
+                }
+            }
+            return shortName
+        }
+
+        // Inside an app bundle: tie the helper to the outermost app.
+        if let range = path.range(of: ".app/Contents/") {
+            let appName = String(path[..<range.lowerBound]).split(separator: "/").last.map(String.init) ?? ""
+            if appName.isEmpty || basename.hasPrefix(appName) { return basename }
+            // "PyCharm.app/…/pycharm": the main executable, named like the app.
+            if basename.caseInsensitiveCompare(appName) == .orderedSame { return appName }
+            let combined = "\(appName) \(basename)"
+            return combined.count <= maxLength ? combined : basename
+        }
+
+        return basename.count > shortName.count ? basename : shortName
+    }
+
+    /// "2.1.332", "12": digits and dots only, starting with a digit.
+    private static func isVersion(_ name: String) -> Bool {
+        guard let first = name.first, first.isNumber else { return false }
+        return name.allSatisfy { $0.isNumber || $0 == "." }
+    }
+}
+
 /// Mach absolute time → nanoseconds. On Intel the timebase is 1/1; on
 /// Apple silicon one tick is 125/3 ns, and libproc's task times are in ticks.
 enum MachTime {

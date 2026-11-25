@@ -123,3 +123,60 @@ final class ProcessLoadTests: XCTestCase {
         XCTAssertEqual(ProcessLoad.formatMemory(20 * 1_073_741_824), "20.0 GB")
     }
 }
+
+/// Names for processes that are not apps: the full executable name instead
+/// of libproc's 32-character one, helpers tied to their app, and versioned
+/// binaries named after their folder.
+final class ProcessNameTests: XCTestCase {
+    func testNoPathKeepsTheShortName() {
+        XCTAssertEqual(ProcessName.display(path: nil, shortName: "launchd"), "launchd")
+        XCTAssertEqual(ProcessName.display(path: "", shortName: "launchd"), "launchd")
+    }
+
+    func testLongerBasenameBeatsTruncatedShortName() {
+        let path = "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/"
+            + "Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)"
+        XCTAssertEqual(
+            ProcessName.display(path: path, shortName: "Google Chrome Helper (Renderer"),
+            "Google Chrome Helper (Renderer)"
+        )
+        XCTAssertEqual(ProcessName.display(path: "/usr/libexec/trustd", shortName: "trustd"), "trustd")
+    }
+
+    func testHelperInsideAppGetsTheAppName() {
+        XCTAssertEqual(
+            ProcessName.display(path: "/Applications/Docker.app/Contents/MacOS/com.docker.backend", shortName: "com.docker.backe"),
+            "Docker com.docker.backend"
+        )
+        XCTAssertEqual(
+            ProcessName.display(path: "/Applications/Safari.app/Contents/MacOS/Safari", shortName: "Safari"),
+            "Safari"
+        )
+        XCTAssertEqual(
+            ProcessName.display(path: "/Applications/PyCharm.app/Contents/MacOS/pycharm", shortName: "pycharm"),
+            "PyCharm"
+        )
+    }
+
+    func testHelperSuffixThatDoesNotFitStaysBare() {
+        let helper = String(repeating: "x", count: 40)
+        XCTAssertEqual(
+            ProcessName.display(path: "/Applications/Some Long App.app/Contents/MacOS/\(helper)", shortName: "x"),
+            helper
+        )
+    }
+
+    func testVersionedBinaryIsNamedAfterItsFolder() {
+        XCTAssertEqual(
+            ProcessName.display(path: "/Users/me/.local/share/claude/versions/2.1.332", shortName: "2.1.332"),
+            "claude"
+        )
+        XCTAssertEqual(ProcessName.display(path: "/opt/node/bin/1.0", shortName: "1.0"), "node")
+        XCTAssertEqual(
+            ProcessName.display(path: "/Users/me/.local/share/claude/2.1.332", shortName: "2.1.332"),
+            "claude"
+        )
+        XCTAssertEqual(ProcessName.display(path: "/opt/tool/12", shortName: "12"), "tool")
+        XCTAssertEqual(ProcessName.display(path: "/opt/python3.12", shortName: "python3.12"), "python3.12")
+    }
+}
