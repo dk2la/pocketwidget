@@ -284,6 +284,19 @@ final class CommandLineEnvironmentTests: XCTestCase {
         XCTAssertNil(commandLine.locate("pocket-definitely-not-a-program"))
     }
 
+    /// An installer can put a program in a usual folder the shell's `PATH`
+    /// does not list yet, as `claude` does with `~/.local/bin`.
+    func testLocatesProgramInAUsualFolderTheShellPathMisses() throws {
+        let home = try folder("home")
+        let local = home.appendingPathComponent(".local/bin")
+        try FileManager.default.createDirectory(at: local, withIntermediateDirectories: true)
+        let program = try script("pocket-local-cli", in: local, "#!/bin/sh\nexit 0\n")
+        let commandLine = try environment(shell: fakeShell(path: "/usr/bin:/bin"), home: home)
+
+        XCTAssertEqual(commandLine.locate("pocket-local-cli")?.path, program.path)
+        XCTAssertEqual(commandLine.folders, ["/usr/bin", "/bin"])
+    }
+
     // MARK: - Regression: `env: node: No such file or directory`
 
     /// The reported bug. `codex` installed through npm starts with

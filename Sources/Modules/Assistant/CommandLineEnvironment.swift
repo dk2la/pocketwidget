@@ -72,10 +72,13 @@ final class CommandLineEnvironment: @unchecked Sendable {
         ([executable.deletingLastPathComponent().path] + folders).joined(separator: ":")
     }
 
-    /// Finds a program by name in `folders`.
+    /// Finds a program by name in `folders`, then in the usual install
+    /// folders: an installer can put a program where the shell's `PATH`
+    /// does not reach yet (`~/.local/bin`, for one), and it still runs,
+    /// because its own folder leads the `PATH` it is started with.
     func locate(_ name: String) -> URL? {
         let manager = FileManager.default
-        for folder in folders {
+        for folder in Self.withoutRepeats(folders + usualFolders()) {
             let candidate = URL(fileURLWithPath: folder).appendingPathComponent(name)
             if manager.isExecutableFile(atPath: candidate.path) {
                 return candidate
