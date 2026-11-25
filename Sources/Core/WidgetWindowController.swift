@@ -127,7 +127,7 @@ final class WidgetWindowController: NSObject {
         if viewModel.selectedTab == nil {
             openPanel(tab)
         } else if viewModel.selectedTab != tab {
-            viewModel.setSelectedTab(tab)
+            switchPanel(to: tab)
         }
     }
 
@@ -273,8 +273,9 @@ final class WidgetWindowController: NSObject {
         }
         // The open tab may have been disabled — fall back to the first
         // enabled one (there is always at least one).
-        if let tab = viewModel.selectedTab, !settings.isEnabled(tab) {
-            viewModel.setSelectedTab(settings.orderedEnabledTabs.first)
+        if let tab = viewModel.selectedTab, !settings.isEnabled(tab),
+           let first = settings.orderedEnabledTabs.first {
+            switchPanel(to: first)
         }
         // The pin toggle can change while a panel is open.
         if viewModel.selectedTab != nil {
@@ -335,8 +336,7 @@ final class WidgetWindowController: NSObject {
         if viewModel.selectedTab == tab {
             closePanel()
         } else if viewModel.selectedTab != nil {
-            // Window is already sized for the panel — switch in place.
-            viewModel.setSelectedTab(tab)
+            switchPanel(to: tab)
         } else {
             openPanel(tab)
         }
@@ -353,12 +353,19 @@ final class WidgetWindowController: NSObject {
         // strip's local frame shifts in the same tick, so it does not move
         // on screen), animate the panel in on the next tick once the
         // window's coordinate space is stable.
-        applyExpandedFrame()
+        applyExpandedFrame(for: tab)
         openTask = Task { [weak self] in
             guard !Task.isCancelled else { return }
             self?.viewModel.setSelectedTab(tab)
         }
         installOutsideClickMonitors()
+    }
+
+    /// Another panel while one is open: switched in place. The window is
+    /// re-laid out first, as Settings has a size of its own.
+    private func switchPanel(to tab: ModuleTab) {
+        applyExpandedFrame(for: tab)
+        viewModel.setSelectedTab(tab)
     }
 
     private func closePanel() {
@@ -457,26 +464,21 @@ final class WidgetWindowController: NSObject {
         }
     }
 
-    private func applyExpandedFrame() {
+    /// Lays the window out for `tab`'s panel — the open one by default; an
+    /// opening panel passes its tab, as it is selected a tick later.
+    private func applyExpandedFrame(for tab: ModuleTab? = nil) {
         guard let screen = currentScreen else { return }
+        let size = settings.panelSize(for: tab ?? viewModel.selectedTab)
         applyLayout(WidgetGeometry.expandedLayout(
             edge: settings.widgetEdge,
             offset: settings.widgetOffset,
             iconCount: iconCount,
-            panelSize: widgetPanelSize(on: screen),
+            panelSize: CGSize(
+                width: size.width,
+                height: min(size.height, screen.visibleFrame.height - 2 * WidgetMetrics.edgeInset)
+            ),
             in: screen.visibleFrame
         ))
-    }
-
-    /// User-sized in both axes, clamped to the screen.
-    private func widgetPanelSize(on screen: NSScreen) -> CGSize {
-        CGSize(
-            width: settings.widgetPanelWidth,
-            height: min(
-                settings.widgetPanelHeight,
-                screen.visibleFrame.height - 2 * WidgetMetrics.edgeInset
-            )
-        )
     }
 
     // MARK: - Panel resize
@@ -485,26 +487,27 @@ final class WidgetWindowController: NSObject {
         let mouseX = NSEvent.mouseLocation.x
         guard let startX = resizeStartMouseX, let startWidth = resizeStartWidth else {
             resizeStartMouseX = mouseX
-            resizeStartWidth = settings.widgetPanelWidth
+            resizeStartWidth = settings.panelSize(for: viewModel.selectedTab).width
             return
         }
-        // The grip sits on the panel's outer edge; on a right-docked widget
+        // The grips resize whichever size the open panel uses. The grip
+        // sits on the panel's outer edge; on a right-docked widget
         // the panel grows leftwards, so the axis flips.
         let sign: CGFloat = settings.widgetEdge == .right ? -1 : 1
-        settings.setWidgetPanelWidth(startWidth + sign * (mouseX - startX))
+        settings.setPanelWidth(startWidth + sign * (mouseX - startX), for: viewModel.selectedTab)
     }
 
     private func resizeEnded() {
         resizeStartMouseX = nil
         resizeStartWidth = nil
-        log.info("panel width -> \(Int(self.settings.widgetPanelWidth), privacy: .public)")
+        log.info("panel width -> \(Int(self.settings.panelSize(for: self.viewModel.selectedTab).width), privacy: .public)")
     }
 
     private func heightResizeChanged() {
         let mouseY = NSEvent.mouseLocation.y
         guard let startY = resizeStartMouseY, let startHeight = resizeStartHeight else {
             resizeStartMouseY = mouseY
-            resizeStartHeight = settings.widgetPanelHeight
+            resizeStartHeight = settings.panelSize(for: viewModel.selectedTab).height
             return
         }
         // Side docks keep the panel centered on the strip, so both ends move
@@ -515,13 +518,13 @@ final class WidgetWindowController: NSObject {
         case .top: startY - mouseY // grip on the bottom edge, grows downward
         case .left, .right: (startY - mouseY) * 2
         }
-        settings.setWidgetPanelHeight(startHeight + delta)
+        settings.setPanelHeight(startHeight + delta, for: viewModel.selectedTab)
     }
 
     private func heightResizeEnded() {
         resizeStartMouseY = nil
         resizeStartHeight = nil
-        log.info("panel height -> \(Int(self.settings.widgetPanelHeight), privacy: .public)")
+        log.info("panel height -> \(Int(self.settings.panelSize(for: self.viewModel.selectedTab).height), privacy: .public)")
     }
 
     private func applyLayout(_ layout: WidgetGeometry.ExpandedLayout) {

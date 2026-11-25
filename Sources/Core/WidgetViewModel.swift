@@ -18,6 +18,12 @@ final class WidgetViewModel {
     /// lock screen.
     var isLocked = false
 
+    /// Page shown by the Settings module; deep links set it before opening.
+    let settingsPage = SettingsPageSelection()
+    /// Settings was opened from the welcome tour: its page list then leads
+    /// with "‹ Back" to the tour page it left (`onResumeOnboarding`).
+    var cameFromOnboarding = false
+
     var edge: WidgetEdge = .right
     var stripFrame: CGRect = .zero
     var panelFrame: CGRect = .zero
@@ -25,6 +31,8 @@ final class WidgetViewModel {
     @ObservationIgnored var onTabTapped: ((ModuleTab) -> Void)?
     @ObservationIgnored var onClose: (() -> Void)?
     @ObservationIgnored var onRestore: (() -> Void)?
+    /// Back from a settings detour to the tour (see `cameFromOnboarding`).
+    @ObservationIgnored var onResumeOnboarding: (() -> Void)?
     /// Drag reads the global cursor itself (NSEvent.mouseLocation) — the
     /// window moves mid-drag, so gesture-local coordinates would feed back.
     @ObservationIgnored var onDragChanged: (() -> Void)?

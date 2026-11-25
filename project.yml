@@ -84,6 +84,8 @@ targets:
       - path: Sources/Services/SpeechCaptureService.swift
       - path: Sources/Core/WidgetGeometry.swift
       - path: Sources/Core/StripDisplay.swift
+      - path: Sources/Core/StripLineup.swift
+      - path: Sources/Core/ModuleTab.swift
       - path: Sources/Core/PanelHold.swift
       - path: Sources/Modules/Shelf/ShelfStore.swift
       - path: Sources/Modules/Shelf/ShelfFilePicker.swift

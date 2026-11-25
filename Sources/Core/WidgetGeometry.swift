@@ -34,6 +34,9 @@ enum WidgetMetrics {
     static let panelMinHeight: CGFloat = 260
     static let panelMaxHeight: CGFloat = 1200
     static let panelDefaultHeight: CGFloat = 360
+    /// The Settings module's panel: sized on its own, so a roomy Settings
+    /// does not make every module large. Same limits as the module panel.
+    static let settingsPanelDefaultSize = CGSize(width: 720, height: 520)
 }
 
 /// Pure frame math for the edge-docked widget. All rects are in Cocoa screen
@@ -222,6 +225,14 @@ enum WidgetGeometry {
             maxHeight = min(maxHeight, visibleFrame.height - 2 * WidgetMetrics.edgeInset)
         }
         return min(max(height, WidgetMetrics.panelMinHeight), maxHeight)
+    }
+
+    /// Both axes at once (the Settings panel size).
+    static func clampedPanelSize(_ size: CGSize, screenFrame: CGRect?, visibleFrame: CGRect?) -> CGSize {
+        CGSize(
+            width: clampedPanelWidth(size.width, screenFrame: screenFrame),
+            height: clampedPanelHeight(size.height, visibleFrame: visibleFrame)
+        )
     }
 
     /// Cocoa screen rect → window-local SwiftUI rect (y flipped).
