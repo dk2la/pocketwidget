@@ -8,9 +8,47 @@ import Desk from '../components/Desk.astro';
 import Sky from '../components/Sky.astro';
 import Price from '../components/Price.astro';
 import Faq from '../components/Faq.astro';
+import { downloadURL, price, siteOrigin } from '../config';
+
+// Structured data for search engines: what the site is called and what the
+// app is. Kept to facts that are also visible on the page.
+const origin = (Astro.site ?? new URL(siteOrigin)).href;
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      name: 'Pocket',
+      alternateName: ['Pocket widget', 'pocketwidget'],
+      url: origin,
+    },
+    {
+      '@type': 'SoftwareApplication',
+      name: 'Pocket',
+      description:
+        'Pocket is a small widget for your Mac that opens right where you work. Move it, size it, put it anywhere.',
+      url: origin,
+      image: new URL('/og.png', origin).href,
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'macOS',
+      downloadUrl: downloadURL,
+      offers: {
+        '@type': 'Offer',
+        price: price.launch.replace('$', ''),
+        priceCurrency: 'USD',
+      },
+    },
+  ],
+};
 ---
 
 <Base>
+  <script
+    slot="head"
+    type="application/ld+json"
+    is:inline
+    set:html={JSON.stringify(structuredData)}
+  />
   <Hero />
   <Desk />
   <Sky />
