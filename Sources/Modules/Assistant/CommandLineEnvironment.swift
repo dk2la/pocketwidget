@@ -87,7 +87,8 @@ final class CommandLineEnvironment: @unchecked Sendable {
     // MARK: - Usual folders
 
     /// Where command-line programs usually live, for when the shell is no
-    /// help: the app's own `PATH`, then the common install folders.
+    /// help: the app's own `PATH`, then the common install folders,
+    /// including the ones nvm, fnm and pnpm keep `node` in.
     private func usualFolders() -> [String] {
         let home = home.path
         var folders = Self.entries(of: environment["PATH"] ?? "")
@@ -96,13 +97,77 @@ final class CommandLineEnvironment: @unchecked Sendable {
             "\(home)/.bun/bin",
             "\(home)/.volta/bin",
             "\(home)/.npm-global/bin",
-            "\(home)/.nvm/versions/node/current/bin",
+        ]
+        folders += nvmFolders() + fnmFolders() + pnpmFolders()
+        folders += [
             "\(home)/.cargo/bin",
             "/opt/homebrew/bin",
             "/usr/local/bin",
             "/usr/bin",
+            "/bin",
+            "/usr/sbin",
+            "/sbin",
         ]
         return Self.withoutRepeats(folders)
+    }
+
+    /// nvm keeps each node in `<nvm>/versions/node/<version>/bin`, where
+    /// `<nvm>` is `NVM_DIR` or `~/.nvm`.
+    private func nvmFolders() -> [String] {
+        let root = variable("NVM_DIR") ?? "\(home.path)/.nvm"
+        return versionFolders(in: "\(root)/versions/node", suffix: "bin")
+    }
+
+    /// fnm keeps each node in `<fnm>/node-versions/<version>/installation/bin`
+    /// and links the default one at `<fnm>/aliases/default`. `<fnm>` is
+    /// `FNM_DIR`, or the first that exists of the XDG data folder, `~/.fnm`
+    /// and `~/Library/Application Support/fnm`; all are listed, since an
+    /// older install can sit beside a newer one.
+    private func fnmFolders() -> [String] {
+        let home = home.path
+        let roots = [
+            variable("FNM_DIR"),
+            "\(variable("XDG_DATA_HOME") ?? "\(home)/.local/share")/fnm",
+            "\(home)/.fnm",
+            "\(home)/Library/Application Support/fnm",
+        ].compactMap { $0 }
+        return roots.flatMap { root in
+            existing(["\(root)/aliases/default/bin"])
+                + versionFolders(in: "\(root)/node-versions", suffix: "installation/bin")
+        }
+    }
+
+    /// pnpm puts globally installed programs, and the node it manages, in
+    /// its home folder: `PNPM_HOME`, else `$XDG_DATA_HOME/pnpm`, else
+    /// `~/Library/pnpm`.
+    private func pnpmFolders() -> [String] {
+        let roots = [
+            variable("PNPM_HOME"),
+            variable("XDG_DATA_HOME").map { "\($0)/pnpm" },
+            "\(home.path)/Library/pnpm",
+        ].compactMap { $0 }
+        return existing(roots.flatMap { [$0, "\($0)/bin"] })
+    }
+
+    /// An absolute folder named by one of the app's variables.
+    private func variable(_ name: String) -> String? {
+        guard let value = environment[name], value.hasPrefix("/") else { return nil }
+        return value
+    }
+
+    /// `<parent>/<version>/<suffix>` for every installed version, newest
+    /// first, so a current node is preferred over one left from years ago.
+    private func versionFolders(in parent: String, suffix: String) -> [String] {
+        let versions = (try? FileManager.default.contentsOfDirectory(atPath: parent)) ?? []
+        let newestFirst = versions.sorted { $0.compare($1, options: .numeric) == .orderedDescending }
+        return existing(newestFirst.map { "\(parent)/\($0)/\(suffix)" })
+    }
+
+    private func existing(_ folders: [String]) -> [String] {
+        folders.filter { folder in
+            var isFolder: ObjCBool = false
+            return FileManager.default.fileExists(atPath: folder, isDirectory: &isFolder) && isFolder.boolValue
+        }
     }
 
     // MARK: - Asking the shell

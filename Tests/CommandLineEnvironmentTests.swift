@@ -132,9 +132,145 @@ final class CommandLineEnvironmentTests: XCTestCase {
     }
 
     func testMissingShellFallsBackToTheUsualFolders() throws {
-        let commandLine = try environment(shell: sandbox.appendingPathComponent("no-such-shell"))
+        let missing = try environment(shell: sandbox.appendingPathComponent("no-such-shell"))
+        let silent = try environment(shell: silentShell())
 
-        XCTAssertTrue(commandLine.folders.contains("/usr/bin"))
+        XCTAssertTrue(missing.folders.contains("/usr/bin"))
+        XCTAssertEqual(missing.folders, silent.folders)
+    }
+
+    // MARK: - Fallback folders
+
+    /// A shell that exits at once without answering.
+    private func silentShell() throws -> URL {
+        try script("silent-\(UUID().uuidString)", in: folder("shells"), "#!/bin/sh\nexit 1\n")
+    }
+
+    /// A home folder with node installed by nvm, fnm and pnpm, the way each
+    /// of them lays it out by default on macOS.
+    private struct NodeManagerHome {
+        var home: URL
+        var nvmOld: URL
+        var nvmNew: URL
+        var fnmDefault: URL
+        var fnmVersion: URL
+        var pnpm: URL
+    }
+
+    private func nodeManagerHome() throws -> NodeManagerHome {
+        let home = try folder("home-\(UUID().uuidString)")
+        func make(_ path: String) throws -> URL {
+            let url = home.appendingPathComponent(path)
+            try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+            return url
+        }
+        let fnmVersion = try make(".local/share/fnm/node-versions/v21.7.3/installation/bin")
+        let aliases = try make(".local/share/fnm/aliases")
+        // fnm's default alias is a link to one installation.
+        try FileManager.default.createSymbolicLink(
+            at: aliases.appendingPathComponent("default"),
+            withDestinationURL: fnmVersion.deletingLastPathComponent()
+        )
+        return NodeManagerHome(
+            home: home,
+            nvmOld: try make(".nvm/versions/node/v9.11.2/bin"),
+            nvmNew: try make(".nvm/versions/node/v22.3.0/bin"),
+            fnmDefault: aliases.appendingPathComponent("default/bin"),
+            fnmVersion: fnmVersion,
+            pnpm: try make("Library/pnpm")
+        )
+    }
+
+    func testShellThatDoesNotAnswerGivesTheFallbackFolders() throws {
+        let fake = try nodeManagerHome()
+        let commandLine = try environment(shell: hungShell(), home: fake.home, timeLimit: 0.5)
+
+        let folders = commandLine.folders
+
+        XCTAssertEqual(Array(folders.prefix(2)), ["/usr/bin", "/bin"], "the app's own PATH leads the fallback")
+        for expected in [fake.nvmOld, fake.nvmNew, fake.fnmDefault, fake.fnmVersion, fake.pnpm] {
+            XCTAssertTrue(folders.contains(expected.path), "missing \(expected.path)")
+        }
+        for usual in ["\(fake.home.path)/.local/bin", "/opt/homebrew/bin", "/usr/local/bin"] {
+            XCTAssertTrue(folders.contains(usual), "missing \(usual)")
+        }
+        let old = try XCTUnwrap(folders.firstIndex(of: fake.nvmOld.path))
+        let new = try XCTUnwrap(folders.firstIndex(of: fake.nvmNew.path))
+        XCTAssertLessThan(new, old, "the newest node wins, and v22 is newer than v9")
+        XCTAssertEqual(
+            commandLine.path(for: URL(fileURLWithPath: "/apps/tools/codex")),
+            (["/apps/tools"] + folders).joined(separator: ":"),
+            "the program's own folder still comes first"
+        )
+    }
+
+    func testEmptyOrUnusableShellAnswerGivesTheFallbackFolders() throws {
+        let fake = try nodeManagerHome()
+        let fallback = try environment(shell: silentShell(), home: fake.home).folders
+        XCTAssertTrue(fallback.contains(fake.nvmNew.path))
+
+        // Nothing at all, only separators, and only relative folders.
+        for answer in ["", ":::", "bin:.:relative/folder"] {
+            let commandLine = try environment(shell: fakeShell(path: answer), home: fake.home)
+            XCTAssertEqual(commandLine.folders, fallback, "answer \"\(answer)\" is not usable")
+        }
+    }
+
+    func testNodeManagerFoldersFollowTheirEnvironmentVariables() throws {
+        let home = try folder("home-plain")
+        let nvm = try folder("custom-nvm/versions/node/v20.0.0/bin")
+        let fnm = try folder("custom-fnm/node-versions/v20.0.0/installation/bin")
+        let pnpm = try folder("custom-pnpm")
+        let xdgFnm = try folder("xdg/fnm/node-versions/v18.0.0/installation/bin")
+        let commandLine = try environment(shell: silentShell(), home: home, variables: [
+            "PATH": "/usr/bin",
+            "NVM_DIR": sandbox.appendingPathComponent("custom-nvm").path,
+            "FNM_DIR": sandbox.appendingPathComponent("custom-fnm").path,
+            "PNPM_HOME": pnpm.path,
+            "XDG_DATA_HOME": sandbox.appendingPathComponent("xdg").path,
+        ])
+
+        for expected in [nvm, fnm, pnpm, xdgFnm] {
+            XCTAssertTrue(commandLine.folders.contains(expected.path), "missing \(expected.path)")
+        }
+    }
+
+    func testProgramInstalledOnlyInANodeManagerFolderIsFound() throws {
+        let fake = try nodeManagerHome()
+        let nvm = try script("pocket-nvm-cli", in: fake.nvmNew, "#!/bin/sh\n")
+        let fnm = try script("pocket-fnm-cli", in: fake.fnmVersion, "#!/bin/sh\n")
+        let pnpm = try script("pocket-pnpm-cli", in: fake.pnpm, "#!/bin/sh\n")
+        let commandLine = try environment(shell: silentShell(), home: fake.home)
+
+        XCTAssertEqual(commandLine.locate("pocket-nvm-cli")?.path, nvm.path)
+        XCTAssertEqual(
+            commandLine.locate("pocket-fnm-cli")?.resolvingSymlinksInPath().path,
+            fnm.resolvingSymlinksInPath().path
+        )
+        XCTAssertEqual(commandLine.locate("pocket-pnpm-cli")?.path, pnpm.path)
+    }
+
+    /// "Found" and "can run" agree: with no help from the shell, a `codex`
+    /// that npm put next to an nvm-installed `node` is both found and able
+    /// to start, because both steps read the same list of folders.
+    func testProgramFoundInFallbackFolderRunsWithFallbackPath() async throws {
+        let fake = try nodeManagerHome()
+        let tools = try folder("fallback-tools")
+        try script("node", in: fake.nvmNew, "#!/bin/sh\nprintf '%s' \"$PATH\"\n")
+        try script("codex", in: tools, "#!/usr/bin/env node\n")
+        // The app's own PATH knows the program but not node, which only the
+        // fallback folders can supply.
+        let commandLine = try environment(
+            shell: silentShell(),
+            home: fake.home,
+            variables: ["PATH": "\(tools.path):/usr/bin:/bin"]
+        )
+        let client = CLIAssistantClient(provider: .codex, model: "", commandLine: commandLine)
+
+        XCTAssertTrue(client.isInstalled)
+        let answer = try await client.send(system: "system", prompt: "prompt")
+
+        XCTAssertEqual(answer, ([tools.path] + commandLine.folders).joined(separator: ":"))
     }
 
     // MARK: - Finding programs
