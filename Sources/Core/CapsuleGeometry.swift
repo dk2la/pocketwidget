@@ -2,15 +2,10 @@ import AppKit
 
 @MainActor
 enum CapsuleGeometry {
-    /// The screen with a camera housing, falling back to the main screen.
-    static var targetScreen: NSScreen? {
-        NSScreen.screens.first { $0.safeAreaInsets.top > 0 } ?? NSScreen.main
-    }
-
     /// Closed capsule size: exactly the camera housing plus margins for the
     /// top arcs, so the capsule body lines up with the camera housing seamlessly.
     static func closedSize(on screen: NSScreen) -> CGSize {
-        guard screen.safeAreaInsets.top > 0,
+        guard screen.hasCameraHousing,
               let left = screen.auxiliaryTopLeftArea,
               let right = screen.auxiliaryTopRightArea
         else {
@@ -31,11 +26,6 @@ enum CapsuleGeometry {
 
     /// `size` hanging from the top center of `screen`.
     static func topCentered(_ size: CGSize, on screen: NSScreen) -> NSRect {
-        NSRect(
-            x: screen.frame.midX - size.width / 2,
-            y: screen.frame.maxY - size.height,
-            width: size.width,
-            height: size.height
-        )
+        StripDisplay.topCentered(size, in: screen.frame)
     }
 }

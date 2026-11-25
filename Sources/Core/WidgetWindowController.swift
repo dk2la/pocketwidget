@@ -30,9 +30,6 @@ final class WidgetWindowController: NSObject {
     /// makes would otherwise bounce back through settingsDidChange and
     /// stomp the running animation.
     private var isTogglingMinimize = false
-    /// Screen the widget currently lives on. Reset to the capsule's target
-    /// screen on display changes; updated when a drag ends elsewhere.
-    private var screen: NSScreen?
     /// The lock screen was opened by itself for the current lock.
     private var didPresentLockScreen = false
     private let log = Logger(subsystem: "com.dk2la.pocket", category: "widget")
@@ -295,7 +292,6 @@ final class WidgetWindowController: NSObject {
     // MARK: - Window lifecycle
 
     private func attach() {
-        screen = CapsuleGeometry.targetScreen
         viewModel.edge = settings.widgetEdge
 
         let rootView = WidgetRootView(
@@ -314,7 +310,9 @@ final class WidgetWindowController: NSObject {
     }
 
     @objc private func screenParametersDidChange() {
-        screen = CapsuleGeometry.targetScreen
+        // The strip stays on its saved display; if that one is gone it
+        // moves to the built-in screen, same edge and offset.
+        settings.refreshStripDisplay()
         openTask?.cancel()
         collapseTask?.cancel()
         collapseTask = nil
@@ -418,12 +416,17 @@ final class WidgetWindowController: NSObject {
         let dropScreen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) }
             ?? panel.screen ?? currentScreen
         guard let dropScreen else { return }
-        screen = dropScreen
 
         let placement = WidgetGeometry.nearestPlacement(for: panel.frame, in: dropScreen.visibleFrame)
         log.info("snap edge=\(placement.edge.rawValue, privacy: .public) offset=\(placement.offset, privacy: .public)")
         viewModel.edge = placement.edge
-        settings.setWidgetPlacement(edge: placement.edge, offset: placement.offset)
+        // The drop display is saved with the edge and offset; the capsule
+        // and the panel size limits follow it from here.
+        settings.setWidgetPlacement(
+            screen: dropScreen,
+            edge: placement.edge,
+            offset: placement.offset
+        )
         applyDockedFrame(animated: true)
     }
 
@@ -434,8 +437,9 @@ final class WidgetWindowController: NSObject {
         viewModel.isLocked ? 1 : max(settings.orderedEnabledTabs.count, 1)
     }
 
+    /// The display the strip is on (see `AppSettings.stripScreen`).
     private var currentScreen: NSScreen? {
-        screen ?? CapsuleGeometry.targetScreen
+        settings.stripScreen
     }
 
     /// The window's resting frame — the strip alone, sized for the current

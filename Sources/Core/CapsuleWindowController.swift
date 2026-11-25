@@ -48,7 +48,7 @@ final class CapsuleWindowController: NSObject {
             guard let self else { return }
             self.refreshIdleState()
             // Live window resize while the user drags the panel grip.
-            if self.targetState == .expanded, let screen = CapsuleGeometry.targetScreen {
+            if self.targetState == .expanded, let screen = settings.stripScreen {
                 self.collapseTask?.cancel()
                 self.panel.setFrame(self.frame(for: .expanded, on: screen), display: true)
             }
@@ -119,7 +119,7 @@ final class CapsuleWindowController: NSObject {
     /// capsule frame — so the morph is clipped in neither direction, then
     /// settles on the new size once the spring is done.
     private func switchContent(to content: CapsuleContent) {
-        guard viewModel.content != content, let screen = CapsuleGeometry.targetScreen else { return }
+        guard viewModel.content != content, let screen = settings.stripScreen else { return }
         collapseTask?.cancel()
         expandTask?.cancel()
         let target = frame(for: .expanded, content: content, on: screen)
@@ -133,7 +133,7 @@ final class CapsuleWindowController: NSObject {
             self.viewModel.content = content
             try? await Task.sleep(for: .milliseconds(CapsuleMetrics.windowCollapseDelayMilliseconds))
             guard !Task.isCancelled, self.targetState == .expanded,
-                  let screen = CapsuleGeometry.targetScreen else { return }
+                  let screen = settings.stripScreen else { return }
             self.panel.setFrame(self.frame(for: .expanded, on: screen), display: true)
         }
     }
@@ -196,7 +196,7 @@ final class CapsuleWindowController: NSObject {
               !PermissionGuide.shared.isShowing, !viewModel.isResizingPanel,
               !PanelHold.shared.isHeld,
               panel.attachedSheet == nil, !panel.hasOwnPopupWindow,
-              let screen = CapsuleGeometry.targetScreen else { return }
+              let screen = settings.stripScreen else { return }
         if !expandedContains(location, on: screen) {
             closeSettings()
         }
@@ -244,7 +244,7 @@ final class CapsuleWindowController: NSObject {
     /// dismiss timer.
     func present(_ event: LiveEvent) {
         guard targetState != .expanded, !services.isLocked,
-              let screen = CapsuleGeometry.targetScreen else { return }
+              let screen = settings.stripScreen else { return }
         log.info("event \(String(describing: event), privacy: .public)")
         collapseTask?.cancel()
         eventShowTask?.cancel()
@@ -269,7 +269,7 @@ final class CapsuleWindowController: NSObject {
             guard !Task.isCancelled, let self else { return }
             self.viewModel.activeEvent = nil
             try? await Task.sleep(for: .milliseconds(CapsuleMetrics.windowCollapseDelayMilliseconds))
-            guard !Task.isCancelled, let screen = CapsuleGeometry.targetScreen else { return }
+            guard !Task.isCancelled, let screen = settings.stripScreen else { return }
             self.eventOwnsWindow = false
             guard self.targetState != .expanded else { return }
             // Settle into the current idle state — the state machine was
@@ -339,7 +339,7 @@ final class CapsuleWindowController: NSObject {
     }
 
     private var isCursorOverRestingCapsule: Bool {
-        guard targetState != .expanded, let screen = CapsuleGeometry.targetScreen else { return false }
+        guard targetState != .expanded, let screen = settings.stripScreen else { return false }
         let resting = eventOwnsWindow ? eventFrame(on: screen) : frame(for: targetState, on: screen)
         // One point of slack: the cursor parks on the screen's very edge.
         return resting.insetBy(dx: -1, dy: -1).contains(NSEvent.mouseLocation)
@@ -356,7 +356,7 @@ final class CapsuleWindowController: NSObject {
         guard targetState == .expanded, !settingsPinned, !viewModel.isResizingPanel else { return }
         guard !PanelHold.shared.isHeld else { return }
         guard panel.attachedSheet == nil, !panel.hasOwnPopupWindow else { return }
-        guard let screen = CapsuleGeometry.targetScreen else { return }
+        guard let screen = settings.stripScreen else { return }
         if expandedContains(NSEvent.mouseLocation, on: screen) { return }
         requestState(idleState)
     }
@@ -374,7 +374,7 @@ final class CapsuleWindowController: NSObject {
         cancelHoverOpen()
         collapseTask?.cancel()
         expandTask?.cancel()
-        guard let screen = CapsuleGeometry.targetScreen else { return }
+        guard let screen = settings.stripScreen else { return }
 
         switch newState {
         case .expanded:
@@ -427,7 +427,7 @@ final class CapsuleWindowController: NSObject {
                 collapseTask = Task { [weak self] in
                     try? await Task.sleep(for: .milliseconds(CapsuleMetrics.windowCollapseDelayMilliseconds))
                     guard !Task.isCancelled, let self,
-                          let screen = CapsuleGeometry.targetScreen else { return }
+                          let screen = settings.stripScreen else { return }
                     self.panel.setFrame(self.frame(for: newState, on: screen), display: true)
                 }
             }
@@ -435,7 +435,7 @@ final class CapsuleWindowController: NSObject {
     }
 
     private func attachToScreen() {
-        guard let screen = CapsuleGeometry.targetScreen else { return }
+        guard let screen = settings.stripScreen else { return }
         closedSize = CapsuleGeometry.closedSize(on: screen)
 
         let rootView = CapsuleRootView(
