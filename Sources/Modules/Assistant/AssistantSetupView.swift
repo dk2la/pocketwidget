@@ -131,8 +131,18 @@ struct AssistantSetupView: View {
     }
 
     private func refreshCLIInstalled() {
-        cliInstalled = !provider.isCLI
-            || CLIAssistantClient(provider: provider, model: "").isInstalled
+        guard provider.isCLI else {
+            cliInstalled = true
+            return
+        }
+        // The first lookup after launch asks the login shell for its PATH,
+        // which can take seconds; it must not hold up the form.
+        let client = CLIAssistantClient(provider: provider, model: "")
+        Task {
+            let installed = await Task.detached { client.isInstalled }.value
+            // The person may have picked another provider meanwhile.
+            if provider == client.provider { cliInstalled = installed }
+        }
     }
 
     private func switchProvider(_ newProvider: AssistantProvider) {
